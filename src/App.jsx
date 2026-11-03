@@ -393,7 +393,9 @@ export default function App() {
       <footer className="app-footer">
         <p>
           Made by Anna Ohrt. Code and research:{' '}
-          <a href="https://github.com/Anna-Ohrt/accessible-skin-editor">github.com/Anna-Ohrt/accessible-skin-editor</a>
+          <a href="https://github.com/Anna-Ohrt/accessible-skin-editor">github.com/Anna-Ohrt/accessible-skin-editor</a>.
+          Open source software used here, with its licenses:{' '}
+          <a href="https://anna-ohrt.github.io/accessible-skin-editor/third-party-notices.txt">third-party notices</a>.
         </p>
       </footer>
     </>

@@ -218,6 +218,15 @@ test('the grid works from the keyboard, and Chromium exposes it as a named grid 
   await expect(status(page)).toHaveText(/Painted dark gray\./)
 })
 
+test('ships the license text of every open source package in the site, and links to it', async ({ page, request }) => {
+  const response = await request.get('third-party-notices.txt')
+  expect(response.ok()).toBe(true)
+  const notices = await response.text()
+  for (const name of ['react', 'react-dom', 'scheduler']) expect(notices).toMatch(new RegExp(`^${name} \\S+ \\(MIT\\)$`, 'm'))
+  expect(notices.match(/Permission is hereby granted/g)).toHaveLength(3)
+  await expect(page.getByRole('link', { name: 'third-party notices' })).toHaveAttribute('href', /third-party-notices\.txt$/)
+})
+
 test('a click paints on release, sliding off cancels, and a fast drag paints a gapless line undone in one step', async ({ page }) => {
   await page.getByRole('radio', { name: 'red' }).check()
   const undo = page.getByRole('button', { name: 'Undo' })

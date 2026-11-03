@@ -39,13 +39,16 @@ Settings let you leave out the row and column, add hex codes, hide grid lines an
 
 ## Checked
 
+[TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
+
 - **48 tests** with Vitest and Testing Library: layout counts and positions, color names, tools, undo, and keyboard and screen reader behavior, found by role and name.
-- **12 browser checks** with Playwright and axe-core 4.14 in Chromium-based Microsoft Edge:
+- **13 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
   - axe found no WCAG 2.2 A or AA violations, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, and with error messages and other options showing.
   - The page reflows at 320 CSS pixels wide, with the default font and a wide one. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
   - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
   - The browser's accessibility tree has a named grid of named cells.
   - A click paints on release, sliding off cancels it, and a fast drag paints a gapless line that undoes in one step.
+  - The site ships the license text of every open source package in it.
 - **6 planted bugs**, one per new behavior. The tests caught all 6.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
@@ -67,6 +70,13 @@ Settings let you leave out the row and column, add hex codes, hide grid lines an
 
 [RESEARCH.md](RESEARCH.md) has the research behind these choices: the barriers, recommendations with sources, prior art, open questions and a test plan. [Accessible_Skin_Editor_Research.docx](Accessible_Skin_Editor_Research.docx) is the same brief as a Word document.
 
+## Licenses
+
+- The site includes three open source packages: React, React DOM and Scheduler, all under the MIT license. Their license text ships with the site in [third-party-notices.txt](https://anna-ohrt.github.io/accessible-skin-editor/third-party-notices.txt), and inside the one-file copy.
+- Where each body part sits in the texture was worked out by reading skinview3d and three.js, which are both MIT licensed. No code was copied from them.
+- No Minecraft art, textures, code or sounds are used, and the sample skin was made for this prototype.
+- This repository doesn't have a license of its own yet, so others may view it but not reuse it.
+
 ## Run it yourself
 
 Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 26 (the test tools' minimum). Run `npm install` first.
@@ -75,7 +85,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180 |
 | `npm test` | Runs the 48 tests |
-| `npm run test:e2e` | Runs the 12 browser checks. Locally they use Microsoft Edge |
+| `npm run test:e2e` | Runs the 13 browser checks. Locally they use Microsoft Edge |
 | `npm run build:single` | Writes `skin-editor.html`, the one-file copy |
 
 ## Files
@@ -91,7 +101,8 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/App.jsx` | Puts it together, and writes every status message |
 | `src/editor/` | Undo history, the status message, saving in the browser, and settings |
 | `tests/` | The 48 Vitest tests |
-| `e2e/a11y.spec.js` | The 12 browser checks |
+| `e2e/a11y.spec.js` | The 13 browser checks |
+| `TESTING.md` | What has been tested, and how to test with screen readers and players |
 | `.github/workflows/ci.yml` | Runs the tests, then publishes to GitHub Pages |
 
 Made by Anna Ohrt.

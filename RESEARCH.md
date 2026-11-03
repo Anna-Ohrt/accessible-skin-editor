@@ -10,7 +10,7 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 
 - **The problem.** A skin is a 64 by 64 PNG with a base layer and an outer layer, each with 1,632 usable pixels ([Minecraft Wiki](https://minecraft.wiki/w/Skin)). If an editor draws it on a `<canvas>`, a screen reader gets nothing: "Canvas content is not exposed to accessibility tools as semantic HTML is" ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/canvas)).
 - **The approach.** Edit one side of one body part at a time, such as "Head, front, base layer", as an ARIA grid where every pixel is a focusable cell named by its color. Arrow keys move as in the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and every action reports its result in words.
-- **The prototype.** A React prototype does this, and it's [online](https://anna-ohrt.github.io/accessible-skin-editor/). A review against WCAG 2.2, the ARIA grid pattern and the research below led to 12 changes. It passes 48 tests and 12 browser checks, including axe-core with no violations. Nobody has tried it with a screen reader yet, which is the most important next step.
+- **The prototype.** A React prototype does this, and it's [online](https://anna-ohrt.github.io/accessible-skin-editor/). A review against WCAG 2.2, the ARIA grid pattern and the research below led to 12 changes. It passes 48 tests and 13 browser checks, including axe-core with no violations. Nobody has tried it with a screen reader yet, which is the most important next step.
 - **Prior art.** Two 2026 comparisons of skin editors ([VGKami](https://vgkami.com/best-minecraft-skin-editors-2026-free-tools-to-make-your-own-skin/), [BlockSkinLab](https://www.blockskinlab.com/blog/best-free-minecraft-skin-editors/)) never mention screen readers, accessibility or keyboards, and [Blockbench's issues](https://github.com/JannisX11/blockbench/issues?q=is%3Aissue%20screen%20reader) have no results for "screen reader". The closest match is a [keyboard pixel editor for MakeCode Arcade](https://github.com/loretod/keyboard-sprite-editor), whose author says it "has not yet been tested end-to-end with assistive technology users".
 - **Research.** Blind screen reader users in visual editors report "high cognitive loads from a lack of feedback about artboard contents and object state" and "constant uncertainty about whether object manipulations were successful" ([Schaadhardt et al., CHI 2021](https://doi.org/10.1145/3411764.3445242)). The prototype's text views and spoken results target both.
 
@@ -152,22 +152,23 @@ Real output for the sample skin:
 ### Checked
 
 - 48 automated tests (Vitest, Testing Library): layout counts and positions, color names, tools, undo, and keyboard and screen reader behavior found by role and name.
-- 12 browser checks (Playwright, axe-core 4.14) in Microsoft Edge. axe found no WCAG 2.2 A or AA violations and no best practice violations in the light theme, the dark theme, an emulated Windows contrast theme, and with error messages and other options showing. No scan had results that axe leaves for a person to review.
+- 13 browser checks (Playwright, axe-core 4.14) in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux, and against the live site. axe found no WCAG 2.2 A or AA violations and no best practice violations in the light theme, the dark theme, an emulated Windows contrast theme, and with error messages and other options showing. No scan had results that axe leaves for a person to review.
 - In the same checks: the page reflows at 320 CSS pixels wide with no sideways scrolling, at every pixel size and with a wide font. WCAG 1.4.12 text spacing cuts off no text. The page follows a 24 pixel browser font size.
 - Every Tab stop shows a focus ring, every control is at least 24 by 24 CSS pixels, and the grid is one Tab stop.
 - The browser's accessibility tree has a grid named "Head, front, base layer" with cells named like "dark brown, row 1, column 1".
 - A mouse click paints on release, sliding off first cancels it, and a fast drag paints all 8 pixels of a row and undoes in one step.
+- The site ships the license text of every open source package in it.
 - 6 bugs were planted in this review, one for each new behavior, and the tests caught all 6.
 - Contrast in light and dark themes: every pair passes. The lowest is 3.15 to 1 (border on background, light theme), above the 3 to 1 minimum.
 - Save and reopen: 4,095 of 4,096 pixels came back exactly. The one half-transparent pixel was off by 1, which [MDN](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData) explains: such pixels "might be returned to an equivalent getImageData() as different values".
-- GitHub Actions runs the 48 tests and 12 browser checks on every change, and publishes the site only when they pass.
+- GitHub Actions runs the 48 tests and 13 browser checks on every change, and publishes the site only when they pass.
 
 ### Not checked
 
 - Any real screen reader, or any blind or low vision player.
 - Touch screen readers (VoiceOver on iOS, TalkBack), and real Windows contrast themes rather than Edge's emulation.
 - Speech recognition, such as Windows Voice Access or Dragon.
-- Firefox and Safari. The browser checks ran in Edge only.
+- Firefox and Safari. The browser checks ran only in Chromium-based browsers.
 - Bedrock 128 by 128 skins and legacy 64 by 32 skins, which don't open.
 - The orientation of top and bottom sides, which was worked out from [skinview3d](https://github.com/bs-community/skinview3d/blob/master/src/model.ts) and [three.js](https://github.com/mrdoob/three.js/blob/dev/src/geometries/BoxGeometry.js) code. Check it in the game.
 
@@ -183,6 +184,8 @@ Real output for the sample skin:
 - **Pixel by pixel, or higher level?** Players may prefer tools such as "recolor everything that's dark brown" or ready-made parts. The wiki notes that skin programs may offer "a wide variety of pre-made selections (such as hats, boots, sweaters, etc.)" ([Minecraft Wiki](https://minecraft.wiki/w/Skin)). Ask players.
 
 ## Suggested next steps
+
+[TESTING.md](https://github.com/Anna-Ohrt/accessible-skin-editor/blob/main/TESTING.md) in the repo turns these into a step by step plan, with tasks to try and what to listen for.
 
 1. Run sessions with blind and low vision Minecraft players before building more: first a small change, such as hair color, then a new design.
 2. Test with NVDA (Firefox, Chrome), JAWS (Chrome), Narrator (Edge), VoiceOver (Safari on macOS and iOS) and TalkBack (Chrome on Android).

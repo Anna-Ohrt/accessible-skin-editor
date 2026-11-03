@@ -22,6 +22,11 @@ if (!scriptTag.test(html) || !styleTag.test(html)) throw new Error('The built in
 html = html.replace(styleTag, () => `<style>\n${style}\n</style>`)
 html = html.replace(scriptTag, () => `<script type="module">\n${script}\n</script>`)
 
+// This one file carries React's code, so it carries React's license too, as a comment at the top.
+const notices = readFileSync(join(dist, 'third-party-notices.txt'), 'utf8').replaceAll('-->', '-- >')
+html = html.replace(/^<!doctype html>/i, (doctype) => `${doctype}\n<!--\n${notices}-->`)
+if (!html.includes('Permission is hereby granted')) throw new Error('The third-party notices did not make it into the file.')
+
 const out = join(root, 'skin-editor.html')
 writeFileSync(out, html)
 console.log(`Wrote ${out} (${Math.round(html.length / 1024)} KB)`)
