@@ -173,6 +173,11 @@ select {
   border-radius: 4px;
 }
 
+/* Its width comes from the browser and its font, so it could stick out of a narrow panel. */
+input[type='file'] {
+  max-width: 100%;
+}
+
 input[aria-invalid='true'] {
   border: 2px solid var(--error);
 }
@@ -428,7 +433,6 @@ button[aria-disabled='true'] {
 
 .shortcuts tbody th {
   font-weight: 600;
-  white-space: nowrap;
 }
 
 /* Windows contrast themes replace colors with a few system colors. The pixel art has to keep its

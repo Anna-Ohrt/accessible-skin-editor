@@ -91,9 +91,23 @@ test('Windows contrast themes keep the pixel colors and show focus and disabled 
 
 test('reflows at 320 CSS pixels wide, like 400% zoom, with no sideways page scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 })
-  for (const size of ['24', '32', '48']) {
-    await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption(size)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth), `pixel size ${size}`).toBeLessThanOrEqual(320)
+  // Fonts differ between systems, so it's checked with the default font and with a wide one.
+  for (const font of ['default', 'wide']) {
+    if (font === 'wide') await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
+    for (const size of ['24', '32', '48']) {
+      await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption(size)
+      const { width, outside } = await page.evaluate(() => {
+        const edge = document.documentElement.clientWidth
+        const stickingOut = [...document.querySelectorAll('body *')].filter(
+          (element) => element.getBoundingClientRect().right > edge + 0.5 && !element.parentElement.closest('.grid-wrap'),
+        )
+        return {
+          width: document.documentElement.scrollWidth,
+          outside: stickingOut.map((element) => element.tagName.toLowerCase() + (element.className ? `.${element.className}` : '')),
+        }
+      })
+      expect(width, `${font} font, pixel size ${size}, sticking out: ${outside.slice(0, 5).join(', ')}`).toBeLessThanOrEqual(320)
+    }
   }
   await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption('32')
   await shot(page, 'reflow-320')

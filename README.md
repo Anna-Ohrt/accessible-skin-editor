@@ -42,7 +42,7 @@ Settings let you leave out the row and column, add hex codes, hide grid lines an
 - **48 tests** with Vitest and Testing Library: layout counts and positions, color names, tools, undo, and keyboard and screen reader behavior, found by role and name.
 - **12 browser checks** with Playwright and axe-core 4.14 in Chromium-based Microsoft Edge:
   - axe found no WCAG 2.2 A or AA violations, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, and with error messages and other options showing.
-  - The page reflows at 320 CSS pixels wide, keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
+  - The page reflows at 320 CSS pixels wide, with the default font and a wide one. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
   - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
   - The browser's accessibility tree has a named grid of named cells.
   - A click paints on release, sliding off cancels it, and a fast drag paints a gapless line that undoes in one step.
