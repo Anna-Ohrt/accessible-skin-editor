@@ -15,6 +15,7 @@ const SHORTCUTS = [
   [{ id: 'keys.erase' }, 'keys.eraseAction'],
   [{ letter: 'R' }, 'keys.rowAction'],
   [{ letter: 'C' }, 'keys.columnAction'],
+  [{ letter: 'P' }, 'keys.positionAction'],
   [{ id: 'keys.undo' }, 'keys.undoAction'],
   [{ id: 'keys.redo' }, 'keys.redoAction'],
 ]

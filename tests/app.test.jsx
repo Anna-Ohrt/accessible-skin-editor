@@ -295,6 +295,19 @@ describe('Skin editor', () => {
     expect(cell(1, 1)).toHaveAccessibleName('dark brown, #4a3220')
   })
 
+  it('stops and starts saying the row and column with P, without leaving the pixel', async () => {
+    const { user } = setup()
+    focusGrid()
+    await user.keyboard('p')
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown')
+    expect(cell(1, 1)).toHaveFocus()
+    expect(status()).toHaveTextContent('Pixels no longer say their row and column. P turns it back on.')
+    expect(screen.getByRole('checkbox', { name: 'Say the row and column with each pixel' })).not.toBeChecked()
+    await user.keyboard('p')
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(status()).toHaveTextContent('Pixels say their row and column again.')
+  })
+
   it('fills, mirrors and copies whole sides', async () => {
     const { user } = setup()
     await user.click(radio('red'))

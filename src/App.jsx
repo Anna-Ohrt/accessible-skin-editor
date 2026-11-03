@@ -105,6 +105,12 @@ export default function App() {
         )
       case 'edge':
         return announce(t('status.edge', { edge: action.edge }))
+      // NVDA says the row or column itself when it changes, but JAWS doesn't in a grid, so it's on by default.
+      case 'togglePosition': {
+        const sayPosition = !settings.sayPosition
+        setSettings((value) => ({ ...value, sayPosition }))
+        return announce(t(sayPosition ? 'status.positionOn' : 'status.positionOff'))
+      }
       default:
         return perform(action)
     }

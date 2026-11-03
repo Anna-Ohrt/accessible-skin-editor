@@ -123,6 +123,7 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
       i: { type: 'pick', col, row },
       r: { type: 'readRow', row },
       c: { type: 'readColumn', col },
+      p: { type: 'togglePosition' },
     }
     const action = keys[key] ?? (letter && letters[letter])
     if (!action) return

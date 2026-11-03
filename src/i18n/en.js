@@ -74,7 +74,7 @@ export default {
   // The pixel grid
   'grid.size': '{w, number} by {h, number} pixels. {orientation}',
   'grid.help':
-    'Arrow keys move. Space paints, and Shift with an arrow paints as you move. F fills, I picks up a color, and R or C reads a row or column. Tab goes to the paint colors. All the keys are listed under Keyboard shortcuts.',
+    "Arrow keys move. Space paints, and Shift with an arrow paints as you move. F fills, I picks up a color, and R or C reads a row or column. P stops or starts saying each pixel's row and column. Tab goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
   'grid.cell': '{color}, row {row, number}, column {col, number}',
   'grid.readout': 'Row {row, number}, column {col, number}: {color}',
   'grid.readoutHex': 'Row {row, number}, column {col, number}: {color} ({hex})',
@@ -118,6 +118,8 @@ export default {
   'status.edge': '{edge, select, right {Right} left {Left} top {Top} other {Bottom}} edge.',
   'status.readRow': 'Row {row, number}, left to right: {line}.',
   'status.readColumn': 'Column {col, number}, top to bottom: {line}.',
+  'status.positionOff': 'Pixels no longer say their row and column. P turns it back on.',
+  'status.positionOn': 'Pixels say their row and column again.',
   'status.undo.none': 'Nothing to undo.',
   'status.undo.done': 'Undid {action}.',
   'status.redo.none': 'Nothing to redo.',
@@ -262,6 +264,7 @@ export default {
   'keys.eraseAction': 'Erase the pixel (outer layer only).',
   'keys.rowAction': 'Hear the whole row, left to right.',
   'keys.columnAction': 'Hear the whole column, top to bottom.',
+  'keys.positionAction': "Stop or start saying each pixel's row and column.",
   'keys.undo': 'Ctrl+Z',
   'keys.undoAction': 'Undo.',
   'keys.redo': 'Ctrl+Y or Ctrl+Shift+Z',

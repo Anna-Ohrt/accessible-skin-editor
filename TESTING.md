@@ -1,8 +1,8 @@
 # Accessibility testing
 
-What has been tested, what that can't tell you, and what to do next. Status on November 2, 2026, after the code-quality pass.
+What has been tested, what that can't tell you, and what to do next. Status on November 3, 2026.
 
-**In short:** the automated and code checks are done and pass. Testing with real screen readers and with blind and low vision players hasn't started, and that's the most important next step.
+**In short:** the automated and code checks are done and pass. Testing with real screen readers has only had a first try, with NVDA, and testing with blind and low vision players hasn't started. That's the most important next step.
 
 ## What has been done
 
@@ -10,12 +10,13 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 110 component tests
+### 2. 111 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
 - The grid's name and description, one Tab stop, and each pixel's name, like "dark brown, row 1, column 1".
-- Every key: arrows, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, F, I, R, C, Delete and Backspace, and Ctrl+Z and Ctrl+Y. Letter shortcuts also work on a Russian keyboard layout, by key position.
+- Every key: arrows, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, F, I, R, C, P, Delete and Backspace, and Ctrl+Z and Ctrl+Y. Letter shortcuts also work on a Russian keyboard layout, by key position.
+- P leaves the row and column out of the pixel names and puts them back, and focus stays on the pixel.
 - The status message after each action, like "Painted green." and "Nothing to undo.", with the right plural: "1 pixel is", "2 pixels are". Shift+arrow painting and drags show their result in the pixels' names rather than repeating it, but still say why when they can't paint.
 - Every editing command on its own: what it changes, its undo label and its message, and when it refuses or changes nothing.
 - Error messages: they're announced, the field is marked invalid, and focus moves to it. That includes a color name over 40 characters.
@@ -66,7 +67,7 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 
 Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier, 3 were planted; in the review, 6 more, one for each new behavior; for the 3D model, 6 more; in the engineering pass, 15 more, one for each protection; and for the move to Babylon.js, 8 more. The tests caught all of them but one: a policy that also allowed inline scripts passed, because Trusted Types blocked the injected script before that rule was reached. The policy test now checks every directive exactly, and catches it.
 
-After the code-quality pass, the 35 from the review on were planted again in the rewritten code. Two of them were the same bug, so 34 remain, and 11 more cover the new structure: the editing commands, telling clicks from drags, the grid's cursor, and saving when the editor closes. The tests caught all 45. Two tests were changed first, because they couldn't have caught two of the new bugs: the drag test turned the model exactly 90 degrees, which can't show whether it snaps to the nearest view, so it now turns 80, and a new test drags with a see-through color on the base layer.
+After the code-quality pass, the 35 from the review on were planted again in the rewritten code. Two of them were the same bug, so 34 remain, and 11 more cover the new structure: the editing commands, telling clicks from drags, the grid's cursor, and saving when the editor closes. The tests caught all 45, and both of the 2 planted later for the P key. Two tests were changed first, because they couldn't have caught two of the new bugs: the drag test turned the model exactly 90 degrees, which can't show whether it snaps to the nearest view, so it now turns 80, and a new test drags with a see-through color on the base layer.
 
 ### 5. Checks by hand in a browser
 
@@ -76,11 +77,17 @@ After the code-quality pass, the 35 from the review on were planted again in the
 - Saving and reopening a PNG: 4,095 of 4,096 pixels came back exactly; the one half-transparent pixel was off by 1.
 - Opening a 64 by 32 skin gives a clear message.
 
+### 6. A first try with a screen reader
+
+On November 3, 2026, moving through the pixels with NVDA 2026.3 read the column number twice. NVDA's source code shows why. With its default settings, NVDA says the row or column number itself whenever it changes, right after the cell's name ([speech.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/speech/speech.py#L2105-L2123), [configSpec.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/config/configSpec.py#L271)). The pixel names already end with the row and column, so moving right reads "dark brown, row 1, column 2, column 2", and moving down repeats the row the same way.
+
+JAWS is the opposite. An open report on Freedom Scientific's tracker, last confirmed with JAWS 2022, says JAWS reads only the cell's contents while arrowing through a grid ([issue 587](https://github.com/FreedomScientific/standards-support/issues/587)). So the pixel names keep the row and column by default, and P, pressed in the pixels, leaves them out or puts them back.
+
 ## What these checks can't tell you
 
 Playwright's own documentation says: "Automated accessibility tests can detect some common accessibility problems such as missing or invalid properties. But many accessibility problems can only be discovered through manual testing." ([Playwright](https://playwright.dev/docs/accessibility-testing))
 
-Nothing above used a real screen reader. The tests show what the page tells assistive technology, not what NVDA or VoiceOver actually says, or whether editing a skin this way is pleasant or even possible for a blind player.
+Apart from that first try with NVDA, nothing above used a real screen reader. The tests show what the page tells assistive technology, not what NVDA or VoiceOver actually says, or whether editing a skin this way is pleasant or even possible for a blind player.
 
 ## What to do next, in order
 
@@ -117,7 +124,7 @@ Listen for the open questions in RESEARCH.md:
 
 - When you reach the pixels, does the screen reader switch to focus mode by itself? If it doesn't, arrows and letters go to the screen reader instead of the editor.
 - After Space, do you hear "Painted ..." once, or twice?
-- Do you hear the row and column twice? Try turning off "Say the row and column with each pixel" in Settings.
+- Do you hear the row and column twice? NVDA does, until you press P in the pixels. Do you find P without help?
 - Do the color names help you picture the colors?
 - After choosing another side, how quickly can you get back to the pixels?
 - Do the 3D model's name, like "3D model of the skin, seen from the back", and its description tell you what a sighted player would see?

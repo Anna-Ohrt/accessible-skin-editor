@@ -11,7 +11,7 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 ## Try it with the keyboard
 
 1. Press Tab to reach "Skip to the pixels", press Enter, then press Tab once to reach the pixels.
-2. Move with the arrow keys. Each pixel is announced by its color and position, like "dark brown, row 1, column 1".
+2. Move with the arrow keys. Each pixel is announced by its color and position, like "dark brown, row 1, column 1". If your screen reader also says the position, as NVDA does, press P to hear it once.
 3. Press Tab to reach the paint colors, choose one with the arrow keys, then press Shift+Tab to go back. Press Space to paint. Hold Shift and press an arrow key to paint as you move.
 4. Press R to hear the row, C to hear the column, F to fill, I to pick up a color, and Ctrl+Z to undo.
 5. Read "This side in words" and the Preview description to check your work as text. The View and Angle choices turn the 3D model.
@@ -40,11 +40,12 @@ With a mouse or touch, drag the 3D model to turn it. Pointing at it names the si
 | Some browsers have no WebGL | The flat pictures show instead, with a note saying why | |
 | Mistakes | Undo and redo for everything, including opening a file and starting over | [Xbox Accessibility Guideline 115](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/115) |
 | Too many key presses | The paint colors are the next Tab stop after the pixels, and the side menus are 3 stops before them | |
-| Letter shortcuts on keyboards for other scripts | With a Russian or Greek keyboard, F, I, R, C and Ctrl+Z still work, found by the key's position | |
+| Letter shortcuts on keyboards for other scripts | With a Russian or Greek keyboard, F, I, R, C, P and Ctrl+Z still work, found by the key's position | |
+| Screen readers differ on positions in a grid | Each pixel's name includes its row and column, because JAWS doesn't say them in a grid ([open report](https://github.com/FreedomScientific/standards-support/issues/587)). NVDA says the row or column itself when it changes, so P leaves the editor's out | |
 | Some people need more contrast | When the system asks for more contrast, text, borders and grid lines get full strength, and disabled buttons get a dashed border | |
 | Screen readers need to know the language | The page's `lang` and `dir` follow the language it's shown in | WCAG 3.1.1 |
 
-Settings let you leave out the row and column, add hex codes, hide grid lines and change the pixel size. The work and the settings are saved in the browser.
+Settings let you leave out the row and column (so does P in the pixels), add hex codes, hide grid lines and change the pixel size. The work and the settings are saved in the browser.
 
 ## Engineering
 
@@ -105,7 +106,7 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 
 [TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
 
-- **110 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
+- **111 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
 - **29 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
   - axe found no WCAG 2.2 A or AA violations, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, and with error messages and other options showing.
   - The page reflows at 320 CSS pixels wide, with the default font, a wide one, and both made-up languages. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
@@ -116,12 +117,12 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
   - The checks under Engineering: the policy, the one-file copy, a downloaded skin opening with every pixel the same, a reset or missing 3D model, saving when the page is hidden, and layout shift.
   - The site ships the license text of every open source package in it.
 - **ESLint** with the jsx-a11y accessibility rules (strict set), the React Hooks rules including the React Compiler's checks, the Fast Refresh rule from Vite's React template, and strict equality, `const` and no `var`. **Prettier** checks the formatting.
-- **45 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45.
+- **45 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45, and both of the 2 planted later for the P key.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
 ## Not done yet
 
-- **No testing with real screen readers yet.** Nobody has tried it with NVDA, JAWS, Narrator, VoiceOver or TalkBack, or with blind or low vision players. That's the most important next step. Automated tools find some problems; [many can only be found by people](https://playwright.dev/docs/accessibility-testing).
+- **Barely tried with real screen readers.** A first try with NVDA found the position said twice, which led to the P key. Nobody has tried it with JAWS, Narrator, VoiceOver or TalkBack, or with blind or low vision players. That's the most important next step. Automated tools find some problems; [many can only be found by people](https://playwright.dev/docs/accessibility-testing).
 - **English is the only real language.** Translations need translators, who should check that the color names and the sentences built from them read naturally.
 - Partly transparent pixels can come back one step off after saving and opening, because a canvas stores colors with premultiplied alpha ([MDN, `putImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData)). Solid and fully transparent pixels come back exactly.
 - Older 64 by 32 skins and Bedrock's 128 by 128 skins don't open.
@@ -152,7 +153,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180. Add `?lang=en-XA` or `?lang=ar-XB` to the address for the made-up languages |
-| `npm test` | Runs the 110 tests |
+| `npm test` | Runs the 111 tests |
 | `npm run test:e2e` | Runs the 29 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
 | `npm run lint` | Runs ESLint |
 | `npm run format` | Formats the code with Prettier. `npm run format:check` only checks it |
@@ -184,7 +185,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/App.jsx` | Puts it together, and says what happened after each action |
 | `src/editor/edits.js` | Every editing command, as a pure function |
 | `src/editor/` | Also undo history, settings, saving, and the hooks for the palette, saving and the status message |
-| `tests/` | The 110 Vitest tests |
+| `tests/` | The 111 Vitest tests |
 | `e2e/` | The 29 browser checks: accessibility, languages, and security, reliability and performance |
 | `vite.config.js` | The build, the Content Security Policy and the third-party notices |
 | `TESTING.md` | What has been tested, and how to test with screen readers and players |
