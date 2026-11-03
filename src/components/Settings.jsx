@@ -1,12 +1,14 @@
 import { useId } from 'react'
+import { useI18n } from '../i18n/context.js'
 import { CELL_SIZES } from '../editor/settings.js'
 
 export default function Settings({ settings, onChange }) {
   const id = useId()
+  const { t } = useI18n()
   return (
     <>
       <div className="field">
-        <label htmlFor={`${id}-size`}>Pixel size on screen</label>
+        <label htmlFor={`${id}-size`}>{t('settings.size')}</label>
         <select
           id={`${id}-size`}
           value={settings.cellSize}
@@ -14,7 +16,7 @@ export default function Settings({ settings, onChange }) {
         >
           {CELL_SIZES.map((size) => (
             <option key={size} value={size}>
-              {size} pixels
+              {t('settings.sizeOption', { size })}
             </option>
           ))}
         </select>
@@ -25,11 +27,11 @@ export default function Settings({ settings, onChange }) {
           checked={settings.sayPosition}
           onChange={(event) => onChange({ sayPosition: event.target.checked })}
         />
-        Say the row and column with each pixel
+        {t('settings.sayPosition')}
       </label>
       <label className="choice">
         <input type="checkbox" checked={settings.sayHex} onChange={(event) => onChange({ sayHex: event.target.checked })} />
-        Say hex codes after color names
+        {t('settings.sayHex')}
       </label>
       <label className="choice">
         <input
@@ -37,7 +39,7 @@ export default function Settings({ settings, onChange }) {
           checked={settings.showGridLines}
           onChange={(event) => onChange({ showGridLines: event.target.checked })}
         />
-        Show grid lines
+        {t('settings.gridLines')}
       </label>
     </>
   )

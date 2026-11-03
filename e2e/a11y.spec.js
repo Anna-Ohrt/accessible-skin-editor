@@ -1,33 +1,5 @@
 import { test, expect } from '@playwright/test'
-import AxeBuilder from '@axe-core/playwright'
-
-// WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe-core's best practices.
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
-
-const grid = (page) => page.getByRole('grid')
-const cell = (page, row, col) => grid(page).locator(`[data-row="${row - 1}"][data-col="${col - 1}"]`)
-const status = (page) => page.getByRole('status')
-
-async function scan(page) {
-  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze()
-  // "Incomplete" means axe couldn't decide and a person has to look, so they go in the report.
-  for (const item of results.incomplete) {
-    const where = item.nodes.map((node) => node.target.join(' ')).join(', ')
-    test.info().annotations.push({ type: 'axe: needs a person to check', description: `${item.id}: ${where}` })
-  }
-  return results.violations.map((item) => `${item.id}: ${item.nodes.map((node) => node.target.join(' ')).join(', ')}`)
-}
-
-// Screenshots for a person to look at, only when SHOTS_DIR is set.
-async function shot(page, name) {
-  if (process.env.SHOTS_DIR) await page.screenshot({ path: `${process.env.SHOTS_DIR}/${name}.png`, fullPage: true })
-}
-
-async function centerOf(locator) {
-  await locator.scrollIntoViewIfNeeded()
-  const box = await locator.boundingBox()
-  return [box.x + box.width / 2, box.y + box.height / 2]
-}
+import { cell, centerOf, grid, overflow, scan, shot, status } from './helpers.js'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./')
@@ -93,20 +65,15 @@ test('reflows at 320 CSS pixels wide, like 400% zoom, with no sideways page scro
   await page.setViewportSize({ width: 320, height: 640 })
   // Fonts differ between systems, so it's checked with the default font and with a wide one.
   for (const font of ['default', 'wide']) {
-    if (font === 'wide') await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
+    if (font === 'wide') {
+      await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
+      // The site's Content Security Policy allows added styles, so tools like this one still work.
+      expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toMatch(/^Verdana/)
+    }
     for (const size of ['24', '32', '48']) {
       await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption(size)
-      const { width, outside } = await page.evaluate(() => {
-        const edge = document.documentElement.clientWidth
-        const stickingOut = [...document.querySelectorAll('body *')].filter(
-          (element) => element.getBoundingClientRect().right > edge + 0.5 && !element.parentElement.closest('.grid-wrap'),
-        )
-        return {
-          width: document.documentElement.scrollWidth,
-          outside: stickingOut.map((element) => element.tagName.toLowerCase() + (element.className ? `.${element.className}` : '')),
-        }
-      })
-      expect(width, `${font} font, pixel size ${size}, sticking out: ${outside.slice(0, 5).join(', ')}`).toBeLessThanOrEqual(320)
+      const { width, outside } = await overflow(page)
+      expect(width, `${font} font, pixel size ${size}, sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
     }
   }
   await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption('32')
@@ -118,6 +85,9 @@ test('text spacing can be increased without cutting off text (WCAG 1.4.12)', asy
     content:
       '* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }',
   })
+  // The bookmarklet people use for this check adds a style element like this one, so the site's
+  // Content Security Policy has to let it apply.
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('h1')).letterSpacing)).not.toBe('normal')
   const clipped = await page.evaluate(() =>
     [...document.querySelectorAll('body *:not(input, select, textarea, option)')]
       .filter((element) => {
@@ -222,9 +192,26 @@ test('ships the license text of every open source package in the site, and links
   const response = await request.get('third-party-notices.txt')
   expect(response.ok()).toBe(true)
   const notices = await response.text()
-  const packages = ['react', 'react-dom', 'scheduler', 'skinview-utils', 'skinview3d', 'three']
-  for (const name of packages) expect(notices).toMatch(new RegExp(`^${name} \\S+ \\(MIT\\)$`, 'm'))
-  expect(notices.match(/Permission is hereby granted/g)).toHaveLength(packages.length)
+  // A package that's new to the bundle fails this test on purpose, so its license gets a look.
+  const packages = {
+    '@formatjs/fast-memoize': 'MIT',
+    '@formatjs/icu-messageformat-parser': 'MIT',
+    '@formatjs/icu-skeleton-parser': 'MIT',
+    'intl-messageformat': 'BSD-3-Clause',
+    react: 'MIT',
+    'react-dom': 'MIT',
+    scheduler: 'MIT',
+    'skinview-utils': 'MIT',
+    skinview3d: 'MIT',
+    three: 'MIT',
+  }
+  const listed = [...notices.matchAll(/^(\S+) \S+ \((.+)\)$/gm)].map(([, name, license]) => [name, license])
+  expect(Object.fromEntries(listed)).toEqual(packages)
+  const mit = Object.values(packages).filter((license) => license === 'MIT').length
+  expect(notices.match(/Permission is hereby granted/g)).toHaveLength(mit)
+  // The BSD license asks for its notice "in the documentation and/or other materials provided with
+  // the distribution".
+  expect(notices).toContain('Redistributions in binary form must reproduce the above')
   await expect(page.getByRole('link', { name: 'third-party notices' })).toHaveAttribute('href', /third-party-notices\.txt$/)
 })
 

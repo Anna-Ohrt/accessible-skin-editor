@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { getFace } from '../src/skin/layout.js'
-import { nameColor, rgba } from '../src/skin/color.js'
-import { createSamplePalette, createSampleSkin, getCell, paintCells } from '../src/skin/pixels.js'
-import { composeView, describeView } from '../src/skin/views.js'
+import { rgba } from '../src/skin/color.js'
+import { createSampleSkin, getCell, paintCells } from '../src/skin/pixels.js'
+import { composeView, summarizeView } from '../src/skin/views.js'
 
-const palette = createSamplePalette()
-const nameOf = (color) => nameColor(color, palette)
+const nameOf = (color) => (color === rgba(255, 0, 0) ? 'red' : 'other')
 
 describe('preview', () => {
   it('lays out the front view with the right arm on the viewer\u2019s left', () => {
@@ -25,13 +24,20 @@ describe('preview', () => {
     expect(composeView(pixels, 'front', 'classic', { showOuter: false }).data[4]).not.toBe(red)
   })
 
-  it('describes each view in words', () => {
+  it('sums up each group of parts, naming the one arm and leg a side view shows', () => {
     const pixels = createSampleSkin()
-    expect(describeView(composeView(pixels, 'front'), nameOf)).toBe(
-      'Head: mostly tan, with dark brown, white and blue. Body: mostly green. Arms: mostly tan, with green. Legs: mostly dark blue, with dark gray.',
-    )
-    expect(describeView(composeView(pixels, 'right'), nameOf)).toBe(
-      'Head: mostly tan, with dark brown. Right arm: mostly tan, with green. Right leg: mostly dark blue, with dark gray.',
-    )
+    expect(summarizeView(composeView(pixels, 'front'), nameOf).map(({ group, part }) => [group, part])).toEqual([
+      ['head', 'head'],
+      ['body', 'body'],
+      ['arms', null],
+      ['legs', null],
+    ])
+    const side = summarizeView(composeView(pixels, 'right'), nameOf)
+    expect(side.map(({ group, part }) => [group, part])).toEqual([
+      ['head', 'head'],
+      ['arms', 'rightArm'],
+      ['legs', 'rightLeg'],
+    ])
+    expect(side[0]).toMatchObject({ lead: 'other', mostly: true, others: [] })
   })
 })

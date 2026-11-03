@@ -1,21 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { allFaces, getFace } from '../src/skin/layout.js'
-import { describeColor, isOpaque, isTransparent, rgba } from '../src/skin/color.js'
+import { isOpaque, isTransparent, rgba } from '../src/skin/color.js'
 import {
   SAMPLE_COLORS,
   copyFace,
+  countByName,
   countSeeThrough,
   createSamplePalette,
   createSampleSkin,
   createSkin,
-  describeFace,
-  describeLine,
   fillFace,
   floodFill,
   getCell,
   mirrorFace,
   paintCells,
   rowOf,
+  runsOf,
 } from '../src/skin/pixels.js'
 
 const A = rgba(10, 20, 30)
@@ -64,25 +64,19 @@ describe('pixel operations', () => {
     expect(getCell(onOuter, getFace('head', 'back', 'outer'), 0, 0)).toBe(A)
   })
 
-  it('reads a line as runs of colors', () => {
-    const names = new Map([
-      [A, 'Hair'],
-      [B, 'Skin'],
-      [C, 'Eye'],
+  it('groups a line into runs, and counts pixels by spoken name with how many shades share it', () => {
+    expect(runsOf([A, A, B, C, C, C])).toEqual([
+      { value: A, count: 2 },
+      { value: B, count: 1 },
+      { value: C, count: 3 },
     ])
-    expect(describeLine([A, A, B, C, C, C], (color) => names.get(color))).toBe('2 Hair, Skin, 3 Eye')
-  })
-
-  it('groups different shades that share a spoken name, and says how many shades there are', () => {
     const darker = rgba(120, 70, 30)
     const lighter = rgba(140, 80, 35)
     const nameOf = (color) => (color === A ? 'blue' : 'brown')
-    expect(describeLine([darker, lighter, A], nameOf)).toBe('2 brown, blue')
-    const face = getFace('rightLeg', 'top', 'base')
-    let pixels = fillFace(createSkin(), face, darker).pixels
-    pixels = paintCells(pixels, face, [{ col: 0, row: 0 }, { col: 1, row: 0 }], lighter)
-    pixels = paintCells(pixels, face, [{ col: 3, row: 3 }], A)
-    expect(describeFace(pixels, face, nameOf)).toBe('4 by 4 pixels: 15 brown (2 shades), 1 blue.')
+    expect(countByName([darker, lighter, A, darker], nameOf)).toEqual([
+      { name: 'brown', count: 3, shades: 2 },
+      { name: 'blue', count: 1, shades: 1 },
+    ])
   })
 
   it('counts pixels that aren\u2019t fully solid', () => {
@@ -99,8 +93,8 @@ describe('pixel operations', () => {
       for (let row = 0; row < face.h; row += 1) {
         for (let col = 0; col < face.w; col += 1) {
           const color = getCell(pixels, face, col, row)
-          if (face.layerId === 'base') expect(isOpaque(color), face.label).toBe(true)
-          else expect(isTransparent(color), face.label).toBe(true)
+          if (face.layerId === 'base') expect(isOpaque(color), face.id).toBe(true)
+          else expect(isTransparent(color), face.id).toBe(true)
         }
       }
     }
@@ -116,28 +110,11 @@ describe('pixel operations', () => {
     ])
   })
 
-  it('names every sample palette color by how it looks, with no two the same', () => {
+  it('starts with a palette of unnamed colors, which covers every color the sample character uses', () => {
     const palette = createSamplePalette()
-    expect(palette.map((entry) => entry.name)).toEqual([
-      'black',
-      'dark gray',
-      'gray',
-      'white',
-      'red',
-      'orange',
-      'yellow',
-      'green',
-      'blue',
-      'dark blue',
-      'purple',
-      'pink',
-      'tan',
-      'brown',
-      'dark brown',
-    ])
-    for (const entry of palette) expect(entry.name).toBe(describeColor(entry.color))
+    // Names come from how each color looks, in the editor's language (see words.test.js).
+    for (const entry of palette) expect(entry.name).toBeNull()
     expect(new Set(palette.map((entry) => entry.color)).size).toBe(palette.length)
-    // Every color the sample character uses is in the palette, so each pixel has a palette name.
     for (const color of Object.values(SAMPLE_COLORS)) expect(palette.some((entry) => entry.color === color)).toBe(true)
   })
 })

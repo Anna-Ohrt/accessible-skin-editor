@@ -1,152 +1,178 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { VIEWS, composeView, describeView } from '../skin/views.js'
-import { pixelsToBytes } from '../skin/png.js'
+import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useI18n } from '../i18n/context.js'
+import { describeView, faceLabel } from '../i18n/words.js'
+import { VIEWS, composeView } from '../skin/views.js'
 import { ANGLES } from '../skin/camera.js'
-import Model3D, { webglAvailable } from './Model3D.jsx'
+import ErrorBoundary from './ErrorBoundary.jsx'
+import { drawPixels, webglAvailable } from './draw.js'
+
+// three.js is most of the code, so it loads only when the 3D model is shown, after the rest of the
+// editor works.
+const Model3D = lazy(() => import('./Model3D.jsx'))
 
 const SCALE = 8
-const SEEN_FROM = { front: 'the front', right: 'the right side', back: 'the back', left: 'the left side' }
-const SEEN_AT = { level: '', above: ' and above', below: ' and below' }
 
-// Draws colors onto a canvas at a whole-number scale, with no smoothing, so pixels stay square.
-export function drawPixels(canvas, data, width, height) {
-  const context = canvas?.getContext?.('2d')
-  if (!context) return null
-  const buffer = document.createElement('canvas')
-  buffer.width = width
-  buffer.height = height
-  buffer.getContext('2d').putImageData(new ImageData(pixelsToBytes(data), width, height), 0, 0)
-  context.clearRect(0, 0, canvas.width, canvas.height)
-  context.imageSmoothingEnabled = false
-  context.drawImage(buffer, 0, 0, canvas.width, canvas.height)
-  return context
+// The view and angle that show a side: tops from above, bottoms from below, the rest straight on.
+function viewFor(sideId, current) {
+  if (sideId === 'top') return { viewId: current.viewId, angleId: 'above' }
+  if (sideId === 'bottom') return { viewId: current.viewId, angleId: 'below' }
+  return { viewId: sideId, angleId: 'level' }
 }
 
 // The character as a 3D model or as flat pictures from four sides. Either way the View choices
 // turn it, so nobody has to drag (WCAG 2.5.7), and the caption describes it in words.
 export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
   const id = useId()
+  const i18n = useI18n()
+  const { t } = i18n
   const canvasRef = useRef(null)
-  const [canShow3D, setCanShow3D] = useState(webglAvailable)
+  // Why the 3D model isn't showing: 'noWebgl', 'lost' (the graphics were reset) or 'failed'.
+  const [problem, setProblem] = useState(() => (webglAvailable() ? null : 'noWebgl'))
   const [style, setStyle] = useState('3d')
-  const [viewId, setViewId] = useState('front')
-  const [angleId, setAngleId] = useState('level')
+  const [camera, setCamera] = useState({ viewId: 'front', angleId: 'level' })
   const [showOuter, setShowOuter] = useState(true)
   const [outline, setOutline] = useState(true)
   const [follow, setFollow] = useState(true)
   const [pointing, setPointing] = useState(null)
-  const is3D = style === '3d' && canShow3D
+  const can3D = problem !== 'noWebgl' && problem !== 'failed'
+  const is3D = style === '3d' && can3D
+  const { viewId, angleId } = camera
   const view = useMemo(() => composeView(pixels, viewId, model, { showOuter }), [pixels, viewId, model, showOuter])
-  const viewName = VIEWS.find((item) => item.id === viewId).name
+  const caption = useMemo(() => describeView(i18n, view, nameOf), [i18n, view, nameOf])
+
+  // Turns to the side being edited, so its outline and the new paint are in sight. This updates
+  // during render, as the React docs suggest for state that follows a prop.
+  const followKey = follow ? face.id : null
+  const [followed, setFollowed] = useState(followKey)
+  if (followKey !== followed) {
+    setFollowed(followKey)
+    if (followKey) setCamera(viewFor(face.sideId, camera))
+  }
 
   useEffect(() => {
     if (!is3D) drawPixels(canvasRef.current, view.data, view.width, view.height)
   }, [view, is3D])
 
-  // Turns to the side being edited, so its outline and the new paint are in sight. Tops are seen
-  // from above and bottoms from below.
-  const faceId = face?.id
-  useEffect(() => {
-    if (!follow || !face) return
-    if (face.sideId === 'top') setAngleId('above')
-    else if (face.sideId === 'bottom') setAngleId('below')
-    else {
-      setViewId(face.sideId)
-      setAngleId('level')
-    }
-    // face is read through faceId, which names it completely.
-  }, [faceId, follow]) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <>
       <fieldset className="view-choice">
-        <legend>Show the skin as</legend>
+        <legend>{t('preview.style')}</legend>
         <label className="choice">
-          <input type="radio" name={`${id}-style`} checked={is3D} disabled={!canShow3D} onChange={() => setStyle('3d')} />
-          3D model
+          <input
+            type="radio"
+            name={`${id}-style`}
+            checked={is3D}
+            disabled={!can3D}
+            onChange={() => {
+              setStyle('3d')
+              if (problem === 'lost') setProblem(null)
+            }}
+          />
+          {t('preview.model')}
         </label>
         <label className="choice">
           <input type="radio" name={`${id}-style`} checked={!is3D} onChange={() => setStyle('flat')} />
-          Flat pictures
+          {t('preview.flat')}
         </label>
       </fieldset>
-      {!canShow3D && (
-        <p className="hint">The 3D model needs WebGL, which this browser can&rsquo;t use right now, so it shows flat pictures.</p>
-      )}
+      {problem && <p className="hint">{t(`preview.${problem}`)}</p>}
       <fieldset className="view-choice">
-        <legend>View</legend>
+        <legend>{t('preview.view')}</legend>
         {VIEWS.map((item) => (
-          <label key={item.id} className="choice">
-            <input type="radio" name={`${id}-view`} checked={viewId === item.id} onChange={() => setViewId(item.id)} />
-            {item.name}
+          <label key={item} className="choice">
+            <input
+              type="radio"
+              name={`${id}-view`}
+              checked={viewId === item}
+              onChange={() => setCamera((current) => ({ ...current, viewId: item }))}
+            />
+            {t(`view.${item}`)}
           </label>
         ))}
       </fieldset>
       {is3D && (
         <fieldset className="view-choice">
-          <legend>Angle</legend>
+          <legend>{t('preview.angle')}</legend>
           {ANGLES.map((angle) => (
             <label key={angle.id} className="choice">
-              <input type="radio" name={`${id}-angle`} checked={angleId === angle.id} onChange={() => setAngleId(angle.id)} />
-              {angle.name}
+              <input
+                type="radio"
+                name={`${id}-angle`}
+                checked={angleId === angle.id}
+                onChange={() => setCamera((current) => ({ ...current, angleId: angle.id }))}
+              />
+              {t(`angle.${angle.id}`)}
             </label>
           ))}
         </fieldset>
       )}
       <label className="choice">
         <input type="checkbox" checked={showOuter} onChange={(event) => setShowOuter(event.target.checked)} />
-        Show the outer layer
+        {t('preview.showOuter')}
       </label>
       <label className="choice">
         <input type="checkbox" checked={follow} onChange={(event) => setFollow(event.target.checked)} />
-        Turn to the side you&rsquo;re editing
+        {t('preview.follow')}
       </label>
       {is3D && (
         <label className="choice">
           <input type="checkbox" checked={outline} onChange={(event) => setOutline(event.target.checked)} />
-          Outline the side you&rsquo;re editing
+          {t('preview.outline')}
         </label>
       )}
       <figure className="preview">
         {/* The figcaption is the long description, tied to the picture by the figure (W3C WAI
             Images tutorial, complex images). No aria-describedby, so it isn't read twice. */}
         {is3D ? (
-          <Model3D
-            pixels={pixels}
-            model={model}
-            face={face}
-            showOuter={showOuter}
-            outline={outline}
-            viewId={viewId}
-            angleId={angleId}
-            label={`3D model of the skin, seen from ${SEEN_FROM[viewId]}${SEEN_AT[angleId]}`}
-            onTurn={(nextView, nextAngle) => {
-              setViewId(nextView)
-              setAngleId(nextAngle)
-            }}
-            onPick={(spot) => {
-              setPointing(null)
-              onPickSpot(spot)
-            }}
-            onPoint={setPointing}
-            onUnavailable={() => setCanShow3D(false)}
-          />
+          <ErrorBoundary onError={() => setProblem('failed')}>
+            <Suspense
+              fallback={
+                <div className="model-wrap is-loading">
+                  <p className="hint">{t('preview.loading')}</p>
+                </div>
+              }
+            >
+              <Model3D
+                pixels={pixels}
+                model={model}
+                face={face}
+                showOuter={showOuter}
+                outline={outline}
+                viewId={viewId}
+                angleId={angleId}
+                label={t('preview.modelLabel', { view: viewId, angle: angleId })}
+                onTurn={(nextView, nextAngle) => setCamera({ viewId: nextView, angleId: nextAngle })}
+                onPick={(spot) => {
+                  setPointing(null)
+                  onPickSpot(spot)
+                }}
+                onPoint={setPointing}
+                onUnavailable={() => setProblem('noWebgl')}
+                onLost={() => {
+                  setStyle('flat')
+                  setProblem('lost')
+                }}
+              />
+            </Suspense>
+          </ErrorBoundary>
         ) : (
           <canvas
             ref={canvasRef}
+            // ARIA in HTML allows any role on a canvas, but this lint rule counts canvas as interactive.
+            // eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role
             role="img"
-            aria-label={`${viewName} view of the skin`}
+            aria-label={t('preview.flatLabel', { view: viewId })}
             width={view.width * SCALE}
             height={view.height * SCALE}
           />
         )}
-        <figcaption>{describeView(view, nameOf)}</figcaption>
+        <figcaption>{caption}</figcaption>
       </figure>
       {is3D && (
         <p className="hint">
           {pointing
-            ? `Pointing at ${pointing.face.label}, row ${pointing.row + 1}, column ${pointing.col + 1}.`
-            : 'Drag the model to turn it. Click a spot on it to edit that spot.'}
+            ? t('preview.pointing', { face: faceLabel(i18n, pointing.face), row: pointing.row + 1, col: pointing.col + 1 })
+            : t('preview.hint')}
         </p>
       )}
     </>

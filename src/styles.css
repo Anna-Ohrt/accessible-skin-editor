@@ -41,7 +41,7 @@ body {
 .skip-link {
   position: absolute;
   top: -200px;
-  left: 8px;
+  inset-inline-start: 8px;
   z-index: 10;
   padding: 8px 12px;
   color: var(--text);
@@ -271,8 +271,13 @@ button[aria-disabled='true'] {
   accent-color: var(--accent);
 }
 
-/* Names are stored in lowercase so they read well inside sentences ("Painted dark brown."). The
-   list shows them with a capital letter. */
+/* Generated names are lowercase so they read well inside sentences ("Painted dark brown."). The
+   list shows them with a capital letter. A long name wraps instead of widening the page. */
+.swatch-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .swatch-name::first-letter {
   text-transform: uppercase;
 }
@@ -370,7 +375,7 @@ button[aria-disabled='true'] {
   margin: 8px 0 0;
   padding: 6px 10px;
   background: var(--bg);
-  border-left: 4px solid var(--accent);
+  border-inline-start: 4px solid var(--accent);
 }
 
 /* Preview and texture */
@@ -384,7 +389,7 @@ button[aria-disabled='true'] {
   margin: 8px 0 0;
 }
 
-.preview canvas,
+.preview > canvas,
 .texture-map {
   display: block;
   image-rendering: pixelated;
@@ -397,14 +402,31 @@ button[aria-disabled='true'] {
   margin-top: 8px;
 }
 
-/* The 3D model gets a plain background; the checkerboard is for the flat pictures. */
-.preview canvas.model-3d {
-  max-width: 100%;
+/* The 3D model's box has its size before the model loads, so nothing on the page moves when it
+   appears. The canvas fills it. It gets a plain background; the checkerboard is for the flat
+   pictures. */
+.model-wrap {
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
   background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.model-wrap.is-loading {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  text-align: center;
+}
+
+.model-wrap canvas.model-3d {
+  display: block;
   cursor: grab;
 }
 
-.preview canvas.model-3d:active {
+.model-wrap canvas.model-3d:active {
   cursor: grabbing;
 }
 
@@ -437,13 +459,32 @@ button[aria-disabled='true'] {
 .shortcuts th,
 .shortcuts td {
   padding: 4px 6px;
-  text-align: left;
+  text-align: start;
   vertical-align: top;
   border-bottom: 1px solid var(--border);
 }
 
 .shortcuts tbody th {
   font-weight: 600;
+}
+
+.crash {
+  max-width: 40rem;
+  padding: 16px 24px;
+}
+
+/* People who ask for more contrast get full-strength text, borders and grid lines. Disabled
+   buttons get a dashed border, so they differ by shape as well as color. */
+@media (prefers-contrast: more) {
+  :root {
+    --muted: var(--text);
+    --border: var(--text);
+    --grid-line: var(--text);
+  }
+
+  button[aria-disabled='true'] {
+    border-style: dashed;
+  }
 }
 
 /* Windows contrast themes replace colors with a few system colors. The pixel art has to keep its

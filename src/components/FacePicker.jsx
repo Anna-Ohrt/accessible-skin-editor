@@ -1,33 +1,34 @@
 import { useId } from 'react'
-import { MODELS, PARTS, SIDES, partById } from '../skin/layout.js'
+import { useI18n } from '../i18n/context.js'
+import { MODELS, PARTS, SIDES } from '../skin/layout.js'
 
 export default function FacePicker({ selection, model, onChange, onModelChange }) {
   const id = useId()
-  const part = partById(selection.partId)
+  const { t } = useI18n()
   return (
     <>
       <div className="field">
-        <label htmlFor={`${id}-part`}>Body part</label>
+        <label htmlFor={`${id}-part`}>{t('picker.part')}</label>
         <select id={`${id}-part`} value={selection.partId} onChange={(event) => onChange({ partId: event.target.value })}>
-          {PARTS.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
+          {PARTS.map((part) => (
+            <option key={part.id} value={part.id}>
+              {t(`part.${part.id}`)}
             </option>
           ))}
         </select>
       </div>
       <div className="field">
-        <label htmlFor={`${id}-side`}>Side</label>
+        <label htmlFor={`${id}-side`}>{t('picker.side')}</label>
         <select id={`${id}-side`} value={selection.sideId} onChange={(event) => onChange({ sideId: event.target.value })}>
-          {SIDES.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
+          {SIDES.map((sideId) => (
+            <option key={sideId} value={sideId}>
+              {t(`side.${sideId}`)}
             </option>
           ))}
         </select>
       </div>
       <fieldset>
-        <legend>Layer</legend>
+        <legend>{t('picker.layer')}</legend>
         <label className="choice">
           <input
             type="radio"
@@ -35,7 +36,7 @@ export default function FacePicker({ selection, model, onChange, onModelChange }
             checked={selection.layerId === 'base'}
             onChange={() => onChange({ layerId: 'base' })}
           />
-          Base layer
+          {t('layer.base')}
         </label>
         <label className="choice">
           <input
@@ -44,15 +45,15 @@ export default function FacePicker({ selection, model, onChange, onModelChange }
             checked={selection.layerId === 'outer'}
             onChange={() => onChange({ layerId: 'outer' })}
           />
-          Outer layer ({part.outerName})
+          {t('layer.outer', { outer: t(`outer.${selection.partId}`) })}
         </label>
       </fieldset>
       <fieldset>
-        <legend>Arm width</legend>
+        <legend>{t('picker.armWidth')}</legend>
         {MODELS.map((item) => (
           <label key={item.id} className="choice">
             <input type="radio" name={`${id}-model`} checked={model === item.id} onChange={() => onModelChange(item.id)} />
-            {item.name}, {item.armWidth} pixels
+            {t(`model.${item.id}`, { width: item.armWidth })}
           </label>
         ))}
       </fieldset>

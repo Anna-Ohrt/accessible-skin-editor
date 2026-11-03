@@ -6,43 +6,31 @@
 //
 // Side names are from the character's point of view, like Minecraft's "right arm". Which edge
 // of each rectangle touches which part of the body was worked out from the same file and three.js
-// BoxGeometry, and is described in plain words by orientationOf().
+// BoxGeometry, and the messages in src/i18n describe it in plain words.
 //
-// Outer layer names match Java Edition's Skin Customization options (Hat, Jacket, Left Sleeve,
-// Right Sleeve, Left Pant Leg, Right Pant Leg), so players hear the same words as in the game.
+// Only ids are here. The words for them are in the messages, so they can be in any language.
 
 export const SKIN_SIZE = 64
 
 export const PARTS = [
-  { id: 'head', name: 'Head', size: [8, 8, 8], base: [0, 0], outer: [32, 0], outerName: 'hat' },
-  { id: 'body', name: 'Body', size: [8, 12, 4], base: [16, 16], outer: [16, 32], outerName: 'jacket' },
-  { id: 'rightArm', name: 'Right arm', size: [4, 12, 4], slimWidth: 3, base: [40, 16], outer: [40, 32], outerName: 'right sleeve' },
-  { id: 'leftArm', name: 'Left arm', size: [4, 12, 4], slimWidth: 3, base: [32, 48], outer: [48, 48], outerName: 'left sleeve' },
-  { id: 'rightLeg', name: 'Right leg', size: [4, 12, 4], base: [0, 16], outer: [0, 32], outerName: 'right pant leg' },
-  { id: 'leftLeg', name: 'Left leg', size: [4, 12, 4], base: [16, 48], outer: [0, 48], outerName: 'left pant leg' },
+  { id: 'head', size: [8, 8, 8], base: [0, 0], outer: [32, 0] },
+  { id: 'body', size: [8, 12, 4], base: [16, 16], outer: [16, 32] },
+  { id: 'rightArm', size: [4, 12, 4], slimWidth: 3, base: [40, 16], outer: [40, 32] },
+  { id: 'leftArm', size: [4, 12, 4], slimWidth: 3, base: [32, 48], outer: [48, 48] },
+  { id: 'rightLeg', size: [4, 12, 4], base: [0, 16], outer: [0, 32] },
+  { id: 'leftLeg', size: [4, 12, 4], base: [16, 48], outer: [0, 48] },
 ]
 
-export const SIDES = [
-  { id: 'front', name: 'Front' },
-  { id: 'back', name: 'Back' },
-  { id: 'right', name: 'Right side' },
-  { id: 'left', name: 'Left side' },
-  { id: 'top', name: 'Top' },
-  { id: 'bottom', name: 'Bottom' },
-]
+export const SIDES = ['front', 'back', 'right', 'left', 'top', 'bottom']
 
-export const LAYERS = [
-  { id: 'base', name: 'Base layer' },
-  { id: 'outer', name: 'Outer layer' },
-]
+export const LAYERS = ['base', 'outer']
 
 export const MODELS = [
-  { id: 'classic', name: 'Classic', armWidth: 4 },
-  { id: 'slim', name: 'Slim', armWidth: 3 },
+  { id: 'classic', armWidth: 4 },
+  { id: 'slim', armWidth: 3 },
 ]
 
 export const partById = (id) => PARTS.find((part) => part.id === id)
-export const sideById = (id) => SIDES.find((side) => side.id === id)
 
 // The rectangle for one side of a box whose texture starts at (u, v). This is the standard box
 // unwrap: top and bottom on the first row, then right side, front, left side and back.
@@ -65,56 +53,17 @@ function rectOf(sideId, u, v, w, h, d) {
   }
 }
 
-// Which way a side's rows and columns run, so people who can't see the texture can orient
-// themselves. Row and column numbers start at 1, like the grid announces them.
-export function orientationOf(sideId, w, h) {
-  switch (sideId) {
-    case 'front':
-      return `Seen from the front, so column 1 is on the character's right and column ${w} is on their left.`
-    case 'back':
-      return `Seen from behind, so column 1 is on the character's left and column ${w} is on their right.`
-    case 'right':
-      return `Column 1 is at the back and column ${w} is at the front.`
-    case 'left':
-      return `Column 1 is at the front and column ${w} is at the back.`
-    case 'top':
-      return `Seen from above. Row 1 is at the back and row ${h} is at the front. Column 1 is on the character's right.`
-    case 'bottom':
-      return `Row 1 is at the back and row ${h} is at the front. Column 1 is on the character's right.`
-    default:
-      return ''
-  }
-}
-
-export function faceLabel(partId, sideId, layerId) {
-  const part = partById(partId)
-  const side = sideById(sideId).name.toLowerCase()
-  const layer = layerId === 'base' ? 'base layer' : `outer layer (${part.outerName})`
-  return `${part.name}, ${side}, ${layer}`
-}
-
 export function getFace(partId, sideId, layerId, model = 'classic') {
   const part = partById(partId)
   if (!part) throw new Error(`Unknown part: ${partId}`)
   const [boxWidth, h, d] = part.size
   const w = model === 'slim' && part.slimWidth ? part.slimWidth : boxWidth
   const [u, v] = layerId === 'outer' ? part.outer : part.base
-  const rect = rectOf(sideId, u, v, w, h, d)
-  return {
-    id: `${partId}-${sideId}-${layerId}`,
-    partId,
-    sideId,
-    layerId,
-    ...rect,
-    label: faceLabel(partId, sideId, layerId),
-    orientation: orientationOf(sideId, rect.w, rect.h),
-  }
+  return { id: `${partId}-${sideId}-${layerId}`, partId, sideId, layerId, ...rectOf(sideId, u, v, w, h, d) }
 }
 
 export function allFaces(model = 'classic') {
-  return LAYERS.flatMap((layer) =>
-    PARTS.flatMap((part) => SIDES.map((side) => getFace(part.id, side.id, layer.id, model))),
-  )
+  return LAYERS.flatMap((layerId) => PARTS.flatMap((part) => SIDES.map((sideId) => getFace(part.id, sideId, layerId, model))))
 }
 
 // The face that contains a texture pixel, or null for the unused parts of the texture.

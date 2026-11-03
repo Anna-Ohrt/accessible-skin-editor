@@ -1,9 +1,19 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/context.js'
 import { getCell } from '../skin/pixels.js'
 import { alphaOf, toCss, toHex } from '../skin/color.js'
 
 const ARROWS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }
-const EDGES = { ArrowRight: 'Right', ArrowLeft: 'Left', ArrowDown: 'Bottom', ArrowUp: 'Top' }
+const EDGES = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'bottom', ArrowUp: 'top' }
+
+// The letter a shortcut key stands for. With a Latin keyboard layout it's the letter typed. With
+// another script, like Cyrillic or Greek, typing gives another character, so the key's position on
+// a US keyboard is used instead (event.code "KeyF" is where F is on a US keyboard).
+export function shortcutLetter(event) {
+  if (/^[a-z]$/i.test(event.key)) return event.key.toLowerCase()
+  const match = /^Key([A-Z])$/.exec(event.code ?? '')
+  return match && event.key.length === 1 ? match[1].toLowerCase() : null
+}
 
 // Every cell on the straight line between two cells, so a fast stroke doesn't skip any.
 function cellsBetween(from, to) {
@@ -33,19 +43,23 @@ function cellsBetween(from, to) {
 // The pixels of one side, as an ARIA grid: one Tab stop, arrow keys move between pixels, and
 // each pixel's name is its color (plus its position, unless that setting is off). The grid
 // reports what the person asked for through onAction; the app decides what it does.
-export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize, showGridLines, describedBy, cursorRequest, onAction }) {
+export default function PixelGrid({ face, label, pixels, nameOf, sayPosition, cellSize, showGridLines, describedBy, cursorRequest, onAction }) {
+  const { t } = useI18n()
   const gridRef = useRef(null)
   const cellRefs = useRef(new Map())
   const [cursor, setCursor] = useState({ col: 0, row: 0 })
+  const [seenRequest, setSeenRequest] = useState(cursorRequest)
   const focusAfterRender = useRef(false)
   const stroke = useRef(null)
   const strokeCount = useRef(0)
   const pointerHandled = useRef(false)
 
   // Another part of the editor, like the 3D model, can put the cursor on a pixel. Focus stays put.
-  useEffect(() => {
+  // This updates during render, as the React docs suggest for state that follows a prop.
+  if (cursorRequest !== seenRequest) {
+    setSeenRequest(cursorRequest)
     if (cursorRequest) setCursor({ col: cursorRequest.col, row: cursorRequest.row })
-  }, [cursorRequest])
+  }
 
   // The cursor stays where it was when another side is chosen, unless that side is smaller.
   const col = Math.min(cursor.col, face.w - 1)
@@ -71,7 +85,7 @@ export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize,
   function handleKeyDown(event) {
     const { key, shiftKey, altKey } = event
     const ctrl = event.ctrlKey || event.metaKey
-    const letter = key.length === 1 ? key.toLowerCase() : key
+    const letter = shortcutLetter(event)
 
     if (ctrl && letter === 'z') {
       event.preventDefault()
@@ -116,17 +130,19 @@ export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize,
     }
 
     // Single-letter shortcuts work only while the grid has focus (WCAG 2.1.4).
-    const actions = {
+    const keys = {
       ' ': { type: 'paint', cells: [{ col, row }], source: 'keyboard' },
       Enter: { type: 'paint', cells: [{ col, row }], source: 'keyboard' },
       Delete: { type: 'erase', col, row },
       Backspace: { type: 'erase', col, row },
+    }
+    const letters = {
       f: { type: 'fill', col, row },
       i: { type: 'pick', col, row },
       r: { type: 'readRow', row },
       c: { type: 'readColumn', col },
     }
-    const action = actions[letter]
+    const action = keys[key] ?? (letter && letters[letter])
     if (!action) return
     event.preventDefault()
     onAction(action)
@@ -218,7 +234,7 @@ export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize,
           }}
           role="gridcell"
           tabIndex={c === col && r === row ? 0 : -1}
-          aria-label={sayPosition ? `${name}, row ${r + 1}, column ${c + 1}` : name}
+          aria-label={sayPosition ? t('grid.cell', { color: name, row: r + 1, col: c + 1 }) : name}
           data-col={c}
           data-row={r}
           className={alpha < 255 ? 'cell is-see-through' : 'cell'}
@@ -235,13 +251,23 @@ export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize,
 
   const cursorColor = getCell(pixels, face, col, row)
   const cursorName = nameOf(cursorColor)
-  const cursorHex = alphaOf(cursorColor) > 0 && !cursorName.includes(toHex(cursorColor)) ? ` (${toHex(cursorColor)})` : ''
+  const cursorHex = toHex(cursorColor)
+  const position = { row: row + 1, col: col + 1, color: cursorName }
+  const readout =
+    alphaOf(cursorColor) > 0 && !cursorName.includes(cursorHex)
+      ? t('grid.readoutHex', { ...position, hex: cursorHex })
+      : t('grid.readout', position)
   return (
     <div className="grid-wrap">
+      {/* The grid is a picture, so it stays left to right in right-to-left languages, and arrow
+          keys move the way they point. The arrow handling is on the grid itself, and its cells are
+          the focusable parts (a roving tabindex), so the grid has no tabIndex of its own. */}
+      {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus */}
       <div
         ref={gridRef}
         role="grid"
-        aria-label={face.label}
+        dir="ltr"
+        aria-label={label}
         aria-describedby={describedBy}
         className={showGridLines ? 'pixel-grid with-lines' : 'pixel-grid'}
         style={{ '--cell': `${cellSize}px` }}
@@ -255,10 +281,7 @@ export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize,
       >
         {rows}
       </div>
-      <p className="cursor-readout">
-        Row {row + 1}, column {col + 1}: {cursorName}
-        {cursorHex}
-      </p>
+      <p className="cursor-readout">{readout}</p>
     </div>
   )
 }

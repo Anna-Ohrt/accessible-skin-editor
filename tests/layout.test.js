@@ -24,8 +24,8 @@ describe('skin layout', () => {
         for (let y = face.y; y < face.y + face.h; y += 1) {
           for (let x = face.x; x < face.x + face.w; x += 1) {
             const key = `${x},${y}`
-            expect(owner.get(key), `${face.label} overlaps ${owner.get(key)} at ${key}`).toBeUndefined()
-            owner.set(key, face.label)
+            expect(owner.get(key), `${face.id} overlaps ${owner.get(key)} at ${key}`).toBeUndefined()
+            owner.set(key, face.id)
           }
         }
       }
@@ -65,19 +65,6 @@ describe('skin layout', () => {
     expect(slimArm('front')).toEqual([44, 20, 3, 12])
     expect(slimArm('left')).toEqual([47, 20, 4, 12])
     expect(slimArm('back')).toEqual([51, 20, 3, 12])
-  })
-
-  it('names each side and says which way its rows and columns run', () => {
-    const sleeve = getFace('rightArm', 'right', 'outer')
-    expect(sleeve.label).toBe('Right arm, right side, outer layer (right sleeve)')
-    expect(sleeve.orientation).toBe('Column 1 is at the back and column 4 is at the front.')
-    expect(getFace('head', 'left', 'base').orientation).toBe('Column 1 is at the front and column 8 is at the back.')
-    expect(getFace('head', 'front', 'base').orientation).toBe(
-      "Seen from the front, so column 1 is on the character's right and column 8 is on their left.",
-    )
-    expect(getFace('head', 'top', 'outer').orientation).toBe(
-      "Seen from above. Row 1 is at the back and row 8 is at the front. Column 1 is on the character's right.",
-    )
   })
 
   it('finds the side under a texture pixel, and nothing in the unused areas', () => {

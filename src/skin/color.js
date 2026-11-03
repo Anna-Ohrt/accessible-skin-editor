@@ -46,19 +46,19 @@ function toHsl(r, g, b) {
   return { h, s, l }
 }
 
-function grayName(l) {
-  if (l < 0.2) return 'very dark gray'
-  if (l < 0.4) return 'dark gray'
-  if (l < 0.65) return 'gray'
-  if (l < 0.85) return 'light gray'
-  return 'very light gray'
+function grayLightness(l) {
+  if (l < 0.2) return 'veryDark'
+  if (l < 0.4) return 'dark'
+  if (l < 0.65) return 'normal'
+  if (l < 0.85) return 'light'
+  return 'veryLight'
 }
 
-function hueName(h) {
+function hueOf(h) {
   if (h < 10 || h >= 345) return 'red'
   if (h < 40) return 'orange'
   if (h < 65) return 'yellow'
-  if (h < 95) return 'yellow-green'
+  if (h < 95) return 'yellowGreen'
   if (h < 160) return 'green'
   if (h < 195) return 'cyan'
   if (h < 250) return 'blue'
@@ -66,55 +66,24 @@ function hueName(h) {
   return 'magenta'
 }
 
-// A short, everyday name for a color, like "dark brown" or "light blue". The rules are simple
-// thresholds on hue, saturation and lightness, so two different colors can share a name. That's
-// why the palette lets people name their own colors.
-export function describeOpaque(r, g, b) {
+// The parts of a short, everyday name for a color, like "dark brown" or "light blue": a hue, how
+// light it is, and whether it's muted ("grayish"). The words come from the messages, so the name
+// can be in any language. The rules are simple thresholds on hue, saturation and lightness, so two
+// different colors can share a name. That's why the palette lets people name their own colors.
+export function classifyColor(r, g, b) {
   const { h, s, l } = toHsl(r, g, b)
-  if (l <= 0.07) return 'black'
-  if (l >= 0.96) return 'white'
-  if (s < 0.12) return grayName(l)
+  const named = (hue, lightness = 'normal', muted = false) => ({ hue, lightness, muted })
+  if (l <= 0.07) return named('black')
+  if (l >= 0.96) return named('white')
+  if (s < 0.12) return named('gray', grayLightness(l))
 
   // Dark oranges and yellows read as brown, and light, muted ones as tan or beige.
-  if (h >= 10 && h < 50 && l < 0.45) {
-    if (l < 0.2) return 'very dark brown'
-    if (l < 0.3) return 'dark brown'
-    return 'brown'
-  }
-  if (h >= 15 && h < 50 && l < 0.8 && s < 0.65) return l < 0.6 ? 'light brown' : 'tan'
-  if (h >= 20 && h < 65 && l >= 0.8 && s < 0.7) return 'beige'
-  if (h >= 45 && h < 75 && l < 0.35) return l < 0.2 ? 'dark olive' : 'olive'
-  if ((h >= 330 || h < 10) && l >= 0.7) return l >= 0.9 ? 'light pink' : 'pink'
+  if (h >= 10 && h < 50 && l < 0.45) return named('brown', l < 0.2 ? 'veryDark' : l < 0.3 ? 'dark' : 'normal')
+  if (h >= 15 && h < 50 && l < 0.8 && s < 0.65) return l < 0.6 ? named('brown', 'light') : named('tan')
+  if (h >= 20 && h < 65 && l >= 0.8 && s < 0.7) return named('beige')
+  if (h >= 45 && h < 75 && l < 0.35) return named('olive', l < 0.2 ? 'dark' : 'normal')
+  if ((h >= 330 || h < 10) && l >= 0.7) return named('pink', l >= 0.9 ? 'light' : 'normal')
 
-  const lightness = l < 0.2 ? 'very dark ' : l < 0.35 ? 'dark ' : l > 0.85 ? 'very light ' : l > 0.68 ? 'light ' : ''
-  const muted = s < 0.35 ? 'grayish ' : ''
-  return `${lightness}${muted}${hueName(h)}`
-}
-
-export function describeColor(color) {
-  const [r, g, b, a] = channels(color)
-  if (a === 0) return 'transparent'
-  const name = describeOpaque(r, g, b)
-  return a === 255 ? name : `${name}, ${Math.round((a / 255) * 100)}% opaque`
-}
-
-export const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
-
-// A palette name that no other palette color uses, like "Green 2".
-export function uniqueName(name, palette) {
-  const taken = new Set(palette.map((entry) => entry.name.toLowerCase()))
-  if (!taken.has(name.toLowerCase())) return name
-  for (let n = 2; ; n += 1) {
-    const candidate = `${name} ${n}`
-    if (!taken.has(candidate.toLowerCase())) return candidate
-  }
-}
-
-// What a screen reader says for a pixel: the palette name when the color is in the palette,
-// otherwise a generated description.
-export function nameColor(color, palette, { sayHex = false } = {}) {
-  if (isTransparent(color)) return 'transparent'
-  const entry = palette.find((item) => item.color === color)
-  const name = entry ? entry.name : describeColor(color)
-  return sayHex ? `${name}, ${toHex(color)}` : name
+  const lightness = l < 0.2 ? 'veryDark' : l < 0.35 ? 'dark' : l > 0.85 ? 'veryLight' : l > 0.68 ? 'light' : 'normal'
+  return named(hueOf(h), lightness, s < 0.35)
 }

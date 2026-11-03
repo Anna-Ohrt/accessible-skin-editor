@@ -1,15 +1,17 @@
-import { useId, useRef } from 'react'
+import { useId } from 'react'
+import { useI18n } from '../i18n/context.js'
+
+export const SKIN_FILE_NAME = 'skin.png'
 
 export default function FilePanel({ error, paintName, onOpen, onDownload, onStartOver, onPlain }) {
   const id = useId()
-  const inputRef = useRef(null)
+  const { t } = useI18n()
   return (
     <>
       <div className="field">
-        <label htmlFor={`${id}-open`}>Open a skin (a 64 by 64 PNG)</label>
+        <label htmlFor={`${id}-open`}>{t('file.open')}</label>
         <input
           id={`${id}-open`}
-          ref={inputRef}
           type="file"
           accept="image/png"
           aria-describedby={error ? `${id}-error` : undefined}
@@ -22,22 +24,22 @@ export default function FilePanel({ error, paintName, onOpen, onDownload, onStar
         />
         {error && (
           <p id={`${id}-error`} role="alert" className="error">
-            {error}
+            {t(`file.error.${error.code}`, error.values)}
           </p>
         )}
       </div>
       <div className="button-row">
         <button type="button" onClick={onDownload}>
-          Download skin.png
+          {t('file.download', { file: SKIN_FILE_NAME })}
         </button>
         <button type="button" onClick={onStartOver}>
-          Start over with the sample skin
+          {t('file.startOver')}
         </button>
         <button type="button" onClick={onPlain}>
-          Start a plain skin in {paintName}
+          {t('file.plain', { color: paintName })}
         </button>
       </div>
-      <p className="hint">Your work and settings are saved in this browser as you go.</p>
+      <p className="hint">{t('file.saved')}</p>
     </>
   )
 }

@@ -1,11 +1,34 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../src/App.jsx'
+import CrashNotice from '../src/components/CrashNotice.jsx'
+import ErrorBoundary from '../src/components/ErrorBoundary.jsx'
+import { I18nContext } from '../src/i18n/context.js'
+import { createI18n } from '../src/i18n/index.js'
 
-function setup() {
+function setup(localeId = 'en') {
   const user = userEvent.setup({ applyAccept: false })
-  return { user, ...render(<App />) }
+  return {
+    user,
+    ...render(
+      <I18nContext value={createI18n(localeId)}>
+        <App />
+      </I18nContext>,
+    ),
+  }
+}
+
+// The first 33 bytes of a PNG file of the given size: the signature and the IHDR chunk.
+function pngHeader(width, height) {
+  const bytes = new Uint8Array(33)
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  const view = new DataView(bytes.buffer)
+  view.setUint32(8, 13)
+  bytes.set([73, 72, 68, 82], 12)
+  view.setUint32(16, width)
+  view.setUint32(20, height)
+  return bytes
 }
 
 const grid = () => screen.getByRole('grid')
@@ -282,7 +305,7 @@ describe('Skin editor', () => {
     const { user } = setup()
     const front = screen.getByRole('img', { name: 'Front view of the skin' })
     expect(front.closest('figure')).toHaveTextContent(
-      'Head: mostly tan, with dark brown, white and blue. Body: mostly green. Arms: mostly tan, with green. Legs: mostly dark blue, with dark gray.',
+      'Head: mostly tan, with dark brown, white, and blue. Body: mostly green. Arms: mostly tan, with green. Legs: mostly dark blue, with dark gray.',
     )
     // The caption is tied to the picture by the figure, so it isn't also a description.
     expect(front).not.toHaveAttribute('aria-describedby')
@@ -336,11 +359,94 @@ describe('Skin editor', () => {
 
   it('explains why a file can\u2019t be opened', async () => {
     const { user } = setup()
-    await user.upload(
-      screen.getByLabelText('Open a skin (a 64 by 64 PNG)'),
-      new File(['not a skin'], 'skin.jpg', { type: 'image/jpeg' }),
-    )
+    const input = screen.getByLabelText('Open a skin (a 64 by 64 PNG)')
+    await user.upload(input, new File(['not a skin'], 'skin.jpg', { type: 'image/jpeg' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Choose a PNG file. Minecraft skins are PNG images.')
+    // The size comes from the file's header, so a wrong-sized image is refused before it's decoded.
+    await user.upload(input, new File([pngHeader(128, 128)], 'big.png', { type: 'image/png' }))
+    expect(await screen.findByText('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.')).toBeInTheDocument()
+    expect(input).toHaveAccessibleDescription('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.')
+  })
+
+  it('goes by the last file chosen, even when an earlier one finishes later', async () => {
+    setup()
+    const input = screen.getByLabelText('Open a skin (a 64 by 64 PNG)')
+    // Reading the PNG's header waits for the file, so it finishes after the JPEG is turned away.
+    fireEvent.change(input, { target: { files: [new File([pngHeader(128, 128)], 'slow.png', { type: 'image/png' })] } })
+    fireEvent.change(input, { target: { files: [new File(['not a skin'], 'fast.jpg', { type: 'image/jpeg' })] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent('Choose a PNG file.')
+    await act(() => new Promise((resolve) => setTimeout(resolve, 100)))
+    expect(screen.getByRole('alert')).toHaveTextContent('Choose a PNG file.')
+  })
+
+  it('says "1 pixel is" for one pixel and "pixels are" for more', async () => {
+    const { user } = setup()
+    await user.click(radio('Outer layer (hat)'))
+    await user.click(radio('red'))
+    focusGrid()
+    await user.keyboard(' ')
+    await user.click(button('Clear this side'))
+    expect(status()).toHaveTextContent('Cleared this side. 1 pixel is transparent now.')
+  })
+
+  it('runs letter shortcuts by key position on keyboards for other scripts, like Russian', () => {
+    setup()
+    const start = focusGrid()
+    // On a Russian layout, the R key types "к" and the Z key types "я".
+    fireEvent.keyDown(start, { key: '\u043a', code: 'KeyR' })
+    expect(status()).toHaveTextContent('Row 1, left to right: 8 dark brown.')
+    fireEvent.keyDown(start, { key: '\u044f', code: 'KeyZ', ctrlKey: true })
+    expect(status()).toHaveTextContent('Nothing to undo.')
+  })
+
+  it('refuses a color name longer than 40 characters, and says so', async () => {
+    const { user } = setup()
+    const name = screen.getByRole('textbox', { name: 'Name (optional)' })
+    await user.type(name, 'x'.repeat(41))
+    await user.click(button('Add color'))
+    expect(screen.getByRole('alert')).toHaveTextContent('Use 40 characters or fewer.')
+    expect(name).toHaveFocus()
+    expect(name).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('takes every word on the page from the messages, so all of it can be translated', () => {
+    // In the en-XA pseudo-locale every message has accented letters, so plain English is text that
+    // skipped the messages. Names and addresses aren't translated, so they're allowed. So is "and":
+    // it joins lists, and comes from the browser's list formatting for the language
+    // (Intl.ListFormat), so a real translation gets its own word for it without a message.
+    setup('en-XA')
+    const allowed = ['Anna Ohrt', 'github.com/Anna-Ohrt/accessible-skin-editor', 'skin.png', ' and ']
+    const english = (text) => /[A-Za-z]{2,}/.test(allowed.reduce((rest, word) => rest.replaceAll(word, ' '), text))
+    const found = []
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) if (english(node.textContent)) found.push(node.textContent)
+    for (const element of document.querySelectorAll('[aria-label]')) {
+      if (english(element.getAttribute('aria-label'))) found.push(element.getAttribute('aria-label'))
+    }
+    expect(found).toEqual([])
+    expect(cells()).toHaveLength(64)
+  })
+
+  it('keeps the grid left to right in a right-to-left language', () => {
+    setup('ar-XB')
+    expect(grid()).toHaveAttribute('dir', 'ltr')
+  })
+
+  it('shows a way out instead of a blank page if the editor stops with an error', () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+    function Broken() {
+      throw new Error('A test error')
+    }
+    render(
+      <ErrorBoundary fallback={<CrashNotice />}>
+        <Broken />
+      </ErrorBoundary>,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong and the editor stopped.')
+    expect(screen.getByRole('heading', { name: 'Skin editor prototype' })).toHaveFocus()
+    expect(button('Reload the editor')).toBeInTheDocument()
+    expect(button('Clear the saved work and reload')).toBeInTheDocument()
+    quiet.mockRestore()
   })
 
   it('says it is not an official Minecraft product', () => {

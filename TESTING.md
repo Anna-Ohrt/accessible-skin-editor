@@ -10,22 +10,26 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 56 component tests
+### 2. 88 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
 - The grid's name and description, one Tab stop, and each pixel's name, like "dark brown, row 1, column 1".
-- Every key: arrows, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, F, I, R, C, Delete and Backspace, and Ctrl+Z and Ctrl+Y.
-- The status message after each action, like "Painted green." and "Nothing to undo."
-- Error messages: they're announced, the field is marked invalid, and focus moves to it.
+- Every key: arrows, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, F, I, R, C, Delete and Backspace, and Ctrl+Z and Ctrl+Y. Letter shortcuts also work on a Russian keyboard layout, by key position.
+- The status message after each action, like "Painted green." and "Nothing to undo.", with the right plural: "1 pixel is", "2 pixels are".
+- Error messages: they're announced, the field is marked invalid, and focus moves to it. That includes a color name over 40 characters.
 - A screen reader's click, which has no pointer events, still paints.
 - Mouse painting happens on release, sliding off cancels it, and a drag undoes in one step.
 - The base layer rules, color names, preview text, saved settings, and the disclaimer.
 - The 3D model's math: where the camera stands for each view, turning the short way round, no animation with reduced motion, and which side and pixel a point on the model is. Without WebGL the page shows flat pictures and says why, and the preview turns to the side being edited.
+- Languages: every message is valid in English and in both made-up languages; in the accented one (en-XA), no text on the page skips the messages; the grid stays left to right in the right-to-left one (ar-XB); and `?lang=` ignores anything that isn't a language the editor has.
+- Files: a PNG's size is read from its header, and a wrong size, a fake PNG or a file over 1 MB is refused before decoding. When two files are opened quickly, the last one counts.
+- Saving: work saved by the previous version moves over, a damaged palette keeps the pixels, and saving waits for a pause in changes.
+- If the editor stops with an error, it shows a message with a way to reload, and moves focus to it.
 
 **Limit:** these run in jsdom, which works out names and roles from the page code. It's not a browser and not a screen reader, and it has no WebGL.
 
-### 3. 15 browser checks
+### 3. 28 browser checks
 
 These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux in GitHub Actions on every change, and against the [live site](https://anna-ohrt.github.io/accessible-skin-editor/).
 
@@ -44,10 +48,19 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | The 3D model, turned by the View and Angle choices and by dragging | Its name says which way it faces, it doesn't animate when reduced motion is on, it shows new paint at once, and it turns to the side being edited | 1.1.1, 2.5.7, 2.3.3 |
 | Pointing at and clicking the 3D model | The page names the side and pixel under the pointer, and a click opens that pixel in the grid | |
 | License text | The site ships the license of every open source package in it | |
+| The accented made-up language (en-XA), about 40% longer | No text skips the messages, including the 3D model's controls. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
+| The right-to-left made-up language (ar-XB) | The page lays out right to left, the grid stays left to right and the right arrow key still moves right. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
+| The Content Security Policy | Every directive is as intended, the editor and its 3D code run under it with no violations or errors, and an injected script or HTML is refused | |
+| The one-file copy, opened from a file | It runs under its own policy, which allows its script by hash, with no errors | |
+| Download, then open the downloaded file | Every pixel comes back the same | |
+| The graphics reset (a lost WebGL context) | The preview switches to flat pictures and says why, and choosing 3D model works again | |
+| The 3D code fails to load | Flat pictures show with a note, and painting still works | |
+| The page is hidden, like switching tabs | The last change is saved at once | |
+| Loading the 3D model | Nothing on the page moves: the layout shift is 0. The pixels work while the 3D code is held back | |
 
 ### 4. Making sure the tests catch bugs
 
-Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier, 3 were planted; in the review, 6 more, one for each new behavior; and for the 3D model, 6 more. The tests caught all of them.
+Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier, 3 were planted; in the review, 6 more, one for each new behavior; for the 3D model, 6 more; and in the engineering pass, 15 more, one for each protection. The tests caught all of them but one: a policy that also allowed inline scripts passed, because Trusted Types blocked the injected script before that rule was reached. The policy test now checks every directive exactly, and catches it.
 
 ### 5. Checks by hand in a browser
 
@@ -111,10 +124,14 @@ Listen for the open questions in RESEARCH.md:
 - **Reduced motion:** turn it on in the operating system's settings, and check that the 3D model jumps to a new view instead of turning.
 - **Speech recognition**, such as Windows Voice Access or Dragon. Buttons have visible names you can say; how a voice user reaches one pixel is an open question.
 - **A phone or tablet:** painting with a finger, turning the 3D model with one finger, zooming with two, and the mobile screen readers above.
+- **More contrast:** turn on a high contrast setting that asks pages for more contrast (`prefers-contrast: more`), and check that hints, borders and grid lines get stronger.
+- **Another language:** once there's a real translation, test it with a screen reader set to that language. The W3C's Understanding page for WCAG 3.1.1 notes that screen readers use the page's language to "load the correct pronunciation rules".
 
 ### 3. A guided check
 
 [Accessibility Insights for Web](https://accessibilityinsights.io/docs/web/overview/), an open source Chrome and Edge extension from Microsoft, has FastPass, Quick Assess and Assessment. Run them on the live site and fix what they find.
+
+The live site's Content Security Policy lets testing tools add CSS, like the text spacing bookmarklet does, but a bookmarklet that loads a script from another site may be blocked. If one doesn't work, run the editor with `npm run dev`, which has no policy.
 
 ### 4. Sessions with blind and low vision players
 

@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # The packages in package.json. A new package in the site makes the notices test fail on purpose,
+  # so its license gets a look before it ships.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-tools:
+        dependency-type: development
+  # The actions in .github/workflows, which are pinned to commit SHAs.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

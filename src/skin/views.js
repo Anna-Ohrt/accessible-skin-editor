@@ -1,13 +1,8 @@
-import { getFace, partById } from './layout.js'
+import { getFace } from './layout.js'
 import { channels, rgba } from './color.js'
 import { getCell, countByName } from './pixels.js'
 
-export const VIEWS = [
-  { id: 'front', name: 'Front' },
-  { id: 'right', name: 'Right side' },
-  { id: 'back', name: 'Back' },
-  { id: 'left', name: 'Left side' },
-]
+export const VIEWS = ['front', 'right', 'back', 'left']
 
 // Where each face goes in a flat picture of the character. Seen from the front, the character's
 // right arm is on the viewer's left. From the side, the arm and leg on that side cover the body.
@@ -101,21 +96,18 @@ export function composeView(pixels, viewId, model = 'classic', { showOuter = tru
 }
 
 const GROUPS = [
-  { name: 'Head', parts: ['head'] },
-  { name: 'Body', parts: ['body'] },
-  { name: 'Arms', parts: ['rightArm', 'leftArm'] },
-  { name: 'Legs', parts: ['rightLeg', 'leftLeg'] },
+  { id: 'head', parts: ['head'] },
+  { id: 'body', parts: ['body'] },
+  { id: 'arms', parts: ['rightArm', 'leftArm'] },
+  { id: 'legs', parts: ['rightLeg', 'leftLeg'] },
 ]
 
-function listWords(words) {
-  if (words.length <= 1) return words.join('')
-  return `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`
-}
-
-// A text alternative for the preview, like "Head: mostly Skin, with Hair and Eye." The body is
-// hidden behind the arm in the side views, so it's left out there.
-export function describeView(view, nameOf) {
-  const sentences = []
+// What a text alternative for the preview needs: for each group of body parts, its most common
+// color, whether that's most of it, and up to three other colors. In a side view only one arm and
+// one leg show, so `part` names that one, like "Right arm", instead of "Arms". The body is hidden
+// behind the arm in the side views, so it's left out there.
+export function summarizeView(view, nameOf) {
+  const groups = []
   for (const group of GROUPS) {
     const values = []
     view.partOf.forEach((partId, index) => {
@@ -123,17 +115,14 @@ export function describeView(view, nameOf) {
     })
     if (values.length === 0) continue
     const [first, ...rest] = countByName(values, nameOf)
-    const others = rest.slice(0, 3).map(({ name }) => name)
-    const lead = first.count / values.length >= 0.5 ? `mostly ${first.name}` : first.name
-    const label = sideViewName(group, view)
-    sentences.push(others.length ? `${label}: ${lead}, with ${listWords(others)}.` : `${label}: ${lead}.`)
+    const shown = group.parts.filter((partId) => view.partOf.includes(partId))
+    groups.push({
+      group: group.id,
+      part: shown.length === 1 ? shown[0] : null,
+      lead: first.name,
+      mostly: first.count / values.length >= 0.5,
+      others: rest.slice(0, 3).map(({ name }) => name),
+    })
   }
-  return sentences.join(' ')
-}
-
-// In a side view only one arm and one leg show, so say "Right arm" instead of "Arms".
-function sideViewName(group, view) {
-  if (group.parts.length === 1) return group.name
-  const shown = group.parts.filter((partId) => view.partOf.includes(partId))
-  return shown.length === 1 ? partById(shown[0]).name : group.name
+  return groups
 }

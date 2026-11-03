@@ -60,13 +60,13 @@ describe('picking a spot on the model', () => {
     const pixels = createSampleSkin()
     const headFront = getFace('head', 'front', 'base')
     const spot = spotAt(pixels, headFront.x + 2, headFront.y + 4, 'classic')
-    expect(spot.face.label).toBe('Head, front, base layer')
+    expect(spot.face.id).toBe('head-front-base')
     expect([spot.row, spot.col]).toEqual([4, 2])
 
     const hatFront = getFace('head', 'front', 'outer')
     expect(spotAt(pixels, hatFront.x + 2, hatFront.y + 4, 'classic')).toBeNull()
     const painted = paintCells(pixels, hatFront, [{ col: 2, row: 4 }], rgba(255, 0, 0))
-    expect(spotAt(painted, hatFront.x + 2, hatFront.y + 4, 'classic').face.label).toBe('Head, front, outer layer (hat)')
+    expect(spotAt(painted, hatFront.x + 2, hatFront.y + 4, 'classic').face.id).toBe('head-front-outer')
 
     // The corner of the texture isn't part of any side.
     expect(spotAt(pixels, 0, 0, 'classic')).toBeNull()

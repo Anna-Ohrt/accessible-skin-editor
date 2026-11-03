@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react'
+import { useI18n } from '../i18n/context.js'
 import { SKIN_SIZE, faceAt } from '../skin/layout.js'
-import { drawPixels } from './Preview.jsx'
+import { drawPixels } from './draw.js'
 
 const SCALE = 4
 
 // The whole texture, as it's saved in the PNG, with the side being edited outlined. Clicking it
 // picks a side, as a shortcut for mouse users; the Body part and Side menus do the same thing.
 export default function TextureMap({ pixels, face, model, onPickFace }) {
+  const { t } = useI18n()
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -31,16 +33,19 @@ export default function TextureMap({ pixels, face, model, onPickFace }) {
 
   return (
     <>
+      {/* A mouse shortcut only: the menus under "Choose what to edit" do the same from the keyboard. */}
       <canvas
         ref={canvasRef}
         className="texture-map"
+        // ARIA in HTML allows any role on a canvas, but this lint rule counts canvas as interactive.
+        // eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role
         role="img"
-        aria-label="The whole skin texture, with the side you're editing outlined."
+        aria-label={t('texture.label')}
         width={SKIN_SIZE * SCALE}
         height={SKIN_SIZE * SCALE}
         onClick={handleClick}
       />
-      <p className="hint">Clicking a part of the texture picks that side. The menus under &ldquo;Choose what to edit&rdquo; do the same.</p>
+      <p className="hint">{t('texture.hint', { section: t('heading.choose') })}</p>
     </>
   )
 }

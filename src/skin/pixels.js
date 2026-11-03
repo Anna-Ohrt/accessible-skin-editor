@@ -1,5 +1,5 @@
 import { SKIN_SIZE, PARTS, SIDES, getFace } from './layout.js'
-import { TRANSPARENT, alphaOf, describeColor, rgba } from './color.js'
+import { TRANSPARENT, alphaOf, rgba } from './color.js'
 
 export const indexOf = (x, y) => y * SKIN_SIZE + x
 export const createSkin = () => new Uint32Array(SKIN_SIZE * SKIN_SIZE)
@@ -100,14 +100,6 @@ export function runsOf(values) {
   return runs
 }
 
-// "2 Hair, Skin, 3 Eye": the way a row or column is read out. Neighbors are grouped by what they
-// sound like, so two shades that are both called "brown" read as "2 brown", like each pixel does.
-export function describeLine(values, nameOf) {
-  return runsOf(values.map(nameOf))
-    .map(({ value, count }) => (count > 1 ? `${count} ${value}` : value))
-    .join(', ')
-}
-
 export function colorCounts(values) {
   const counts = new Map()
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1)
@@ -135,13 +127,6 @@ export function faceValues(pixels, face) {
   return values
 }
 
-export function describeFace(pixels, face, nameOf) {
-  const parts = countByName(faceValues(pixels, face), nameOf).map(
-    ({ name, count, shades }) => `${count} ${name}${shades > 1 ? ` (${shades} shades)` : ''}`,
-  )
-  return `${face.w} by ${face.h} pixels: ${parts.join(', ')}.`
-}
-
 // How many pixels on these faces aren't fully solid.
 export function countSeeThrough(pixels, faces) {
   let count = 0
@@ -166,8 +151,8 @@ export const SAMPLE_COLORS = {
   shoes: rgba(80, 80, 80), // dark gray
 }
 
-// Grays first, then the rainbow, then browns. Every name comes from describeColor, the same words
-// used for any other color, and no two are the same.
+// Grays first, then the rainbow, then browns. Every name comes from the same color naming as any
+// other color, so the names follow the language, and no two are the same.
 const SAMPLE_PALETTE = [
   rgba(0, 0, 0),
   SAMPLE_COLORS.shoes,
@@ -186,8 +171,10 @@ const SAMPLE_PALETTE = [
   SAMPLE_COLORS.hair,
 ]
 
+// A palette entry's name is null until someone names it. Until then it's named by how it looks,
+// in the editor's language.
 export function createSamplePalette() {
-  return SAMPLE_PALETTE.map((color, index) => ({ id: `color-${index + 1}`, name: describeColor(color), color }))
+  return SAMPLE_PALETTE.map((color, index) => ({ id: `color-${index + 1}`, name: null, color }))
 }
 
 function fillRows(pixels, face, fromRow, toRow, color) {
@@ -212,7 +199,7 @@ export function createSampleSkin() {
     pixels = paintCells(pixels, face(partId, sideId), cells, color)
   }
 
-  for (const side of SIDES) fill('head', side.id, c.skin)
+  for (const side of SIDES) fill('head', side, c.skin)
   fill('head', 'top', c.hair)
   fill('head', 'back', c.hair)
   rows('head', 'right', 0, 2, c.hair)
@@ -222,7 +209,7 @@ export function createSampleSkin() {
   dots('head', 'front', [{ col: 2, row: 4 }, { col: 5, row: 4 }], c.eye)
   dots('head', 'front', [{ col: 3, row: 6 }, { col: 4, row: 6 }], c.mouth)
 
-  for (const side of SIDES) fill('body', side.id, c.shirt)
+  for (const side of SIDES) fill('body', side, c.shirt)
   fill('body', 'bottom', c.pants)
 
   for (const arm of ['rightArm', 'leftArm']) {
@@ -249,7 +236,7 @@ export function createSampleSkin() {
 export function createPlainSkin(color) {
   let pixels = createSkin()
   for (const part of PARTS) {
-    for (const side of SIDES) pixels = fillFace(pixels, getFace(part.id, side.id, 'base', 'classic'), color).pixels
+    for (const side of SIDES) pixels = fillFace(pixels, getFace(part.id, side, 'base', 'classic'), color).pixels
   }
   return pixels
 }

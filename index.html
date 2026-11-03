@@ -3,12 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Links to other sites don't tell them which page they came from. -->
+    <meta name="referrer" content="no-referrer" />
     <!-- No icon file, so the browser doesn't ask for one and get a 404. -->
     <link rel="icon" href="data:," />
     <title>Skin editor prototype</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript><p>The skin editor needs JavaScript. Turn it on in your browser settings, then reload the page.</p></noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -43,12 +43,53 @@ function thirdPartyNotices() {
   }
 }
 
-export default defineConfig({
-  plugins: [react(), thirdPartyNotices()],
+// A Content Security Policy for the built site, as a <meta> tag, since GitHub Pages can't send
+// headers. Scripts may come only from the site itself, so an injected <script> or event handler
+// can't run, and Trusted Types stop code from turning text into HTML or script. Inline styles are
+// allowed so people's own tools still work, like the WCAG text spacing bookmarklet, which adds its
+// CSS to the page's <head> as an element; the CSP spec says policies "SHOULD NOT interfere with the
+// operation of user-agent features like addons, extensions, or bookmarklets". It's left out of the
+// dev server, which needs inline scripts for hot reloading. scripts/inline-build.mjs swaps 'self'
+// for a hash in the one-file copy, whose script is inline.
+export const CSP = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "object-src 'none'",
+  "require-trusted-types-for 'script'",
+  "trusted-types 'none'",
+].join('; ')
+
+function contentSecurityPolicy() {
+  return {
+    name: 'content-security-policy',
+    apply: 'build',
+    transformIndexHtml(html) {
+      // It has to come before any script or style in the page to cover them.
+      const charset = '<meta charset="UTF-8" />'
+      if (!html.includes(charset)) throw new Error('index.html has no charset tag to put the policy after.')
+      return html.replace(charset, `${charset}\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`)
+    },
+  }
+}
+
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), thirdPartyNotices(), contentSecurityPolicy()],
   // Relative paths, so the built page also works from a plain folder.
   base: './',
-  // three.js, for the 3D model, is most of the bundle: about 790 KB, or 215 KB compressed.
-  build: { chunkSizeWarningLimit: 1000 },
+  build: {
+    // three.js, for the 3D model, is in its own file of about 550 KB, which loads only when the
+    // model is shown. The one-file copy has everything in one script.
+    chunkSizeWarningLimit: mode === 'single' ? 1000 : 600,
+    // The one-file copy (npm run build:single) needs all the code in one script. It builds into
+    // its own folder, so it never replaces the site in dist.
+    outDir: mode === 'single' ? 'dist-single' : 'dist',
+    rolldownOptions: mode === 'single' ? { output: { codeSplitting: false } } : {},
+  },
   server: { port: 5180, strictPort: true },
   test: {
     environment: 'jsdom',
@@ -57,4 +98,4 @@ export default defineConfig({
     setupFiles: ['./tests/setup.js'],
     testTimeout: 15000,
   },
-})
+}))

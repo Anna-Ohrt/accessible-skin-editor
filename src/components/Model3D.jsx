@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 import { SkinViewer } from 'skinview3d'
 import { DoubleSide, Group, Mesh, MeshBasicMaterial, Path, Raycaster, Shape, ShapeGeometry, Vector2, Vector3 } from 'three'
 import { SKIN_SIZE } from '../skin/layout.js'
@@ -20,16 +20,6 @@ const PARTS = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg']
 const DEGREES_PER_PIXEL = 0.5
 // A press that moves less than this is a click, not a drag.
 const DRAG_THRESHOLD = 4
-
-// Whether this browser can draw with WebGL at all.
-export function webglAvailable() {
-  try {
-    const canvas = document.createElement('canvas')
-    return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl'))
-  } catch {
-    return false
-  }
-}
 
 // A flat frame around a rectangle, from `inner` to `outer` units outside its edge.
 function ring(width, height, inner, outer, color) {
@@ -76,40 +66,45 @@ function isShown(object) {
   return true
 }
 
+// Points the camera at the character from `yaw` and `pitch`, in degrees, and redraws.
+function aim(viewer, cameraRef, yaw, pitch) {
+  cameraRef.current = { yaw, pitch }
+  viewer.camera.position.set(...cameraDirection(yaw, pitch))
+  viewer.adjustCameraDistance()
+  viewer.camera.lookAt(0, 0, 0)
+  viewer.render()
+}
+
+function removeOutline(outlineRef) {
+  const current = outlineRef.current
+  if (!current) return
+  current.parent?.remove(current)
+  disposeTree(current)
+  outlineRef.current = null
+}
+
 // The skin on a 3D character, drawn with skinview3d. Dragging turns it. A click without a drag
 // reports the side and pixel under the pointer, and hovering reports it too. The View and Angle
 // choices in the Preview turn it without dragging (WCAG 2.5.7).
-export default function Model3D({ pixels, model, face, showOuter, outline, viewId, angleId, label, onTurn, onPick, onPoint, onUnavailable }) {
+//
+// Preview.jsx loads this file only when the 3D model is shown, because three.js is most of the code.
+export default function Model3D({ pixels, model, face, showOuter, outline, viewId, angleId, label, onTurn, onPick, onPoint, onUnavailable, onLost }) {
   const wrapRef = useRef(null)
-  const canvasRef = useRef(null)
   const viewerRef = useRef(null)
+  const canvasRef = useRef(null)
   const outlineRef = useRef(null)
   const textureRef = useRef(null)
   const cameraRef = useRef({ yaw: VIEW_YAW[viewId], pitch: ANGLE_PITCH[angleId] })
   const turnFrame = useRef(0)
-  const hoverFrame = useRef(0)
-  const dragRef = useRef(null)
   const dragResult = useRef(null)
-  const latest = useRef(null)
-  latest.current = { pixels, model, onTurn, onPick, onPoint, onUnavailable }
 
-  function placeCamera(yaw, pitch) {
-    const viewer = viewerRef.current
-    if (!viewer) return
-    cameraRef.current = { yaw, pitch }
-    viewer.camera.position.set(...cameraDirection(yaw, pitch))
-    viewer.adjustCameraDistance()
-    viewer.camera.lookAt(0, 0, 0)
-    viewer.render()
-  }
-
-  function removeOutline() {
-    const current = outlineRef.current
-    if (!current) return
-    current.parent?.remove(current)
-    disposeTree(current)
-    outlineRef.current = null
-  }
+  // The canvas's listeners are added once, so they reach the latest props through these.
+  const spotAtTexel = useEffectEvent((x, y) => spotAt(pixels, x, y, model))
+  const turned = useEffectEvent((nextView, nextAngle) => onTurn(nextView, nextAngle))
+  const picked = useEffectEvent((spot) => onPick(spot))
+  const pointed = useEffectEvent((spot) => onPoint(spot))
+  const unavailable = useEffectEvent(() => onUnavailable())
+  const lost = useEffectEvent(() => onLost())
 
   // Makes the viewer once. The canvas is made here too, so a remount always gets a fresh WebGL
   // context instead of reusing one that was released.
@@ -124,16 +119,16 @@ export default function Model3D({ pixels, model, face, showOuter, outline, viewI
       viewer = new SkinViewer({ canvas, width: 240, height: 300, renderPaused: true, enableControls: false })
     } catch {
       canvas.remove()
-      latest.current.onUnavailable()
+      unavailable()
       return undefined
     }
     // OrbitControls turns off every touch gesture on the canvas. Here one finger turns the model
     // and two fingers can still zoom the page.
     viewer.controls.enabled = false
     canvas.style.touchAction = 'pinch-zoom'
-    canvasRef.current = canvas
     viewerRef.current = viewer
-    placeCamera(cameraRef.current.yaw, cameraRef.current.pitch)
+    canvasRef.current = canvas
+    aim(viewer, cameraRef, cameraRef.current.yaw, cameraRef.current.pitch)
 
     const raycaster = new Raycaster()
     function pick(event) {
@@ -148,71 +143,79 @@ export default function Model3D({ pixels, model, face, showOuter, outline, viewI
       for (const hit of raycaster.intersectObjects(meshes, false)) {
         if (!hit.uv) continue
         const { x, y } = texelAt(hit.uv.x, hit.uv.y)
-        const spot = spotAt(latest.current.pixels, x, y, latest.current.model)
+        const spot = spotAtTexel(x, y)
         if (spot) return spot
       }
       return null
     }
 
+    let drag = null
+    let hoverFrame = 0
     function handleDown(event) {
       if (event.button !== 0) return
       cancelAnimationFrame(turnFrame.current)
-      dragRef.current = { x: event.clientX, y: event.clientY, ...cameraRef.current, moved: false }
+      drag = { x: event.clientX, y: event.clientY, ...cameraRef.current, moved: false }
       canvas.setPointerCapture?.(event.pointerId)
     }
     function handleMove(event) {
-      const drag = dragRef.current
       if (drag) {
         if (event.buttons === 0) {
-          dragRef.current = null
+          drag = null
           return
         }
         const dx = event.clientX - drag.x
         const dy = event.clientY - drag.y
         if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return
         drag.moved = true
-        latest.current.onPoint(null)
+        pointed(null)
         // Dragging right turns the model's front toward the right, so the camera moves to its right.
         const pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, drag.pitch + dy * DEGREES_PER_PIXEL))
-        placeCamera(drag.yaw - dx * DEGREES_PER_PIXEL, pitch)
+        aim(viewer, cameraRef, drag.yaw - dx * DEGREES_PER_PIXEL, pitch)
         return
       }
-      cancelAnimationFrame(hoverFrame.current)
-      hoverFrame.current = requestAnimationFrame(() => latest.current.onPoint(pick(event)))
+      cancelAnimationFrame(hoverFrame)
+      hoverFrame = requestAnimationFrame(() => pointed(pick(event)))
     }
     function handleUp(event) {
-      const drag = dragRef.current
-      dragRef.current = null
-      if (!drag) return
-      if (drag.moved) {
+      const ended = drag
+      drag = null
+      if (!ended) return
+      if (ended.moved) {
         const result = { viewId: nearestView(cameraRef.current.yaw), angleId: nearestAngle(cameraRef.current.pitch) }
         dragResult.current = result
-        latest.current.onTurn(result.viewId, result.angleId)
+        turned(result.viewId, result.angleId)
         return
       }
       const spot = pick(event)
-      if (spot) latest.current.onPick(spot)
+      if (spot) picked(spot)
     }
     function handleCancel() {
-      dragRef.current = null
+      drag = null
     }
     function handleLeave() {
-      cancelAnimationFrame(hoverFrame.current)
-      if (!dragRef.current) latest.current.onPoint(null)
+      cancelAnimationFrame(hoverFrame)
+      if (!drag) pointed(null)
     }
-    function handleRestored() {
-      requestAnimationFrame(() => viewer.render())
+    // The graphics driver can reset and take the drawing with it, for example after a driver update
+    // or when too many pages use WebGL. The Preview then shows flat pictures and says why.
+    function handleLost(event) {
+      event.preventDefault()
+      lost()
     }
-    canvas.addEventListener('pointerdown', handleDown)
-    canvas.addEventListener('pointermove', handleMove)
-    canvas.addEventListener('pointerup', handleUp)
-    canvas.addEventListener('pointercancel', handleCancel)
-    canvas.addEventListener('pointerleave', handleLeave)
-    canvas.addEventListener('webglcontextrestored', handleRestored)
+    const listeners = {
+      pointerdown: handleDown,
+      pointermove: handleMove,
+      pointerup: handleUp,
+      pointercancel: handleCancel,
+      pointerleave: handleLeave,
+      webglcontextlost: handleLost,
+    }
+    for (const [type, listener] of Object.entries(listeners)) canvas.addEventListener(type, listener)
 
+    // The box around the canvas keeps its size and shape from CSS, so the page doesn't jump while
+    // the model loads. The canvas fills it.
     function resize() {
-      const width = Math.max(160, Math.min(300, Math.floor(wrap.clientWidth)))
-      viewer.setSize(width, Math.round(width * 1.25))
+      viewer.setSize(Math.max(1, wrap.clientWidth), Math.max(1, wrap.clientHeight))
       viewer.render()
     }
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null
@@ -220,11 +223,12 @@ export default function Model3D({ pixels, model, face, showOuter, outline, viewI
     resize()
 
     return () => {
+      // Listeners go first, so releasing the context below doesn't count as losing it.
+      for (const [type, listener] of Object.entries(listeners)) canvas.removeEventListener(type, listener)
       observer?.disconnect()
       cancelAnimationFrame(turnFrame.current)
-      cancelAnimationFrame(hoverFrame.current)
-      canvas.removeEventListener('webglcontextrestored', handleRestored)
-      removeOutline()
+      cancelAnimationFrame(hoverFrame)
+      removeOutline(outlineRef)
       viewer.dispose()
       viewer.renderer.forceContextLoss()
       canvas.remove()
@@ -259,25 +263,25 @@ export default function Model3D({ pixels, model, face, showOuter, outline, viewI
   }, [showOuter])
 
   // The outline follows the side being edited. Arm width changes the arms' size, so it's redrawn then too.
-  const faceId = face?.id
+  const { partId, sideId, layerId } = face
   useEffect(() => {
     const viewer = viewerRef.current
     if (!viewer) return
-    removeOutline()
-    if (outline && face) {
-      const part = viewer.playerObject.skin[face.partId]
-      const mesh = face.layerId === 'outer' ? part.outerLayer : part.innerLayer
-      outlineRef.current = buildOutline(mesh, face.sideId)
+    removeOutline(outlineRef)
+    if (outline) {
+      const part = viewer.playerObject.skin[partId]
+      const mesh = layerId === 'outer' ? part.outerLayer : part.innerLayer
+      outlineRef.current = buildOutline(mesh, sideId)
       mesh.parent.add(outlineRef.current)
     }
     viewer.render()
-    // face is read through faceId, which names it completely.
-  }, [faceId, outline, model]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [partId, sideId, layerId, outline, model])
 
   // Turning to a chosen view, smoothly unless people ask for reduced motion. After a drag the View
   // and Angle choices are updated to the nearest ones without moving the model again.
   useEffect(() => {
-    if (!viewerRef.current) return
+    const viewer = viewerRef.current
+    if (!viewer) return
     const fromDrag = dragResult.current
     dragResult.current = null
     if (fromDrag && fromDrag.viewId === viewId && fromDrag.angleId === angleId) return
@@ -286,14 +290,14 @@ export default function Model3D({ pixels, model, face, showOuter, outline, viewI
     const duration = turnDuration(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
     cancelAnimationFrame(turnFrame.current)
     if (duration === 0) {
-      placeCamera(end.yaw, end.pitch)
+      aim(viewer, cameraRef, end.yaw, end.pitch)
       return
     }
     const began = performance.now()
     const step = (now) => {
       const progress = Math.min(1, (now - began) / duration)
       const eased = 1 - (1 - progress) ** 3
-      placeCamera(start.yaw + (end.yaw - start.yaw) * eased, start.pitch + (end.pitch - start.pitch) * eased)
+      aim(viewer, cameraRef, start.yaw + (end.yaw - start.yaw) * eased, start.pitch + (end.pitch - start.pitch) * eased)
       if (progress < 1) turnFrame.current = requestAnimationFrame(step)
     }
     turnFrame.current = requestAnimationFrame(step)

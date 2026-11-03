@@ -9,9 +9,9 @@ export const VIEW_YAW = { front: 0, right: -90, back: 180, left: 90 }
 
 // Pitch tilts the camera up or down. Dragging can tilt it anywhere up to MAX_PITCH.
 export const ANGLES = [
-  { id: 'level', name: 'Straight on', pitch: 0 },
-  { id: 'above', name: 'From above', pitch: 35 },
-  { id: 'below', name: 'From below', pitch: -35 },
+  { id: 'level', pitch: 0 },
+  { id: 'above', pitch: 35 },
+  { id: 'below', pitch: -35 },
 ]
 export const ANGLE_PITCH = Object.fromEntries(ANGLES.map((angle) => [angle.id, angle.pitch]))
 export const MAX_PITCH = 60
