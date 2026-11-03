@@ -36,6 +36,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  /* A word too long for its line, which some languages have more of, wraps instead of sticking out. */
+  overflow-wrap: break-word;
 }
 
 .skip-link {
@@ -462,6 +464,13 @@ button[aria-disabled='true'] {
   text-align: start;
   vertical-align: top;
   border-bottom: 1px solid var(--border);
+  /* A long word, like a long compound word in another language, breaks rather than widening the
+     page. That only happens when it can't fit any other way. */
+  overflow-wrap: anywhere;
+}
+
+.shortcuts thead th:first-child {
+  width: 40%;
 }
 
 .shortcuts tbody th {

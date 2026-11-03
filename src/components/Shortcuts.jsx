@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useI18n } from '../i18n/context.js'
 
 // Each row is the keys, then what they do. Letter keys are the same in every language, so they're
@@ -18,6 +19,21 @@ const SHORTCUTS = [
   [{ id: 'keys.redo' }, 'keys.redoAction'],
 ]
 
+// Lets a key combination like "Ctrl+Shift+Z" wrap after a plus sign on a narrow screen. <wbr> adds
+// a place to break the line, and nothing to what a screen reader says.
+function breakAfterPlus(text) {
+  return text.split('+').map((part, i, parts) => (
+    <Fragment key={i}>
+      {part}
+      {i < parts.length - 1 && (
+        <>
+          +<wbr />
+        </>
+      )}
+    </Fragment>
+  ))
+}
+
 export default function Shortcuts() {
   const { t } = useI18n()
   return (
@@ -33,7 +49,7 @@ export default function Shortcuts() {
         <tbody>
           {SHORTCUTS.map(([keys, action]) => (
             <tr key={action}>
-              <th scope="row">{keys.letter ?? t(keys.id)}</th>
+              <th scope="row">{keys.letter ?? breakAfterPlus(t(keys.id))}</th>
               <td>{t(action)}</td>
             </tr>
           ))}

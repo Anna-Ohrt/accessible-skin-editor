@@ -44,8 +44,12 @@ test.describe('en-XA, longer accented text', () => {
   test('passes axe and reflows at 320 CSS pixels with the longer text', async ({ page }) => {
     expect(await scan(page)).toEqual([])
     await page.setViewportSize({ width: 320, height: 640 })
-    const { width, outside } = await overflow(page)
-    expect(width, `sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
+    // Fonts differ between systems, so it's checked with the default font and with a wide one.
+    for (const font of ['default', 'wide']) {
+      if (font === 'wide') await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
+      const { width, outside } = await overflow(page)
+      expect(width, `${font} font, sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
+    }
   })
 })
 
@@ -74,7 +78,10 @@ test.describe('ar-XB, right to left', () => {
 
   test('reflows at 320 CSS pixels', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 })
-    const { width, outside } = await overflow(page)
-    expect(width, `sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
+    for (const font of ['default', 'wide']) {
+      if (font === 'wide') await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
+      const { width, outside } = await overflow(page)
+      expect(width, `${font} font, sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
+    }
   })
 })
