@@ -222,9 +222,82 @@ test('ships the license text of every open source package in the site, and links
   const response = await request.get('third-party-notices.txt')
   expect(response.ok()).toBe(true)
   const notices = await response.text()
-  for (const name of ['react', 'react-dom', 'scheduler']) expect(notices).toMatch(new RegExp(`^${name} \\S+ \\(MIT\\)$`, 'm'))
-  expect(notices.match(/Permission is hereby granted/g)).toHaveLength(3)
+  const packages = ['react', 'react-dom', 'scheduler', 'skinview-utils', 'skinview3d', 'three']
+  for (const name of packages) expect(notices).toMatch(new RegExp(`^${name} \\S+ \\(MIT\\)$`, 'm'))
+  expect(notices.match(/Permission is hereby granted/g)).toHaveLength(packages.length)
   await expect(page.getByRole('link', { name: 'third-party notices' })).toHaveAttribute('href', /third-party-notices\.txt$/)
+})
+
+test.describe('3D model', () => {
+  const model = (page) => page.getByRole('img', { name: /^3D model of the skin/ })
+
+  test('turns with the View and Angle choices or by dragging, and shows painting at once', async ({ page }) => {
+    // With reduced motion the model turns at once, which also makes screenshots steady.
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await model(page).scrollIntoViewIfNeeded()
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the front')
+    const front = await model(page).screenshot()
+
+    await page.getByRole('radio', { name: 'Back' }).check()
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back')
+    const back = await model(page).screenshot()
+    expect(back.equals(front)).toBe(false)
+    await page.waitForTimeout(400)
+    expect((await model(page).screenshot()).equals(back), 'no animation with reduced motion').toBe(true)
+
+    await page.getByRole('radio', { name: 'From above' }).check()
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back and above')
+
+    // Dragging 180 pixels turns it 90 degrees, and the View choice follows to the nearest side.
+    const [x, y] = await centerOf(model(page))
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + 180, y, { steps: 6 })
+    await page.mouse.up()
+    await expect(page.getByRole('radio', { name: 'Left side' })).toBeChecked()
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the left side and above')
+
+    await page.getByRole('radio', { name: 'Front' }).check()
+    await page.getByRole('radio', { name: 'Straight on' }).check()
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the front')
+    const before = await model(page).screenshot()
+    await page.getByRole('link', { name: 'Skip to the pixels' }).focus()
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Space')
+    await expect(status(page)).toHaveText(/Painted black\./)
+    expect((await model(page).screenshot()).equals(before), 'the model shows the new pixel').toBe(false)
+
+    // Choosing another side to edit turns the model to it.
+    await page.getByRole('combobox', { name: 'Side', exact: true }).selectOption('back')
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back')
+    await page.getByRole('combobox', { name: 'Side', exact: true }).selectOption('top')
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back and above')
+  })
+
+  test('names the spot under the pointer, and a click opens it in the grid', async ({ page }) => {
+    await page.getByRole('combobox', { name: 'Body part' }).selectOption('body')
+    await expect(grid(page)).toHaveAccessibleName('Body, front, base layer')
+    await model(page).scrollIntoViewIfNeeded()
+    const box = await model(page).boundingBox()
+    const hint = page.getByText(/^(Pointing at|Drag the model)/)
+    await expect(hint).toHaveText('Drag the model to turn it. Click a spot on it to edit that spot.')
+
+    // Move down the middle of the model until the hint names the head's front.
+    let target = null
+    for (let y = box.y + 8; y < box.y + box.height / 2 && target === null; y += 6) {
+      await page.mouse.move(box.x + box.width / 2, y)
+      await page.waitForTimeout(60)
+      if (/^Pointing at Head, front, base layer, row \d+, column \d+\.$/.test(await hint.textContent())) target = y
+    }
+    expect(target, 'the pointer found the front of the head').not.toBeNull()
+
+    await page.mouse.click(box.x + box.width / 2, target)
+    await expect(grid(page)).toHaveAccessibleName('Head, front, base layer')
+    await expect(status(page)).toHaveText(/^Editing Head, front, base layer, at row \d+, column \d+\./)
+    const [, row, col] = /row (\d+), column (\d+)/.exec(await status(page).textContent())
+    await expect(grid(page).locator('[tabindex="0"]')).toHaveAccessibleName(new RegExp(`, row ${row}, column ${col}$`))
+  })
 })
 
 test('a click paints on release, sliding off cancels, and a fast drag paints a gapless line undone in one step', async ({ page }) => {

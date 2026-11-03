@@ -10,7 +10,7 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 48 component tests
+### 2. 56 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
@@ -21,10 +21,11 @@ These run with Vitest and Testing Library on every change. They find things the 
 - A screen reader's click, which has no pointer events, still paints.
 - Mouse painting happens on release, sliding off cancels it, and a drag undoes in one step.
 - The base layer rules, color names, preview text, saved settings, and the disclaimer.
+- The 3D model's math: where the camera stands for each view, turning the short way round, no animation with reduced motion, and which side and pixel a point on the model is. Without WebGL the page shows flat pictures and says why, and the preview turns to the side being edited.
 
-**Limit:** these run in jsdom, which works out names and roles from the page code. It's not a browser and not a screen reader.
+**Limit:** these run in jsdom, which works out names and roles from the page code. It's not a browser and not a screen reader, and it has no WebGL.
 
-### 3. 13 browser checks
+### 3. 15 browser checks
 
 These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux in GitHub Actions on every change, and against the [live site](https://anna-ohrt.github.io/accessible-skin-editor/).
 
@@ -40,11 +41,13 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | Size of every control, at the smallest pixel size | All at least 24 by 24 CSS pixels | 2.5.8 |
 | The browser's accessibility tree and the keyboard | A grid named "Head, front, base layer" with named cells. Space paints, R reads the row, and the status message says what happened | 4.1.2, 4.1.3 |
 | A real mouse | A click paints on release, sliding off cancels, and a fast drag paints every pixel and undoes in one step | 2.5.2, 2.5.7 |
+| The 3D model, turned by the View and Angle choices and by dragging | Its name says which way it faces, it doesn't animate when reduced motion is on, it shows new paint at once, and it turns to the side being edited | 1.1.1, 2.5.7, 2.3.3 |
+| Pointing at and clicking the 3D model | The page names the side and pixel under the pointer, and a click opens that pixel in the grid | |
 | License text | The site ships the license of every open source package in it | |
 
 ### 4. Making sure the tests catch bugs
 
-Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier, 3 were planted, and in this review 6 more, one for each new behavior. The tests caught all of them.
+Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier, 3 were planted; in the review, 6 more, one for each new behavior; and for the 3D model, 6 more. The tests caught all of them.
 
 ### 5. Checks by hand in a browser
 
@@ -86,7 +89,8 @@ Use the same tasks with every screen reader, and later with players:
 3. Make the front of the shirt red.
 4. Make a mistake and undo it.
 5. Give the character a red hat: paint the top of the head on the outer layer.
-6. Download the skin.
+6. Check what the back of the character looks like, using the Preview.
+7. Download the skin.
 
 For each task, write down whether it got done, how long it took, and anything the screen reader said that was confusing, missing or said twice.
 
@@ -97,14 +101,16 @@ Listen for the open questions in RESEARCH.md:
 - Do you hear the row and column twice? Try turning off "Say the row and column with each pixel" in Settings.
 - Do the color names help you picture the colors?
 - After choosing another side, how quickly can you get back to the pixels?
+- Do the 3D model's name, like "3D model of the skin, seen from the back", and its description tell you what a sighted player would see?
 
 ### 2. Other ways people use a computer
 
 - **Keyboard only** in Firefox and Safari too. The automated checks only ran in Chromium-based browsers.
 - **Real Windows contrast themes**, not the emulation ([Change color contrast in Windows](https://support.microsoft.com/en-us/windows/change-color-contrast-in-windows-fedc744c-90ac-69df-aed5-c8a90125e696)).
-- **Zoom** to 200% and 400% with Ctrl and +.
+- **Zoom** to 200% and 400% with Ctrl and +, and a **screen magnifier** such as Windows Magnifier. Check that the 3D model's outline and the "Pointing at" text are easy to follow while zoomed in.
+- **Reduced motion:** turn it on in the operating system's settings, and check that the 3D model jumps to a new view instead of turning.
 - **Speech recognition**, such as Windows Voice Access or Dragon. Buttons have visible names you can say; how a voice user reaches one pixel is an open question.
-- **A phone or tablet:** painting with a finger, zooming with two, and the mobile screen readers above.
+- **A phone or tablet:** painting with a finger, turning the 3D model with one finger, zooming with two, and the mobile screen readers above.
 
 ### 3. A guided check
 
@@ -117,6 +123,7 @@ This is the most important step, because only players can say whether this way o
 - Find players who use screen readers every day, ideally Minecraft players. [Fable](https://makeitfable.com/) connects teams with "a vetted community of people with disabilities", and [AbleGamers](https://ablegamers.org/player-panels/) runs a Player Panel Program.
 - Give them the tasks above, ask them to think aloud, and only help if they're stuck.
 - Ask whether they'd rather paint pixel by pixel or use bigger tools, like changing every dark brown pixel at once.
+- Ask sighted and low vision players to find and fix a spot by clicking the 3D model, then by using the menus, and which felt easier.
 
 ### 5. Keep the automated checks running
 

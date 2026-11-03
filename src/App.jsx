@@ -49,6 +49,7 @@ export default function App() {
   const [selection, setSelection] = useState({ partId: 'head', sideId: 'front', layerId: 'base' })
   const [settings, setSettings] = useState(() => draft?.settings ?? DEFAULT_SETTINGS)
   const [fileError, setFileError] = useState('')
+  const [cursorRequest, setCursorRequest] = useState(null)
   const [status, announce] = useAnnouncer()
 
   const { pixels } = history
@@ -285,6 +286,13 @@ export default function App() {
     announce(`Editing ${found.label}.`)
   }
 
+  // A click on the 3D model opens that side in the grid, with the cursor on that pixel.
+  function pickSpot({ face: found, col, row }) {
+    setSelection({ partId: found.partId, sideId: found.sideId, layerId: found.layerId })
+    setCursorRequest({ col, row })
+    announce(`Editing ${found.label}, at row ${row + 1}, column ${col + 1}.`)
+  }
+
   return (
     <>
       <a className="skip-link" href="#pixels-heading">
@@ -332,6 +340,7 @@ export default function App() {
               cellSize={settings.cellSize}
               showGridLines={settings.showGridLines}
               describedBy="grid-orientation grid-help"
+              cursorRequest={cursorRequest}
               onAction={handleGridAction}
             />
             <p role="status" className="status">
@@ -359,7 +368,7 @@ export default function App() {
         <div className="column">
           <section className="panel" aria-labelledby="preview-heading">
             <h2 id="preview-heading">Preview</h2>
-            <Preview pixels={pixels} model={model} nameOf={nameOf} />
+            <Preview pixels={pixels} model={model} nameOf={nameOf} face={face} onPickSpot={pickSpot} />
           </section>
           <section className="panel" aria-labelledby="texture-heading">
             <h2 id="texture-heading">Texture</h2>

@@ -397,6 +397,17 @@ button[aria-disabled='true'] {
   margin-top: 8px;
 }
 
+/* The 3D model gets a plain background; the checkerboard is for the flat pictures. */
+.preview canvas.model-3d {
+  max-width: 100%;
+  background: var(--bg);
+  cursor: grab;
+}
+
+.preview canvas.model-3d:active {
+  cursor: grabbing;
+}
+
 .texture-map {
   width: 100%;
   max-width: 256px;

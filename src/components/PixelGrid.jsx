@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { getCell } from '../skin/pixels.js'
 import { alphaOf, toCss, toHex } from '../skin/color.js'
 
@@ -33,7 +33,7 @@ function cellsBetween(from, to) {
 // The pixels of one side, as an ARIA grid: one Tab stop, arrow keys move between pixels, and
 // each pixel's name is its color (plus its position, unless that setting is off). The grid
 // reports what the person asked for through onAction; the app decides what it does.
-export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize, showGridLines, describedBy, onAction }) {
+export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize, showGridLines, describedBy, cursorRequest, onAction }) {
   const gridRef = useRef(null)
   const cellRefs = useRef(new Map())
   const [cursor, setCursor] = useState({ col: 0, row: 0 })
@@ -41,6 +41,11 @@ export default function PixelGrid({ face, pixels, nameOf, sayPosition, cellSize,
   const stroke = useRef(null)
   const strokeCount = useRef(0)
   const pointerHandled = useRef(false)
+
+  // Another part of the editor, like the 3D model, can put the cursor on a pixel. Focus stays put.
+  useEffect(() => {
+    if (cursorRequest) setCursor({ col: cursorRequest.col, row: cursorRequest.row })
+  }, [cursorRequest])
 
   // The cursor stays where it was when another side is chosen, unless that side is smaller.
   const col = Math.min(cursor.col, face.w - 1)

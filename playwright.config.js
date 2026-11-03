@@ -15,8 +15,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      // Locally this uses the installed Microsoft Edge. CI installs Playwright's Chromium.
-      use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'msedge' },
+      // Locally this uses the installed Microsoft Edge. CI installs Playwright's Chromium, and its
+      // machines have no graphics card, so WebGL for the 3D model has to run in software there.
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: process.env.CI ? undefined : 'msedge',
+        launchOptions: process.env.CI ? { args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] } : {},
+      },
     },
   ],
   webServer: external

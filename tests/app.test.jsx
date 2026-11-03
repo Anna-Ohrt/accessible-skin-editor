@@ -295,6 +295,25 @@ describe('Skin editor', () => {
     expect(within(words).getByText('Row 5: tan, white, blue, 2 tan, blue, white, tan')).toBeInTheDocument()
   })
 
+  it('offers a 3D model, and shows flat pictures with a reason when WebGL is missing', () => {
+    // jsdom has no WebGL, like a browser with it turned off.
+    setup()
+    expect(radio('3D model')).toBeDisabled()
+    expect(radio('Flat pictures')).toBeChecked()
+    expect(screen.getByText(/The 3D model needs WebGL/)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Front view of the skin' })).toBeInTheDocument()
+  })
+
+  it('turns the preview to the side being edited, unless that is turned off', async () => {
+    const { user } = setup()
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Side' }), 'back')
+    expect(radio('Back')).toBeChecked()
+    expect(screen.getByRole('img', { name: 'Back view of the skin' })).toBeInTheDocument()
+    await user.click(screen.getByRole('checkbox', { name: 'Turn to the side you\u2019re editing' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Side' }), 'right')
+    expect(radio('Back')).toBeChecked()
+  })
+
   it('makes starting over undoable, and keeps the work and settings after a reload', async () => {
     const first = setup()
     await first.user.click(radio('red'))

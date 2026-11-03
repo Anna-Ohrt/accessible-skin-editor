@@ -47,6 +47,8 @@ export default defineConfig({
   plugins: [react(), thirdPartyNotices()],
   // Relative paths, so the built page also works from a plain folder.
   base: './',
+  // three.js, for the 3D model, is most of the bundle: about 790 KB, or 215 KB compressed.
+  build: { chunkSizeWarningLimit: 1000 },
   server: { port: 5180, strictPort: true },
   test: {
     environment: 'jsdom',
