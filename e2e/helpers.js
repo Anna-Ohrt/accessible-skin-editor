@@ -47,6 +47,26 @@ export function overflow(page) {
   })
 }
 
+// The colors in a screenshot, as a Set of "r,g,b" strings. The page decodes the PNG itself, since
+// the tests have no image library.
+export async function colorsIn(page, png) {
+  const colors = await page.evaluate(async (data) => {
+    const image = new Image()
+    image.src = `data:image/png;base64,${data}`
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.width
+    canvas.height = image.height
+    const context = canvas.getContext('2d')
+    context.drawImage(image, 0, 0)
+    const bytes = context.getImageData(0, 0, canvas.width, canvas.height).data
+    const found = new Set()
+    for (let i = 0; i < bytes.length; i += 4) found.add(`${bytes[i]},${bytes[i + 1]},${bytes[i + 2]}`)
+    return [...found]
+  }, png.toString('base64'))
+  return new Set(colors)
+}
+
 // Records Content Security Policy violations, uncaught errors and console errors from the page.
 export async function watchForProblems(page) {
   const problems = []

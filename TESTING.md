@@ -10,7 +10,7 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 88 component tests
+### 2. 96 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
@@ -21,7 +21,8 @@ These run with Vitest and Testing Library on every change. They find things the 
 - A screen reader's click, which has no pointer events, still paints.
 - Mouse painting happens on release, sliding off cancels it, and a drag undoes in one step.
 - The base layer rules, color names, preview text, saved settings, and the disclaimer.
-- The 3D model's math: where the camera stands for each view, turning the short way round, no animation with reduced motion, and which side and pixel a point on the model is. Without WebGL the page shows flat pictures and says why, and the preview turns to the side being edited.
+- The 3D model's math: where the camera stands for each view, turning the short way round, no animation with reduced motion, and the ray from the camera through the pointer. Without WebGL the page shows flat pictures and says why, and the preview turns to the side being edited.
+- The 3D character: where each box sits, how the skin wraps each side, triangles facing outward, and which side and pixel a ray lands on. That includes through a transparent hat, on tops and bottoms, on the inside of the hat through a gap, and on every pixel the head shows.
 - Languages: every message is valid in English and in both made-up languages; in the accented one (en-XA), no text on the page skips the messages; the grid stays left to right in the right-to-left one (ar-XB); and `?lang=` ignores anything that isn't a language the editor has.
 - Files: a PNG's size is read from its header, and a wrong size, a fake PNG or a file over 1 MB is refused before decoding. When two files are opened quickly, the last one counts.
 - Saving: work saved by the previous version moves over, a damaged palette keeps the pixels, and saving waits for a pause in changes.
@@ -29,7 +30,7 @@ These run with Vitest and Testing Library on every change. They find things the 
 
 **Limit:** these run in jsdom, which works out names and roles from the page code. It's not a browser and not a screen reader, and it has no WebGL.
 
-### 3. 28 browser checks
+### 3. 29 browser checks
 
 These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux in GitHub Actions on every change, and against the [live site](https://anna-ohrt.github.io/accessible-skin-editor/).
 
@@ -47,6 +48,7 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | A real mouse | A click paints on release, sliding off cancels, and a fast drag paints every pixel and undoes in one step | 2.5.2, 2.5.7 |
 | The 3D model, turned by the View and Angle choices and by dragging | Its name says which way it faces, it doesn't animate when reduced motion is on, it shows new paint at once, and it turns to the side being edited | 1.1.1, 2.5.7, 2.3.3 |
 | Pointing at and clicking the 3D model | The page names the side and pixel under the pointer, and a click opens that pixel in the grid | |
+| The 3D model's colors | The side facing the camera shows the sample's exact eye and mouth colors, and the see-through outer layer adds nothing to the picture, even seen at a slant | |
 | License text | The site ships the license of every open source package in it | |
 | The accented made-up language (en-XA), about 40% longer | No text skips the messages, including the 3D model's controls. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
 | The right-to-left made-up language (ar-XB) | The page lays out right to left, the grid stays left to right and the right arrow key still moves right. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
@@ -60,7 +62,7 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 
 ### 4. Making sure the tests catch bugs
 
-Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier, 3 were planted; in the review, 6 more, one for each new behavior; for the 3D model, 6 more; and in the engineering pass, 15 more, one for each protection. The tests caught all of them but one: a policy that also allowed inline scripts passed, because Trusted Types blocked the injected script before that rule was reached. The policy test now checks every directive exactly, and catches it.
+Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier, 3 were planted; in the review, 6 more, one for each new behavior; for the 3D model, 6 more; in the engineering pass, 15 more, one for each protection; and for the move to Babylon.js, 8 more. The tests caught all of them but one: a policy that also allowed inline scripts passed, because Trusted Types blocked the injected script before that rule was reached. The policy test now checks every directive exactly, and catches it.
 
 ### 5. Checks by hand in a browser
 

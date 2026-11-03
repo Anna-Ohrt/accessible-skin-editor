@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { getFace } from '../src/skin/layout.js'
-import { rgba } from '../src/skin/color.js'
-import { createSampleSkin, paintCells } from '../src/skin/pixels.js'
 import {
+  DISTANCE,
   VIEW_YAW,
   cameraDirection,
   nearestAngle,
   nearestView,
   normalizeYaw,
-  spotAt,
-  texelAt,
+  pointerRay,
   turnDuration,
   yawToward,
 } from '../src/skin/camera.js'
@@ -47,28 +44,16 @@ describe('3D camera', () => {
     expect(turnDuration(true)).toBe(0)
     expect(turnDuration(false)).toBeGreaterThan(0)
   })
-})
 
-describe('picking a spot on the model', () => {
-  it('turns texture coordinates into pixels, with v counting up from the bottom', () => {
-    expect(texelAt(0, 1)).toEqual({ x: 0, y: 0 })
-    expect(texelAt(0.5, 0.5)).toEqual({ x: 32, y: 32 })
-    expect(texelAt(1, 0)).toEqual({ x: 63, y: 63 })
-  })
-
-  it('finds the side and pixel, and sees through empty outer layer pixels', () => {
-    const pixels = createSampleSkin()
-    const headFront = getFace('head', 'front', 'base')
-    const spot = spotAt(pixels, headFront.x + 2, headFront.y + 4, 'classic')
-    expect(spot.face.id).toBe('head-front-base')
-    expect([spot.row, spot.col]).toEqual([4, 2])
-
-    const hatFront = getFace('head', 'front', 'outer')
-    expect(spotAt(pixels, hatFront.x + 2, hatFront.y + 4, 'classic')).toBeNull()
-    const painted = paintCells(pixels, hatFront, [{ col: 2, row: 4 }], rgba(255, 0, 0))
-    expect(spotAt(painted, hatFront.x + 2, hatFront.y + 4, 'classic').face.id).toBe('head-front-outer')
-
-    // The corner of the texture isn't part of any side.
-    expect(spotAt(pixels, 0, 0, 'classic')).toBeNull()
+  it('sends a ray from the camera through the point under the pointer', () => {
+    // The middle of the picture looks straight at the character's center.
+    const middle = pointerRay(0, 0, 0, 0, 0.8)
+    close(middle.origin, [0, 0, DISTANCE])
+    close(middle.direction, [0, 0, -1])
+    // The right edge of the picture is toward the viewer's right, which is +x from the front.
+    expect(pointerRay(0, 0, 1, 0, 0.8).direction[0]).toBeGreaterThan(0)
+    expect(pointerRay(0, 0, 0, 1, 0.8).direction[1]).toBeGreaterThan(0)
+    // From the right side view, the viewer's right is the character's front.
+    expect(pointerRay(VIEW_YAW.right, 0, 1, 0, 0.8).direction[2]).toBeGreaterThan(0)
   })
 })

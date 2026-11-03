@@ -6,8 +6,8 @@ import { ANGLES } from '../skin/camera.js'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { drawPixels, webglAvailable } from './draw.js'
 
-// three.js is most of the code, so it loads only when the 3D model is shown, after the rest of the
-// editor works.
+// Babylon.js is most of the code, so it loads only when the 3D model is shown, after the rest of
+// the editor works.
 const Model3D = lazy(() => import('./Model3D.jsx'))
 
 const SCALE = 8

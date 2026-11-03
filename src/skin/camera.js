@@ -1,10 +1,7 @@
-import { SKIN_SIZE, faceAt } from './layout.js'
-import { alphaOf } from './color.js'
-
-// Camera math and picking for the 3D model, kept apart from WebGL so it can be tested anywhere.
+// Camera math for the 3D model, kept apart from WebGL so it can be tested anywhere.
 //
 // Yaw is where the camera stands around the character, in degrees: 0 is in front of it. The
-// character's right is on the viewer's left (-x in skinview3d), so the right side view is -90.
+// character's right is on the viewer's left (-x in src/skin/model.js), so the right side view is -90.
 export const VIEW_YAW = { front: 0, right: -90, back: 180, left: 90 }
 
 // Pitch tilts the camera up or down. Dragging can tilt it anywhere up to MAX_PITCH.
@@ -49,18 +46,26 @@ export function cameraDirection(yaw, pitch) {
   return [Math.sin(turn) * Math.cos(tilt), Math.sin(tilt), Math.cos(turn) * Math.cos(tilt)]
 }
 
-// The texture pixel at a point on the model. three.js texture coordinates run from 0 to 1, with v
-// counting up from the bottom of the image.
-export function texelAt(u, v) {
-  const clamp = (n) => Math.min(SKIN_SIZE - 1, Math.max(0, n))
-  return { x: clamp(Math.floor(u * SKIN_SIZE)), y: clamp(Math.floor((1 - v) * SKIN_SIZE)) }
-}
+// The camera's vertical field of view, and its distance from the center. The distance fits a
+// sphere around the whole model, out to the corners of the hat, with 5% to spare, so the model
+// stays in view from any angle.
+export const FOV_DEGREES = 50
+export const DISTANCE = (1.05 * Math.hypot(4.5, 16.5, 4.5)) / Math.sin((FOV_DEGREES * Math.PI) / 360)
 
-// The side and pixel that a texture pixel belongs to. A fully transparent outer layer pixel gives
-// null, so a click passes through it to whatever shows behind it, as it looks on screen.
-export function spotAt(pixels, x, y, model) {
-  const face = faceAt(x, y, model)
-  if (!face) return null
-  if (face.layerId === 'outer' && alphaOf(pixels[y * SKIN_SIZE + x]) === 0) return null
-  return { face, col: x - face.x, row: y - face.y }
+export const cameraPosition = (yaw, pitch) => cameraDirection(yaw, pitch).map((value) => value * DISTANCE)
+
+const normalize = (v) => v.map((value) => value / Math.hypot(...v))
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+
+// The ray from the camera through a point on the picture, for finding what the pointer is over.
+// x runs from -1 at the left edge to 1 at the right, and y from -1 at the bottom to 1 at the top.
+// `aspect` is the picture's width divided by its height.
+export function pointerRay(yaw, pitch, x, y, aspect) {
+  const origin = cameraPosition(yaw, pitch)
+  const forward = normalize(origin.map((value) => -value))
+  const right = normalize(cross(forward, [0, 1, 0]))
+  const up = cross(right, forward)
+  const spread = Math.tan((FOV_DEGREES * Math.PI) / 360)
+  const direction = normalize(forward.map((value, i) => value + right[i] * x * spread * aspect + up[i] * y * spread))
+  return { origin, direction }
 }

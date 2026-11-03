@@ -1,6 +1,6 @@
 # Accessible skin editor prototype
 
-A web prototype of a Minecraft skin editor that works with a keyboard, a screen reader, a mouse or touch. It edits a 64 by 64 skin PNG one side of one body part at a time, names every pixel's color in words, and describes the character in text. It also shows the character as a 3D model, which turns by dragging or with buttons; click a spot on it to edit that spot. Every word it shows or speaks is ready to translate, including into right-to-left languages. Built with React, plus skinview3d and three.js for the 3D model.
+A web prototype of a Minecraft skin editor that works with a keyboard, a screen reader, a mouse or touch. It edits a 64 by 64 skin PNG one side of one body part at a time, names every pixel's color in words, and describes the character in text. It also shows the character as a 3D model, which turns by dragging or with buttons; click a spot on it to edit that spot. Every word it shows or speaks is ready to translate, including into right-to-left languages. Built with React, plus Babylon.js for the 3D model.
 
 **Try it: [anna-ohrt.github.io/accessible-skin-editor](https://anna-ohrt.github.io/accessible-skin-editor/)**. There's also a [one-file copy](https://anna-ohrt.github.io/accessible-skin-editor/skin-editor.html) that you can save and open with a double-click, with no internet connection.
 
@@ -76,26 +76,38 @@ Settings let you leave out the row and column, add hex codes, hide grid lines an
 
 ### Performance
 
-- three.js is in its own file, loaded only when the 3D model is shown. The editor's main script went from 789 KB (215 KB compressed) to 314 KB (98 KB compressed), so the pixels work before the 3D code arrives, and a test paints one while it's held back.
+- Babylon.js is in its own files, loaded only when the 3D model is shown: 895 KB (218 KB compressed), in 9 files. That's more than the three.js and skinview3d it replaced (546 KB, or 138 KB compressed), but the editor doesn't wait for it. The editor's main script went from 789 KB (215 KB compressed), when it included three.js, to 314 KB (99 KB compressed), so the pixels work before the 3D code arrives, and a test paints one while it's held back.
 - The 3D model's box has its size before the model loads, so nothing moves: the test measures a layout shift of 0.
 - Each message is parsed once, and a color's name is worked out once and reused, since a skin repeats a few colors many times.
+
+## Software in the site
+
+The site ships only open source packages that Minecraft's own websites already ship. This was checked on November 2, 2026, by downloading the scripts those pages load and finding each library's code, names and license comments in them.
+
+| Package | License | Where a Minecraft site already ships it |
+| --- | --- | --- |
+| React, React DOM, Scheduler | MIT | minecraft.net's profile app (`/msaprofilejs/msaapps.js` and the files it loads), which its profile pages load, including the page for changing your skin |
+| intl-messageformat, and three FormatJS packages it uses | BSD 3-Clause, MIT | The same profile app, as part of FormatJS's react-intl |
+| Babylon.js (`@babylonjs/core`) | Apache 2.0 | [classic.minecraft.net](https://classic.minecraft.net/), Mojang's browser version of Minecraft Classic. [babylonjs.com](https://www.babylonjs.com/) also lists "Minecraft Classic by Mojang" among its notable experiences |
+
+Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core and ESLint, builds or tests the site and doesn't ship in it. The 3D model's character is the editor's own code (`src/skin/model.js`), not a library.
 
 ## Checked
 
 [TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
 
-- **88 tests** with Vitest and Testing Library: layout counts and positions, color names, tools, undo, the 3D model's camera and picking math, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
-- **28 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
+- **96 tests** with Vitest and Testing Library: layout counts and positions, color names, tools, undo, the 3D model's camera, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
+- **29 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
   - axe found no WCAG 2.2 A or AA violations, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, and with error messages and other options showing.
   - The page reflows at 320 CSS pixels wide, with the default font, a wide one, and both made-up languages. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
   - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
   - The browser's accessibility tree has a named grid of named cells.
   - A click paints on release, sliding off cancels it, and a fast drag paints a gapless line that undoes in one step.
-  - The 3D model turns with the View and Angle choices or by dragging, doesn't animate when reduced motion is on, shows new paint at once, and turns to the side being edited. Pointing at it names the spot, and a click opens that pixel in the grid.
+  - The 3D model turns with the View and Angle choices or by dragging, doesn't animate when reduced motion is on, shows new paint at once, and turns to the side being edited. Pointing at it names the spot, and a click opens that pixel in the grid. The side facing the camera shows its true colors, and the see-through outer layer adds nothing to the picture.
   - The checks under Engineering: the policy, the one-file copy, a downloaded skin opening with every pixel the same, a reset or missing 3D model, saving when the page is hidden, and layout shift.
   - The site ships the license text of every open source package in it.
 - **ESLint** with the jsx-a11y accessibility rules (strict set) and the React Hooks rules, including the React Compiler's checks.
-- **27 planted bugs**, one per new behavior: 6 from the review, 6 in the 3D model and 15 in the engineering pass. The tests caught all 27, after one test was made stricter.
+- **35 planted bugs**, one per new behavior: 6 from the review, 6 in the first 3D model, 15 in the engineering pass and 8 in the move to Babylon.js. The tests caught all 35, after one test was made stricter.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
 ## Not done yet
@@ -110,7 +122,7 @@ Settings let you leave out the row and column, add hex codes, hide grid lines an
 ## Facts it relies on
 
 - Skins are 64 by 64 PNGs with an inner and an outer layer, each with 1,632 usable pixels (1,568 with slim arms). In Java Edition the inner layer is forced to be fully opaque. Source: [Minecraft Wiki, Skin](https://minecraft.wiki/w/Skin). The tests check these counts.
-- Where each body part sits in the texture matches the `setSkinUVs` calls in [skinview3d's model.ts](https://github.com/bs-community/skinview3d/blob/master/src/model.ts). Which edge of each side touches which part of the body was worked out from that file and three.js's `BoxGeometry`.
+- Where each body part sits in the texture matches the `setSkinUVs` calls in [skinview3d's model.ts](https://github.com/bs-community/skinview3d/blob/master/src/model.ts). Which edge of each side touches which part of the body was worked out from that file and three.js's `BoxGeometry`. Before the editor stopped using skinview3d, a check matched all 576 corners of the editor's own 3D model against it: every side of every part, on both layers, for both arm widths.
 - Outer layer names (hat, jacket, sleeves, pant legs) match Java Edition's Skin Customization options. Source: [Minecraft Wiki, Options](https://minecraft.wiki/w/Options).
 
 ## Research
@@ -119,8 +131,8 @@ Settings let you leave out the row and column, add hex codes, hide grid lines an
 
 ## Licenses
 
-- The site includes ten open source packages. Nine are under the MIT license: React, React DOM and Scheduler; skinview3d, skinview-utils and three.js for the 3D model; and three FormatJS packages that intl-messageformat uses. intl-messageformat itself is under the BSD 3-Clause license. Their license text ships with the site in [third-party-notices.txt](https://anna-ohrt.github.io/accessible-skin-editor/third-party-notices.txt), and inside the one-file copy.
-- The editor's own code doesn't copy code from these packages. Where each body part sits in the texture was worked out by reading skinview3d and three.js.
+- The site includes eight open source packages: Babylon.js, under the Apache 2.0 license; React, React DOM and Scheduler, and three FormatJS packages that intl-messageformat uses, all under the MIT license; and intl-messageformat itself, under the BSD 3-Clause license. Their license text, and Babylon.js's NOTICE file, ship with the site in [third-party-notices.txt](https://anna-ohrt.github.io/accessible-skin-editor/third-party-notices.txt), and inside the one-file copy.
+- The editor's own code doesn't copy code from these packages. Where each body part sits in the texture was worked out by reading skinview3d and three.js, which the editor no longer uses.
 - No Minecraft art, textures, code or sounds are used, and the sample skin was made for this prototype.
 - This repository doesn't have a license of its own yet, so others may view it but not reuse it.
 
@@ -131,8 +143,8 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180. Add `?lang=en-XA` or `?lang=ar-XB` to the address for the made-up languages |
-| `npm test` | Runs the 88 tests |
-| `npm run test:e2e` | Runs the 28 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
+| `npm test` | Runs the 96 tests |
+| `npm run test:e2e` | Runs the 29 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
 | `npm run lint` | Runs ESLint |
 | `npm run build:single` | Writes `skin-editor.html`, the one-file copy |
 
@@ -148,16 +160,17 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/skin/color.js` | Color storage, hex codes, and sorting a color into the parts of its name |
 | `src/skin/pixels.js` | Painting, fill, mirror, copy, counting colors, and the sample skin and colors |
 | `src/skin/views.js` | The flat preview from four sides, and what its description says |
-| `src/skin/camera.js` | The 3D model's camera math, and which side and pixel a point on the model is |
+| `src/skin/camera.js` | The 3D model's camera math, and the ray from the camera through the pointer |
+| `src/skin/model.js` | The 3D character: its boxes, how the skin wraps them, and which side and pixel a ray lands on |
 | `src/skin/png.js` | Opening and saving PNGs, with the header and size checks |
 | `src/components/PixelGrid.jsx` | The pixel grid: keyboard, pointer and screen reader behavior |
-| `src/components/Model3D.jsx` | The 3D model: drawing, turning, the outline, pointing and clicking. Loaded only when shown |
+| `src/components/Model3D.jsx` | The 3D model, drawn with Babylon.js: turning, the outline, pointing and clicking. Loaded only when shown |
 | `src/components/Preview.jsx` | The choice of 3D model or flat pictures, with View and Angle, and what happens when 3D fails |
 | `src/components/ErrorBoundary.jsx`, `CrashNotice.jsx` | What shows if the editor stops with an error |
 | `src/App.jsx` | Puts it together, and says what happened after each action |
 | `src/editor/` | Undo history, the status message, saving in the browser, and settings |
-| `tests/` | The 88 Vitest tests |
-| `e2e/` | The 28 browser checks: accessibility, languages, and security, reliability and performance |
+| `tests/` | The 96 Vitest tests |
+| `e2e/` | The 29 browser checks: accessibility, languages, and security, reliability and performance |
 | `vite.config.js` | The build, the Content Security Policy and the third-party notices |
 | `TESTING.md` | What has been tested, and how to test with screen readers and players |
 | `.github/workflows/ci.yml` | Lints, audits and tests, then publishes to GitHub Pages |

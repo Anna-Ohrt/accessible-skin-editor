@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { cell, centerOf, grid, overflow, scan, shot, status } from './helpers.js'
+import { cell, centerOf, colorsIn, grid, overflow, scan, shot, status } from './helpers.js'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./')
@@ -194,6 +194,7 @@ test('ships the license text of every open source package in the site, and links
   const notices = await response.text()
   // A package that's new to the bundle fails this test on purpose, so its license gets a look.
   const packages = {
+    '@babylonjs/core': 'Apache-2.0',
     '@formatjs/fast-memoize': 'MIT',
     '@formatjs/icu-messageformat-parser': 'MIT',
     '@formatjs/icu-skeleton-parser': 'MIT',
@@ -201,9 +202,6 @@ test('ships the license text of every open source package in the site, and links
     react: 'MIT',
     'react-dom': 'MIT',
     scheduler: 'MIT',
-    'skinview-utils': 'MIT',
-    skinview3d: 'MIT',
-    three: 'MIT',
   }
   const listed = [...notices.matchAll(/^(\S+) \S+ \((.+)\)$/gm)].map(([, name, license]) => [name, license])
   expect(Object.fromEntries(listed)).toEqual(packages)
@@ -212,11 +210,35 @@ test('ships the license text of every open source package in the site, and links
   // The BSD license asks for its notice "in the documentation and/or other materials provided with
   // the distribution".
   expect(notices).toContain('Redistributions in binary form must reproduce the above')
+  // Apache 2.0 asks for the license and for "a readable copy of the attribution notices" in the
+  // package's NOTICE file.
+  expect(notices).toContain('Apache License\nVersion 2.0, January 2004')
+  expect(notices).toContain('NOTICE file from @babylonjs/core:\n\nBabylon.js\nCopyright 2023 The Babylon.js team')
   await expect(page.getByRole('link', { name: 'third-party notices' })).toHaveAttribute('href', /third-party-notices\.txt$/)
 })
 
 test.describe('3D model', () => {
   const model = (page) => page.getByRole('img', { name: /^3D model of the skin/ })
+
+  test('shows the side facing the camera in its true colors, and an empty outer layer adds nothing', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await model(page).scrollIntoViewIfNeeded()
+    // The sample's eye blue and mouth red, exactly. That only happens if the face is on the front,
+    // the model is the right way out, and the side facing the camera isn't darkened.
+    const front = await colorsIn(page, await model(page).screenshot())
+    expect(front.has('59,95,205'), 'eye blue').toBe(true)
+    expect(front.has('192,57,43'), 'mouth red').toBe(true)
+    // Every outer layer pixel of the sample is transparent, so hiding that layer changes nothing.
+    // A thin line of another color at the edge of a side, seen at a slant, would show here.
+    for (const angle of ['Straight on', 'From below']) {
+      await page.getByRole('radio', { name: 'Back', exact: true }).check()
+      await page.getByRole('radio', { name: angle }).check()
+      await page.getByRole('checkbox', { name: 'Show the outer layer' }).check()
+      const shown = await model(page).screenshot()
+      await page.getByRole('checkbox', { name: 'Show the outer layer' }).uncheck()
+      expect((await model(page).screenshot()).equals(shown), `seen from the back, ${angle.toLowerCase()}`).toBe(true)
+    }
+  })
 
   test('turns with the View and Angle choices or by dragging, and shows painting at once', async ({ page }) => {
     // With reduced motion the model turns at once, which also makes screenshots steady.

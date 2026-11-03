@@ -425,6 +425,8 @@ button[aria-disabled='true'] {
 
 .model-wrap canvas.model-3d {
   display: block;
+  width: 100%;
+  height: 100%;
   cursor: grab;
 }
 

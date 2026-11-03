@@ -3,10 +3,11 @@ import { join } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// React and the other packages bundled into the site are MIT licensed, and the MIT license says its
-// notice "shall be included in all copies or substantial portions of the Software". The minifier
-// drops license comments, so this writes the license of every package in the bundle to
-// third-party-notices.txt, next to the site.
+// Every package bundled into the site asks for its license to travel with copies of it. MIT says
+// its notice "shall be included in all copies or substantial portions of the Software", and Apache
+// 2.0 asks for "a readable copy of the attribution notices" in a package's NOTICE file too. The
+// minifier drops license comments, so this writes the license of every package in the bundle, and
+// its NOTICE file if it has one, to third-party-notices.txt, next to the site.
 function thirdPartyNotices() {
   return {
     name: 'third-party-notices',
@@ -21,16 +22,21 @@ function thirdPartyNotices() {
         }
       }
       if (roots.size === 0) throw new Error('Found no packages in the bundle, so the notices would be empty.')
+      // Some packages publish their files with Windows line endings. The notices use one kind.
+      const text = (path) => readFileSync(path, 'utf8').replace(/\r\n?/g, '\n').trim()
       const sections = [...roots].sort().map((root) => {
         const meta = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
-        const file = readdirSync(root).find((name) => /^licen[cs]e/i.test(name))
-        if (!file) throw new Error(`No license file in ${root}`)
+        const files = readdirSync(root)
+        const license = files.find((name) => /^licen[cs]e/i.test(name))
+        const notice = files.find((name) => /^notice/i.test(name))
+        if (!license) throw new Error(`No license file in ${root}`)
         const repository = typeof meta.repository === 'string' ? meta.repository : (meta.repository?.url ?? '')
         return [
           `${meta.name} ${meta.version} (${meta.license})`,
           repository.replace(/^git\+/, '').replace(/\.git$/, ''),
           '',
-          readFileSync(join(root, file), 'utf8').trim(),
+          text(join(root, license)),
+          ...(notice ? ['', `NOTICE file from ${meta.name}:`, '', text(join(root, notice))] : []),
         ].join('\n')
       })
       const intro = 'Third-party notices\n\nThis site includes the open source software below, each with its license.'
@@ -82,9 +88,9 @@ export default defineConfig(({ mode }) => ({
   // Relative paths, so the built page also works from a plain folder.
   base: './',
   build: {
-    // three.js, for the 3D model, is in its own file of about 550 KB, which loads only when the
+    // Babylon.js, for the 3D model, is in its own file of about 740 KB, which loads only when the
     // model is shown. The one-file copy has everything in one script.
-    chunkSizeWarningLimit: mode === 'single' ? 1000 : 600,
+    chunkSizeWarningLimit: mode === 'single' ? 1500 : 800,
     // The one-file copy (npm run build:single) needs all the code in one script. It builds into
     // its own folder, so it never replaces the site in dist.
     outDir: mode === 'single' ? 'dist-single' : 'dist',
