@@ -1,0 +1,333 @@
+import { describe, expect, it } from 'vitest'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import App from '../src/App.jsx'
+
+function setup() {
+  const user = userEvent.setup({ applyAccept: false })
+  return { user, ...render(<App />) }
+}
+
+const grid = () => screen.getByRole('grid')
+const cells = () => within(grid()).getAllByRole('gridcell')
+const cell = (row, col) => cells().find((item) => item.dataset.row === String(row - 1) && item.dataset.col === String(col - 1))
+const status = () => screen.getByRole('status')
+const radio = (name) => screen.getByRole('radio', { name })
+const button = (name) => screen.getByRole('button', { name })
+
+// Tab moves into the grid on the one cell with tabIndex 0, like a keyboard user would.
+function focusGrid() {
+  const start = cells().find((item) => item.tabIndex === 0)
+  act(() => start.focus())
+  return start
+}
+
+describe('Skin editor', () => {
+  it('shows the side being edited as a named grid with one Tab stop', () => {
+    setup()
+    expect(status()).toHaveTextContent('Each change you make is described here.')
+    expect(grid()).toHaveAccessibleName('Head, front, base layer')
+    expect(grid()).toHaveAccessibleDescription(/^8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/)
+    expect(cells()).toHaveLength(64)
+    expect(cells().filter((item) => item.tabIndex === 0)).toHaveLength(1)
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(cell(5, 3)).toHaveAccessibleName('blue, row 5, column 3')
+    expect(screen.getByRole('link', { name: 'Skip to the pixels' })).toHaveAttribute('href', '#pixels-heading')
+  })
+
+  it('names every paint color by how it looks', () => {
+    setup()
+    const colors = within(screen.getByRole('group', { name: 'Paint color' })).getAllByRole('radio')
+    expect(colors.map((item) => item.labels[0].textContent)).toEqual([
+      'black',
+      'dark gray',
+      'gray',
+      'white',
+      'red',
+      'orange',
+      'yellow',
+      'green',
+      'blue',
+      'dark blue',
+      'purple',
+      'pink',
+      'tan',
+      'brown',
+      'dark brown',
+    ])
+    expect(radio('black')).toBeChecked()
+  })
+
+  it('moves with arrow keys, Home, End, Page Up and Page Down, and says when it reaches an edge', async () => {
+    const { user } = setup()
+    focusGrid()
+    await user.keyboard('{ArrowRight}')
+    expect(document.activeElement).toHaveAccessibleName('dark brown, row 1, column 2')
+    await user.keyboard('{ArrowLeft}{ArrowLeft}')
+    expect(document.activeElement).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(status()).toHaveTextContent('Left edge.')
+    await user.keyboard('{End}')
+    expect(document.activeElement).toHaveAccessibleName('dark brown, row 1, column 8')
+    await user.keyboard('{Control>}{End}{/Control}')
+    expect(document.activeElement).toHaveAccessibleName('tan, row 8, column 8')
+    await user.keyboard('{Home}')
+    expect(document.activeElement).toHaveAccessibleName('tan, row 8, column 1')
+    await user.keyboard('{PageUp}')
+    expect(document.activeElement).toHaveAccessibleName('dark brown, row 1, column 1')
+    await user.keyboard('{ArrowRight}{ArrowRight}{PageDown}')
+    expect(document.activeElement).toHaveAccessibleName('tan, row 8, column 3')
+    await user.keyboard('{Control>}{Home}{/Control}')
+    expect(document.activeElement).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(cells().filter((item) => item.tabIndex === 0)).toEqual([document.activeElement])
+  })
+
+  it('puts the paint colors one Tab after the grid, and back with Shift+Tab', async () => {
+    const { user } = setup()
+    const start = focusGrid()
+    await user.tab()
+    expect(document.activeElement).toBe(radio('black'))
+    await user.keyboard('{ArrowRight}')
+    expect(radio('dark gray')).toBeChecked()
+    await user.tab({ shift: true })
+    expect(document.activeElement).toBe(start)
+    await user.keyboard(' ')
+    expect(status()).toHaveTextContent('Painted dark gray.')
+  })
+
+  it('paints with Space or Enter, and says what happened', async () => {
+    const { user } = setup()
+    await user.click(radio('green'))
+    focusGrid()
+    await user.keyboard(' ')
+    expect(cell(1, 1)).toHaveAccessibleName('green, row 1, column 1')
+    expect(status()).toHaveTextContent('Painted green.')
+    await user.keyboard('{Enter}')
+    expect(status()).toHaveTextContent('Already green.')
+  })
+
+  it('paints each pixel it moves to while Shift is held', async () => {
+    const { user } = setup()
+    await user.click(radio('red'))
+    focusGrid()
+    await user.keyboard('{Shift>}{ArrowDown}{ArrowDown}{/Shift}')
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(cell(2, 1)).toHaveAccessibleName('red, row 2, column 1')
+    expect(cell(3, 1)).toHaveAccessibleName('red, row 3, column 1')
+    expect(document.activeElement).toBe(cell(3, 1))
+  })
+
+  it('reads rows and columns, picks up colors, and fills', async () => {
+    const { user } = setup()
+    focusGrid()
+    await user.keyboard('r')
+    expect(status()).toHaveTextContent('Row 1, left to right: 8 dark brown.')
+    await user.keyboard('c')
+    expect(status()).toHaveTextContent('Column 1, top to bottom: 2 dark brown, 6 tan.')
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}r')
+    expect(status()).toHaveTextContent('Row 5, left to right: tan, white, blue, 2 tan, blue, white, tan.')
+    await user.keyboard('{ArrowRight}{ArrowRight}i')
+    expect(status()).toHaveTextContent("Picked up blue. It's the paint color now.")
+    expect(radio('blue')).toBeChecked()
+    await user.click(radio('dark brown'))
+    focusGrid()
+    await user.keyboard('{ArrowLeft}{ArrowLeft}f')
+    expect(status()).toHaveTextContent('Filled 42 pixels with dark brown.')
+    expect(cell(8, 8)).toHaveAccessibleName('dark brown, row 8, column 8')
+    expect(cell(5, 3)).toHaveAccessibleName('blue, row 5, column 3')
+  })
+
+  it('erases only on the outer layer, and explains why', async () => {
+    const { user } = setup()
+    focusGrid()
+    await user.keyboard('{Delete}')
+    expect(status()).toHaveTextContent("The base layer can't be see-through in Java Edition.")
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    await user.click(radio('Outer layer (hat)'))
+    expect(grid()).toHaveAccessibleName('Head, front, outer layer (hat)')
+    expect(cell(1, 1)).toHaveAccessibleName('transparent, row 1, column 1')
+    await user.click(radio('red'))
+    focusGrid()
+    await user.keyboard(' ')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    await user.keyboard('{Backspace}')
+    expect(cell(1, 1)).toHaveAccessibleName('transparent, row 1, column 1')
+    expect(status()).toHaveTextContent('Erased.')
+  })
+
+  it('undoes and redoes with the keyboard and the buttons', async () => {
+    const { user } = setup()
+    await user.click(radio('red'))
+    focusGrid()
+    await user.keyboard(' ')
+    await user.keyboard('{Control>}z{/Control}')
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(status()).toHaveTextContent('Undid painting.')
+    await user.keyboard('{Control>}y{/Control}')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    expect(status()).toHaveTextContent('Redid painting.')
+    await user.click(button('Undo'))
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(button('Undo')).toHaveAttribute('aria-disabled', 'true')
+    await user.click(button('Undo'))
+    expect(status()).toHaveTextContent('Nothing to undo.')
+  })
+
+  it('paints a clicked pixel on release, and a screen reader click without pointer events paints too', async () => {
+    const { user } = setup()
+    await user.click(radio('red'))
+    await user.click(cell(1, 2))
+    expect(cell(1, 2)).toHaveAccessibleName('red, row 1, column 2')
+    expect(status()).toHaveTextContent('Painted red.')
+    await user.click(button('Undo'))
+    expect(cell(1, 2)).toHaveAccessibleName('dark brown, row 1, column 2')
+    fireEvent.click(cell(1, 3))
+    expect(cell(1, 3)).toHaveAccessibleName('red, row 1, column 3')
+  })
+
+  it("doesn't paint on the press alone, and sliding off before letting go cancels", async () => {
+    const { user } = setup()
+    await user.click(radio('red'))
+    fireEvent.pointerDown(cell(1, 4), { button: 0, buttons: 1 })
+    expect(cell(1, 4)).toHaveAccessibleName('dark brown, row 1, column 4')
+    // Pointer capture sends the release to the grid; here it lands on no pixel.
+    fireEvent.pointerUp(grid(), { button: 0 })
+    expect(cell(1, 4)).toHaveAccessibleName('dark brown, row 1, column 4')
+    expect(button('Undo')).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('paints a drag from its first pixel, and undoes the whole stroke as one step', async () => {
+    const { user } = setup()
+    await user.click(radio('red'))
+    await user.pointer([{ keys: '[MouseLeft>]', target: cell(3, 1) }, { target: cell(3, 4) }, { keys: '[/MouseLeft]' }])
+    for (const col of [1, 2, 3, 4]) expect(cell(3, col)).toHaveAccessibleName(`red, row 3, column ${col}`)
+    await user.click(button('Undo'))
+    for (const col of [1, 2, 3, 4]) expect(cell(3, col)).toHaveAccessibleName(`tan, row 3, column ${col}`)
+    expect(button('Undo')).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('switches body parts, sides and arm width', async () => {
+    const { user } = setup()
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Body part' }), 'body')
+    expect(grid()).toHaveAccessibleName('Body, front, base layer')
+    expect(cells()).toHaveLength(96)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Body part' }), 'rightArm')
+    await user.click(radio('Slim, 3 pixels'))
+    expect(cells()).toHaveLength(36)
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Side' }), 'right')
+    expect(grid()).toHaveAccessibleName('Right arm, right side, base layer')
+    expect(grid()).toHaveAccessibleDescription(/Column 1 is at the back and column 4 is at the front\./)
+    expect(cells()).toHaveLength(48)
+  })
+
+  it('adds, checks and renames colors', async () => {
+    const { user } = setup()
+    const hex = screen.getByRole('textbox', { name: 'Hex code' })
+    await user.clear(hex)
+    await user.type(hex, '#12345')
+    await user.click(button('Add color'))
+    expect(hex).toHaveAttribute('aria-invalid', 'true')
+    expect(hex).toHaveFocus()
+    expect(hex).toHaveAccessibleDescription(/Enter a hex code with 6 digits/)
+
+    await user.clear(hex)
+    await user.type(hex, '#3a7bd5')
+    expect(hex).toHaveAccessibleDescription('This color reads as "blue".')
+    await user.click(button('Add color'))
+    expect(radio('blue 2')).toBeChecked()
+    expect(status()).toHaveTextContent("Added blue 2. It's the paint color now.")
+    await user.click(button('Add color'))
+    expect(status()).toHaveTextContent("That color is already in the palette as blue 2. It's the paint color now.")
+
+    const rename = screen.getByRole('textbox', { name: 'New name for blue 2' })
+    await user.type(rename, 'Dark Brown')
+    await user.click(button('Rename'))
+    expect(screen.getByRole('alert')).toHaveTextContent('A color is already named Dark Brown. Choose another name.')
+    await user.clear(rename)
+    await user.type(rename, 'Cape blue')
+    await user.click(button('Rename'))
+    expect(radio('Cape blue')).toBeChecked()
+    expect(status()).toHaveTextContent('Renamed blue 2 to Cape blue.')
+  })
+
+  it('can leave out positions and add hex codes', async () => {
+    const { user } = setup()
+    await user.click(screen.getByRole('checkbox', { name: 'Say the row and column with each pixel' }))
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown')
+    await user.click(screen.getByRole('checkbox', { name: 'Say hex codes after color names' }))
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, #4a3220')
+  })
+
+  it('fills, mirrors and copies whole sides', async () => {
+    const { user } = setup()
+    await user.click(radio('red'))
+    focusGrid()
+    await user.keyboard(' ')
+    await user.click(button('Mirror the left half onto the right'))
+    expect(cell(1, 8)).toHaveAccessibleName('red, row 1, column 8')
+    expect(status()).toHaveTextContent('Copied the left half onto the right half, flipped.')
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Copy this side to' }), 'head-back-base')
+    await user.click(button('Copy'))
+    expect(status()).toHaveTextContent('Copied this side to Head, back, base layer.')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Side' }), 'back')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    expect(cell(5, 2)).toHaveAccessibleName('white, row 5, column 2')
+
+    await user.click(radio('tan'))
+    await user.click(button('Fill this side with tan'))
+    expect(status()).toHaveTextContent('Filled the whole side with tan. 22 pixels changed.')
+  })
+
+  it('describes the preview and the side in words', async () => {
+    const { user } = setup()
+    const front = screen.getByRole('img', { name: 'Front view of the skin' })
+    expect(front.closest('figure')).toHaveTextContent(
+      'Head: mostly tan, with dark brown, white and blue. Body: mostly green. Arms: mostly tan, with green. Legs: mostly dark blue, with dark gray.',
+    )
+    // The caption is tied to the picture by the figure, so it isn't also a description.
+    expect(front).not.toHaveAttribute('aria-describedby')
+    await user.click(radio('Right side'))
+    expect(screen.getByRole('img', { name: 'Right side view of the skin' }).closest('figure')).toHaveTextContent(
+      'Head: mostly tan, with dark brown. Right arm: mostly tan, with green. Right leg: mostly dark blue, with dark gray.',
+    )
+    const words = screen.getByRole('region', { name: 'This side in words' })
+    expect(within(words).getByText('8 by 8 pixels: 42 tan, 16 dark brown, 2 white, 2 blue, 2 red.')).toBeInTheDocument()
+    expect(within(words).getByText('Row 5: tan, white, blue, 2 tan, blue, white, tan')).toBeInTheDocument()
+  })
+
+  it('makes starting over undoable, and keeps the work and settings after a reload', async () => {
+    const first = setup()
+    await first.user.click(radio('red'))
+    focusGrid()
+    await first.user.keyboard(' ')
+    await first.user.click(screen.getByRole('checkbox', { name: 'Say the row and column with each pixel' }))
+    await first.user.selectOptions(screen.getByRole('combobox', { name: 'Pixel size on screen' }), '48')
+    await first.user.click(button('Start over with the sample skin'))
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown')
+    await first.user.click(button('Undo'))
+    expect(status()).toHaveTextContent('Undid starting over.')
+    first.unmount()
+
+    render(<App />)
+    expect(cell(1, 1)).toHaveAccessibleName('red')
+    expect(radio('red')).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Say the row and column with each pixel' })).not.toBeChecked()
+    expect(screen.getByRole('combobox', { name: 'Pixel size on screen' })).toHaveValue('48')
+  })
+
+  it('explains why a file can\u2019t be opened', async () => {
+    const { user } = setup()
+    await user.upload(
+      screen.getByLabelText('Open a skin (a 64 by 64 PNG)'),
+      new File(['not a skin'], 'skin.jpg', { type: 'image/jpeg' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('Choose a PNG file. Minecraft skins are PNG images.')
+  })
+
+  it('says it is not an official Minecraft product', () => {
+    setup()
+    expect(
+      screen.getByText('Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.'),
+    ).toBeInTheDocument()
+  })
+})

@@ -1,0 +1,463 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f4f2ec;
+  --surface: #ffffff;
+  --text: #1b1b1a;
+  --muted: #55534e;
+  --border: #8a8886;
+  --accent: #2f6b1f;
+  --focus: #1a5fc7;
+  --error: #b3261e;
+  --grid-line: #767676;
+  --checker: conic-gradient(#cfcfcf 25%, #ffffff 0 50%, #cfcfcf 0 75%, #ffffff 0);
+  /* 100%, not 16px, so a larger default font size set in the browser still applies. */
+  font: 100%/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --surface: #1f1f1f;
+    --text: #f2f2f2;
+    --muted: #c8c6c0;
+    --border: #8a8886;
+    --accent: #7ccf5a;
+    --focus: #8ab4ff;
+    --error: #ff8a80;
+    --grid-line: #9a9a9a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.skip-link {
+  position: absolute;
+  top: -200px;
+  left: 8px;
+  z-index: 10;
+  padding: 8px 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--focus);
+  border-radius: 4px;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+.app-header {
+  max-width: 60rem;
+  padding: 16px 24px 0;
+}
+
+.app-header h1 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+}
+
+.app-header p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.app-header .disclaimer {
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.app-footer {
+  padding: 0 24px 32px;
+  color: var(--muted);
+}
+
+.app-footer p {
+  margin: 0;
+}
+
+a {
+  color: var(--focus);
+}
+
+.layout {
+  display: grid;
+  gap: 16px;
+  padding: 16px 24px 32px;
+}
+
+@media (min-width: 48rem) {
+  .layout {
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .layout > .column:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 76rem) {
+  .layout {
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) minmax(16rem, 22rem);
+  }
+
+  .layout > .column:last-child {
+    grid-column: auto;
+  }
+}
+
+.column {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.panel {
+  min-width: 0;
+  padding: 12px 16px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.panel h3 {
+  margin: 16px 0 4px;
+  font-size: 1rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+input:not([type]),
+input[type='text'],
+select {
+  max-width: 100%;
+  min-height: 2.5rem;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+input[aria-invalid='true'] {
+  border: 2px solid var(--error);
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0 0 12px;
+  padding: 6px 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.choice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 2rem;
+}
+
+.choice input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+button {
+  min-height: 2.75rem;
+  padding: 6px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+button[aria-disabled='true'] {
+  color: var(--muted);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.error {
+  margin: 4px 0 8px;
+  color: var(--error);
+  font-weight: 600;
+}
+
+/* Colors */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 4px;
+}
+
+.swatch {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 4px 6px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.swatch:has(input:checked) {
+  font-weight: 700;
+  border-color: var(--text);
+}
+
+.swatch input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* Names are stored in lowercase so they read well inside sentences ("Painted dark brown."). The
+   list shows them with a capital letter. */
+.swatch-name::first-letter {
+  text-transform: uppercase;
+}
+
+.chip {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--pixel);
+  border: 1px solid var(--text);
+  border-radius: 4px;
+}
+
+.current-color {
+  margin: 8px 0;
+}
+
+.inline-fields {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-fields input[type='color'] {
+  width: 2.75rem;
+  height: 2.5rem;
+  padding: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* Pixels */
+.grid-wrap {
+  padding: 4px;
+  overflow-x: auto;
+}
+
+.pixel-grid {
+  --gap: 0px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap);
+  background: var(--grid-line);
+  user-select: none;
+  /* One finger draws instead of scrolling the page. Two fingers still pan and zoom: "touch-action:
+     none" would block zooming, which people with low vision rely on (MDN, touch-action). */
+  touch-action: pinch-zoom;
+}
+
+.pixel-grid.with-lines {
+  --gap: 1px;
+}
+
+.pixel-row {
+  display: flex;
+  gap: var(--gap);
+}
+
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  background: var(--pixel);
+  cursor: crosshair;
+}
+
+/* Transparent and partly transparent pixels show a checkerboard behind their color. */
+.cell.is-see-through {
+  background-image: linear-gradient(var(--pixel), var(--pixel)), var(--checker);
+  background-size: 100% 100%, 50% 50%;
+}
+
+.cell:focus {
+  outline: none;
+}
+
+/* Two rings, white inside and black outside, so the focused pixel shows on any color. */
+.cell:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px #000000;
+}
+
+.cursor-readout {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  min-height: 2.5rem;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  background: var(--bg);
+  border-left: 4px solid var(--accent);
+}
+
+/* Preview and texture */
+.view-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.preview {
+  margin: 8px 0 0;
+}
+
+.preview canvas,
+.texture-map {
+  display: block;
+  image-rendering: pixelated;
+  background: var(--checker);
+  background-size: 16px 16px;
+  border: 1px solid var(--border);
+}
+
+.preview figcaption {
+  margin-top: 8px;
+}
+
+.texture-map {
+  width: 100%;
+  max-width: 256px;
+  height: auto;
+  cursor: pointer;
+}
+
+/* Words and shortcuts */
+.row-list {
+  margin: 0;
+  padding: 0;
+  font-size: 0.95rem;
+  list-style: none;
+}
+
+.row-list li {
+  padding: 2px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+}
+
+.shortcuts {
+  width: 100%;
+  font-size: 0.95rem;
+  border-collapse: collapse;
+}
+
+.shortcuts th,
+.shortcuts td {
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.shortcuts tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Windows contrast themes replace colors with a few system colors. The pixel art has to keep its
+   real colors, so these elements opt out, and the focus ring uses the system highlight. */
+@media (forced-colors: active) {
+  .cell,
+  .chip,
+  .preview canvas,
+  .texture-map {
+    forced-color-adjust: none;
+  }
+
+  .pixel-grid {
+    background: CanvasText;
+  }
+
+  .cell:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+    box-shadow: none;
+  }
+
+  .swatch:has(input:checked) {
+    border-color: Highlight;
+  }
+
+  /* aria-disabled doesn't get the browser's disabled colors, so use the system's. */
+  button[aria-disabled='true'] {
+    color: GrayText;
+    border-color: GrayText;
+  }
+}

@@ -1,0 +1,7 @@
+node_modules
+dist
+# Built by npm run build:single. The published site has a copy.
+skin-editor.html
+test-results
+playwright-report
+blob-report
