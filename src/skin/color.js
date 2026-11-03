@@ -66,10 +66,8 @@ function hueOf(h) {
   return 'magenta'
 }
 
-// The parts of a short, everyday name for a color, like "dark brown" or "light blue": a hue, how
-// light it is, and whether it's muted ("grayish"). The words come from the messages, so the name
-// can be in any language. The rules are simple thresholds on hue, saturation and lightness, so two
-// different colors can share a name. That's why the palette lets people name their own colors.
+// The parts of an everyday color name, like "dark brown": hue, lightness and whether it's grayish. Simple
+// thresholds mean two colors can share a name, which is why people can rename palette colors.
 export function classifyColor(r, g, b) {
   const { h, s, l } = toHsl(r, g, b)
   const named = (hue, lightness = 'normal', muted = false) => ({ hue, lightness, muted })

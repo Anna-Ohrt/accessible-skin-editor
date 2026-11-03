@@ -71,19 +71,27 @@ describe('pointing at the 3D character', () => {
 
   it('sees through a transparent hat to the head, and stops at a painted one', () => {
     const pixels = createSampleSkin()
-    const ray = [[0.5, 12.5, 50], [0, 0, -1]]
-    expect(spot(pickSpot(pixels, 'classic', ...ray))).toEqual(['head-front-base', 4, 3])
+    const ray = { origin: [0.5, 12.5, 50], direction: [0, 0, -1] }
+    expect(spot(pickSpot(pixels, 'classic', ray))).toEqual(['head-front-base', 4, 3])
     const painted = paintCells(pixels, getFace('head', 'front', 'outer'), [{ col: 4, row: 3 }], red)
-    expect(spot(pickSpot(painted, 'classic', ...ray))).toEqual(['head-front-outer', 4, 3])
-    expect(spot(pickSpot(painted, 'classic', ...ray, { showOuter: false }))).toEqual(['head-front-base', 4, 3])
+    expect(spot(pickSpot(painted, 'classic', ray))).toEqual(['head-front-outer', 4, 3])
+    expect(spot(pickSpot(painted, 'classic', ray, { showOuter: false }))).toEqual(['head-front-base', 4, 3])
   })
 
   it('finds tops and bottoms the way their rows and columns are described', () => {
     const pixels = createSampleSkin()
     // Row 1 of a top is at the back, and column 1 on the character's right.
-    expect(spot(pickSpot(pixels, 'classic', [-3.5, 50, -3.5], [0, -1, 0]))).toEqual(['head-top-base', 0, 0])
-    expect(spot(pickSpot(pixels, 'classic', [-3.5, -50, -1.5], [0, 1, 0]))).toEqual(['rightLeg-bottom-base', 0, 0])
-    expect(pickSpot(pixels, 'classic', [30, 0, 50], [0, 0, -1])).toBeNull()
+    expect(spot(pickSpot(pixels, 'classic', { origin: [-3.5, 50, -3.5], direction: [0, -1, 0] }))).toEqual([
+      'head-top-base',
+      0,
+      0,
+    ])
+    expect(spot(pickSpot(pixels, 'classic', { origin: [-3.5, -50, -1.5], direction: [0, 1, 0] }))).toEqual([
+      'rightLeg-bottom-base',
+      0,
+      0,
+    ])
+    expect(pickSpot(pixels, 'classic', { origin: [30, 0, 50], direction: [0, 0, -1] })).toBeNull()
   })
 
   it('shows the inside of the outer layer through a gap in it', () => {
@@ -91,7 +99,11 @@ describe('pointing at the 3D character', () => {
     // the left side, whose painted pixel is seen from inside.
     const hatLeft = getFace('head', 'left', 'outer')
     const pixels = paintCells(createSampleSkin(), hatLeft, [{ col: 4, row: 0 }], red)
-    expect(spot(pickSpot(pixels, 'classic', [-50, 16.25, 0], [1, 0, 0]))).toEqual(['head-left-outer', 4, 0])
+    expect(spot(pickSpot(pixels, 'classic', { origin: [-50, 16.25, 0], direction: [1, 0, 0] }))).toEqual([
+      'head-left-outer',
+      4,
+      0,
+    ])
   })
 
   it('lands on the pixel that is drawn there, for every pixel the head shows', () => {
@@ -101,10 +113,16 @@ describe('pointing at the 3D character', () => {
       const { corner, across, down, normal } = sideFrame(boxOf('head', 'base'), sideId)
       for (let row = 0; row < face.h; row += 1) {
         for (let col = 0; col < face.w; col += 1) {
-          const point = corner.map((value, i) => value + across[i] * ((col + 0.5) / face.w) + down[i] * ((row + 0.5) / face.h))
+          const point = corner.map(
+            (value, i) => value + across[i] * ((col + 0.5) / face.w) + down[i] * ((row + 0.5) / face.h),
+          )
           const origin = point.map((value, i) => value + normal[i] * 30)
           const direction = normal.map((value) => -value)
-          expect(spot(pickSpot(pixels, 'classic', origin, direction, { showOuter: false }))).toEqual([face.id, col, row])
+          expect(spot(pickSpot(pixels, 'classic', { origin, direction }, { showOuter: false }))).toEqual([
+            face.id,
+            col,
+            row,
+          ])
         }
       }
     }

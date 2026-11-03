@@ -76,9 +76,18 @@ Settings let you leave out the row and column, add hex codes, hide grid lines an
 
 ### Performance
 
-- Babylon.js is in its own files, loaded only when the 3D model is shown: 895 KB (218 KB compressed), in 9 files. That's more than the three.js and skinview3d it replaced (546 KB, or 138 KB compressed), but the editor doesn't wait for it. The editor's main script went from 789 KB (215 KB compressed), when it included three.js, to 314 KB (99 KB compressed), so the pixels work before the 3D code arrives, and a test paints one while it's held back.
+- Babylon.js is in its own files, loaded only when the 3D model is shown: 9 files, 917 KB (222 KB compressed), counted in the browser. That's more than the three.js and skinview3d it replaced, but the editor doesn't wait for it. The editor's main script went from 789 KB (215 KB compressed), when it included three.js, to 312 KB (99 KB compressed), so the pixels work before the 3D code arrives, and a test paints one while it's held back.
 - The 3D model's box has its size before the model loads, so nothing moves: the test measures a layout shift of 0.
 - Each message is parsed once, and a color's name is worked out once and reused, since a skin repeats a few colors many times.
+
+### Code
+
+- Every edit, like painting, filling or copying a side, is a pure function in [`src/editor/edits.js`](src/editor/edits.js). It returns the change, its undo label and the message to announce, and the app applies it through one undo reducer, so each edit is tested without rendering anything.
+- The state the panels share lives in `App`, with custom hooks for the palette (`usePalette`), the status message (`useAnnouncer`) and saving (`useAutosave`). Each panel keeps only its own form or view state. Anything that can be worked out from state, like the side being edited or a color's name, is computed while rendering rather than stored a second time.
+- The pixel grid's cursor is controlled by `App`, so a click on the 3D model can move it. Arrow keys move focus, and the cursor follows focus, so there's no effect to keep them in step.
+- Babylon.js is wrapped in one class, `SkinScene`. The React component that shows it only passes it the current state, one effect per kind of change, and a separate module tells clicks from drags.
+- Form controls share three small components (`Choices`, `Checkbox` and `SelectField`), and React files export only components, as Vite's Fast Refresh needs.
+- Prettier formats the code, ESLint checks it, and no comment is longer than two lines.
 
 ## Software in the site
 
@@ -90,24 +99,24 @@ The site ships only open source packages that Minecraft's own websites already s
 | intl-messageformat, and three FormatJS packages it uses | BSD 3-Clause, MIT | The same profile app, as part of FormatJS's react-intl |
 | Babylon.js (`@babylonjs/core`) | Apache 2.0 | [classic.minecraft.net](https://classic.minecraft.net/), Mojang's browser version of Minecraft Classic. [babylonjs.com](https://www.babylonjs.com/) also lists "Minecraft Classic by Mojang" among its notable experiences |
 
-Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core and ESLint, builds or tests the site and doesn't ship in it. The 3D model's character is the editor's own code (`src/skin/model.js`), not a library.
+Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLint and Prettier, builds or tests the site and doesn't ship in it. The 3D model's character is the editor's own code (`src/skin/model.js`), not a library.
 
 ## Checked
 
 [TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
 
-- **96 tests** with Vitest and Testing Library: layout counts and positions, color names, tools, undo, the 3D model's camera, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
+- **110 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
 - **29 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
   - axe found no WCAG 2.2 A or AA violations, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, and with error messages and other options showing.
   - The page reflows at 320 CSS pixels wide, with the default font, a wide one, and both made-up languages. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
   - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
   - The browser's accessibility tree has a named grid of named cells.
   - A click paints on release, sliding off cancels it, and a fast drag paints a gapless line that undoes in one step.
-  - The 3D model turns with the View and Angle choices or by dragging, doesn't animate when reduced motion is on, shows new paint at once, and turns to the side being edited. Pointing at it names the spot, and a click opens that pixel in the grid. The side facing the camera shows its true colors, and the see-through outer layer adds nothing to the picture.
+  - The 3D model turns with the View and Angle choices or by dragging, stays where a drag leaves it, doesn't animate when reduced motion is on, shows new paint at once, and turns to the side being edited. Pointing at it names the spot, and a click opens that pixel in the grid. The side facing the camera shows its true colors, and the see-through outer layer adds nothing to the picture.
   - The checks under Engineering: the policy, the one-file copy, a downloaded skin opening with every pixel the same, a reset or missing 3D model, saving when the page is hidden, and layout shift.
   - The site ships the license text of every open source package in it.
-- **ESLint** with the jsx-a11y accessibility rules (strict set) and the React Hooks rules, including the React Compiler's checks.
-- **35 planted bugs**, one per new behavior: 6 from the review, 6 in the first 3D model, 15 in the engineering pass and 8 in the move to Babylon.js. The tests caught all 35, after one test was made stricter.
+- **ESLint** with the jsx-a11y accessibility rules (strict set), the React Hooks rules including the React Compiler's checks, the Fast Refresh rule from Vite's React template, and strict equality, `const` and no `var`. **Prettier** checks the formatting.
+- **45 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
 ## Not done yet
@@ -143,9 +152,10 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180. Add `?lang=en-XA` or `?lang=ar-XB` to the address for the made-up languages |
-| `npm test` | Runs the 96 tests |
+| `npm test` | Runs the 110 tests |
 | `npm run test:e2e` | Runs the 29 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
 | `npm run lint` | Runs ESLint |
+| `npm run format` | Formats the code with Prettier. `npm run format:check` only checks it |
 | `npm run build:single` | Writes `skin-editor.html`, the one-file copy |
 
 ## Files
@@ -164,12 +174,17 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/skin/model.js` | The 3D character: its boxes, how the skin wraps them, and which side and pixel a ray lands on |
 | `src/skin/png.js` | Opening and saving PNGs, with the header and size checks |
 | `src/components/PixelGrid.jsx` | The pixel grid: keyboard, pointer and screen reader behavior |
-| `src/components/Model3D.jsx` | The 3D model, drawn with Babylon.js: turning, the outline, pointing and clicking. Loaded only when shown |
+| `src/components/Model3D.jsx` | The 3D model: passes the editor's state to the scene, and turns drags and clicks into views and spots. Loaded only when shown |
+| `src/components/skinScene.js` | The Babylon.js scene: the character, its texture and outline, the camera, and turning |
+| `src/components/pointer.js` | Tells a click from a drag, and reports hovering once a frame |
+| `src/components/fields.jsx` | Radio buttons, checkboxes and menus shared by the panels |
+| `src/components/canvas.js` | Drawing pixels on a canvas, and checking for WebGL |
 | `src/components/Preview.jsx` | The choice of 3D model or flat pictures, with View and Angle, and what happens when 3D fails |
 | `src/components/ErrorBoundary.jsx`, `CrashNotice.jsx` | What shows if the editor stops with an error |
 | `src/App.jsx` | Puts it together, and says what happened after each action |
-| `src/editor/` | Undo history, the status message, saving in the browser, and settings |
-| `tests/` | The 96 Vitest tests |
+| `src/editor/edits.js` | Every editing command, as a pure function |
+| `src/editor/` | Also undo history, settings, saving, and the hooks for the palette, saving and the status message |
+| `tests/` | The 110 Vitest tests |
 | `e2e/` | The 29 browser checks: accessibility, languages, and security, reliability and performance |
 | `vite.config.js` | The build, the Content Security Policy and the third-party notices |
 | `TESTING.md` | What has been tested, and how to test with screen readers and players |

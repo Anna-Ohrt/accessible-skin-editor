@@ -1,46 +1,26 @@
-import { useId } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { CELL_SIZES } from '../editor/settings.js'
+import { Checkbox, SelectField } from './fields.jsx'
 
 export default function Settings({ settings, onChange }) {
-  const id = useId()
   const { t } = useI18n()
   return (
     <>
-      <div className="field">
-        <label htmlFor={`${id}-size`}>{t('settings.size')}</label>
-        <select
-          id={`${id}-size`}
-          value={settings.cellSize}
-          onChange={(event) => onChange({ cellSize: Number(event.target.value) })}
-        >
-          {CELL_SIZES.map((size) => (
-            <option key={size} value={size}>
-              {t('settings.sizeOption', { size })}
-            </option>
-          ))}
-        </select>
-      </div>
-      <label className="choice">
-        <input
-          type="checkbox"
-          checked={settings.sayPosition}
-          onChange={(event) => onChange({ sayPosition: event.target.checked })}
-        />
+      <SelectField
+        label={t('settings.size')}
+        value={settings.cellSize}
+        options={CELL_SIZES.map((size) => ({ value: size, label: t('settings.sizeOption', { size }) }))}
+        onChange={(size) => onChange({ cellSize: Number(size) })}
+      />
+      <Checkbox checked={settings.sayPosition} onChange={(sayPosition) => onChange({ sayPosition })}>
         {t('settings.sayPosition')}
-      </label>
-      <label className="choice">
-        <input type="checkbox" checked={settings.sayHex} onChange={(event) => onChange({ sayHex: event.target.checked })} />
+      </Checkbox>
+      <Checkbox checked={settings.sayHex} onChange={(sayHex) => onChange({ sayHex })}>
         {t('settings.sayHex')}
-      </label>
-      <label className="choice">
-        <input
-          type="checkbox"
-          checked={settings.showGridLines}
-          onChange={(event) => onChange({ showGridLines: event.target.checked })}
-        />
+      </Checkbox>
+      <Checkbox checked={settings.showGridLines} onChange={(showGridLines) => onChange({ showGridLines })}>
         {t('settings.gridLines')}
-      </label>
+      </Checkbox>
     </>
   )
 }

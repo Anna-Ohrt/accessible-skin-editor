@@ -1,27 +1,16 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useMemo, useReducer, useRef, useState } from 'react'
 import { useI18n } from './i18n/context.js'
-import { actionText, colorNamer, describeLine, faceLabel, faceOrientation, paletteNames } from './i18n/words.js'
-import { allFaces, getFace } from './skin/layout.js'
-import { TRANSPARENT, isOpaque, isTransparent } from './skin/color.js'
-import {
-  columnOf,
-  copyFace,
-  countSeeThrough,
-  createPlainSkin,
-  createSamplePalette,
-  createSampleSkin,
-  fillFace,
-  floodFill,
-  getCell,
-  mirrorFace,
-  paintCells,
-  rowOf,
-} from './skin/pixels.js'
-import { SkinFileError, downloadSkin, readSkinFile } from './skin/png.js'
-import { historyReducer, initHistory } from './editor/history.js'
+import { colorNamer, describeLine, faceLabel, messageText } from './i18n/words.js'
+import { getFace } from './skin/layout.js'
+import { isTransparent } from './skin/color.js'
+import { columnOf, getCell, rowOf } from './skin/pixels.js'
+import { SKIN_FILE_NAME, SkinFileError, downloadSkin, readSkinFile } from './skin/png.js'
+import { planEdit } from './editor/edits.js'
+import { historyReducer, initHistory, nextStep } from './editor/history.js'
+import { loadDraft, startingDraft } from './editor/storage.js'
 import { useAnnouncer } from './editor/useAnnouncer.js'
-import { createSaver, loadDraft } from './editor/storage.js'
-import { DEFAULT_SETTINGS } from './editor/settings.js'
+import { useAutosave } from './editor/useAutosave.js'
+import { usePalette } from './editor/usePalette.js'
 import FacePicker from './components/FacePicker.jsx'
 import { ColorForms, PaintColors } from './components/Palette.jsx'
 import PixelGrid from './components/PixelGrid.jsx'
@@ -29,250 +18,115 @@ import Tools from './components/Tools.jsx'
 import FaceDescription from './components/FaceDescription.jsx'
 import Preview from './components/Preview.jsx'
 import TextureMap from './components/TextureMap.jsx'
-import FilePanel, { SKIN_FILE_NAME } from './components/FilePanel.jsx'
+import FilePanel from './components/FilePanel.jsx'
 import Settings from './components/Settings.jsx'
 import Shortcuts from './components/Shortcuts.jsx'
 
 const REPO_URL = 'https://github.com/Anna-Ohrt/accessible-skin-editor'
 const NOTICES_URL = 'https://anna-ohrt.github.io/accessible-skin-editor/third-party-notices.txt'
 
-let idCount = 0
-const newColorId = () => `custom-${Date.now().toString(36)}-${(idCount += 1)}`
+// Drags and Shift+arrow painting show their result as it happens, so only a refusal is announced.
+const QUIET_SOURCES = new Set(['pointer', 'keyboard-move'])
+
+// A titled section. The pixels heading can take focus, since the skip link goes there.
+function Panel({ id, title, focusable = false, children }) {
+  return (
+    <section className="panel" aria-labelledby={`${id}-heading`}>
+      <h2 id={`${id}-heading`} tabIndex={focusable ? -1 : undefined}>
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
+}
 
 export default function App() {
   const i18n = useI18n()
   const { t } = i18n
-  const [draft] = useState(loadDraft)
-  const [model, setModel] = useState(draft?.model ?? 'classic')
-  const [palette, setPalette] = useState(() => draft?.palette ?? createSamplePalette())
-  const [currentColor, setCurrentColor] = useState(() => draft?.currentColor ?? palette[0].color)
-  const [history, dispatch] = useReducer(historyReducer, null, () => initHistory(draft?.pixels ?? createSampleSkin()))
+  const [initial] = useState(() => loadDraft() ?? startingDraft())
+  const [history, dispatch] = useReducer(historyReducer, initial.pixels, initHistory)
+  const { palette, names, current, choose, rename } = usePalette(initial)
+  const [model, setModel] = useState(initial.model)
+  const [settings, setSettings] = useState(initial.settings)
   const [selection, setSelection] = useState({ partId: 'head', sideId: 'front', layerId: 'base' })
-  const [settings, setSettings] = useState(() => draft?.settings ?? DEFAULT_SETTINGS)
+  const [cursor, setCursor] = useState({ col: 0, row: 0 })
   const [fileError, setFileError] = useState(null)
-  const [cursorRequest, setCursorRequest] = useState(null)
   const [status, announce] = useAnnouncer(t('status.first'))
-  const [saver] = useState(createSaver)
-  const openCount = useRef(0)
+  const latestOpen = useRef(0)
 
   const { pixels } = history
   const { partId, sideId, layerId } = selection
   const face = useMemo(() => getFace(partId, sideId, layerId, model), [partId, sideId, layerId, model])
-  const faceName = faceLabel(i18n, face)
-  const names = useMemo(() => paletteNames(i18n, palette), [i18n, palette])
-  const nameOf = useMemo(() => colorNamer(i18n, palette, names, { sayHex: settings.sayHex }), [i18n, palette, names, settings.sayHex])
-  const plainNameOf = useMemo(() => colorNamer(i18n, palette, names), [i18n, palette, names])
-  const paintName = plainNameOf(currentColor)
+  const nameOf = useMemo(
+    () => colorNamer(i18n, palette, names, { sayHex: settings.sayHex }),
+    [i18n, palette, names, settings.sayHex],
+  )
+  const paintName = names.get(current.id)
+  useAutosave({ pixels, palette, model, currentColor: current.color, settings })
 
-  useEffect(() => {
-    saver.schedule({ pixels, palette, model, currentColor, settings })
-  }, [saver, pixels, palette, model, currentColor, settings])
-
-  // Saves at once when the page is hidden or closed, or the editor goes away, so the last change
-  // before that isn't lost.
-  useEffect(() => {
-    const flush = () => saver.flush()
-    const flushIfHidden = () => {
-      if (document.visibilityState === 'hidden') saver.flush()
+  function perform(action) {
+    const plan = planEdit(action, { pixels, face, model, color: current.color })
+    if (plan.change) dispatch({ type: 'apply', change: plan.change, label: plan.label, stroke: action.stroke })
+    if (plan.refused || !QUIET_SOURCES.has(action.source)) {
+      announce(messageText(i18n, plan.message, { color: paintName }))
     }
-    window.addEventListener('pagehide', flush)
-    document.addEventListener('visibilitychange', flushIfHidden)
-    return () => {
-      window.removeEventListener('pagehide', flush)
-      document.removeEventListener('visibilitychange', flushIfHidden)
-      saver.flush()
-    }
-  }, [saver])
-
-  // An undo step's label is a message id and values, so Undo and Redo speak the editor's language.
-  const apply = (change, label, stroke) => dispatch({ type: 'apply', change, label, stroke })
-
-  function canPaintWith(color) {
-    if (face.layerId === 'base' && !isOpaque(color)) {
-      announce(t('status.paintNeedsSolid'))
-      return false
-    }
-    return true
   }
 
-  function paint({ cells, source, stroke }) {
-    if (!canPaintWith(currentColor)) return
-    // Pointer users see the change. Keyboard and screen reader users hear it.
-    const speak = source === 'keyboard' || source === 'click'
-    if (paintCells(pixels, face, cells, currentColor) === pixels) {
-      if (speak) announce(t('status.already', { color: paintName }))
+  function travel(type) {
+    const step = nextStep(history, type)
+    if (!step) {
+      announce(t(`status.${type}.none`))
       return
     }
-    apply((current) => paintCells(current, face, cells, currentColor), { id: 'action.painting' }, stroke)
-    if (speak) announce(t('status.painted', { color: paintName }))
-  }
-
-  function erase(col, row) {
-    if (face.layerId === 'base') {
-      announce(t('status.eraseNeedsOuter'))
-      return
-    }
-    if (isTransparent(getCell(pixels, face, col, row))) {
-      announce(t('status.alreadyTransparent'))
-      return
-    }
-    apply((current) => paintCells(current, face, [{ col, row }], TRANSPARENT), { id: 'action.erasing' })
-    announce(t('status.erased'))
-  }
-
-  function fill(col, row) {
-    if (!canPaintWith(currentColor)) return
-    const { count } = floodFill(pixels, face, col, row, currentColor)
-    if (count === 0) {
-      announce(t('status.alreadyFilled', { color: paintName }))
-      return
-    }
-    apply((current) => floodFill(current, face, col, row, currentColor).pixels, { id: 'action.filling', values: { count } })
-    announce(t('status.filled', { count, color: paintName }))
-  }
-
-  // A color that isn't in the palette yet is added, named by how it looks.
-  function addToPalette(entry) {
-    setPalette((items) => [...items, entry])
-    return paletteNames(i18n, [...palette, entry]).get(entry.id)
+    dispatch({ type })
+    announce(t(`status.${type}.done`, { action: messageText(i18n, step.label) }))
   }
 
   function pickColor(color) {
-    if (isTransparent(color)) {
-      announce(t('status.nothingToPick'))
-      return
-    }
-    const entry = palette.find((item) => item.color === color)
-    const name = entry ? names.get(entry.id) : addToPalette({ id: newColorId(), name: null, color })
-    setCurrentColor(color)
-    announce(t('status.picked', { color: name }))
+    if (isTransparent(color)) announce(t('status.nothingToPick'))
+    else announce(t('status.picked', { color: choose(color).name }))
   }
 
-  function undo() {
-    const last = history.past.at(-1)
-    if (!last) {
-      announce(t('status.nothingToUndo'))
-      return
-    }
-    dispatch({ type: 'undo' })
-    announce(t('status.undid', { action: actionText(i18n, last.label) }))
-  }
-
-  function redo() {
-    const next = history.future[0]
-    if (!next) {
-      announce(t('status.nothingToRedo'))
-      return
-    }
-    dispatch({ type: 'redo' })
-    announce(t('status.redid', { action: actionText(i18n, next.label) }))
-  }
-
-  function handleGridAction(action) {
+  function handleAction(action) {
+    const { col, row } = action
     switch (action.type) {
-      case 'paint':
-        return paint(action)
-      case 'erase':
-        return erase(action.col, action.row)
-      case 'fill':
-        return fill(action.col, action.row)
+      case 'undo':
+      case 'redo':
+        return travel(action.type)
       case 'pick':
-        return pickColor(getCell(pixels, face, action.col, action.row))
+        return pickColor(getCell(pixels, face, col, row))
       case 'readRow':
         return announce(
-          t('status.readRow', { row: action.row + 1, line: describeLine(i18n, rowOf(pixels, face, action.row), nameOf) }),
+          t('status.readRow', { row: row + 1, line: describeLine(i18n, rowOf(pixels, face, row), nameOf) }),
         )
       case 'readColumn':
         return announce(
-          t('status.readColumn', { col: action.col + 1, line: describeLine(i18n, columnOf(pixels, face, action.col), nameOf) }),
+          t('status.readColumn', { col: col + 1, line: describeLine(i18n, columnOf(pixels, face, col), nameOf) }),
         )
       case 'edge':
         return announce(t('status.edge', { edge: action.edge }))
-      case 'undo':
-        return undo()
-      case 'redo':
-        return redo()
       default:
-        return undefined
+        return perform(action)
     }
   }
 
-  function handleTool(tool) {
-    switch (tool.type) {
-      case 'fillSide': {
-        if (!canPaintWith(currentColor)) return
-        const { count } = fillFace(pixels, face, currentColor)
-        if (count === 0) {
-          announce(t('status.sideAlready', { color: paintName }))
-          return
-        }
-        apply((current) => fillFace(current, face, currentColor).pixels, { id: 'action.fillingSide' })
-        announce(t('status.filledSide', { color: paintName, count }))
-        return
-      }
-      case 'clearSide': {
-        const { count } = fillFace(pixels, face, TRANSPARENT)
-        if (count === 0) {
-          announce(t('status.sideEmpty'))
-          return
-        }
-        apply((current) => fillFace(current, face, TRANSPARENT).pixels, { id: 'action.clearingSide' })
-        announce(t('status.cleared', { count }))
-        return
-      }
-      case 'mirror': {
-        if (mirrorFace(pixels, face, tool.from) === pixels) {
-          announce(t('status.halvesMatch'))
-          return
-        }
-        apply((current) => mirrorFace(current, face, tool.from), { id: 'action.mirroring', values: { from: tool.from } })
-        announce(t('status.mirrored', { from: tool.from }))
-        return
-      }
-      case 'copy': {
-        const { target, flip } = tool
-        const targetName = faceLabel(i18n, target)
-        if (copyFace(pixels, face, target, { flip }) === pixels) {
-          announce(t(target.layerId === 'base' ? 'status.copyNoChangeBase' : 'status.copyNoChange', { target: targetName }))
-          return
-        }
-        apply((current) => copyFace(current, face, target, { flip }), { id: 'action.copying', target })
-        announce(t(flip ? 'status.copiedFlipped' : 'status.copied', { target: targetName }))
-        return
-      }
-      case 'undo':
-        return undo()
-      case 'redo':
-        return redo()
-      default:
-        return undefined
-    }
-  }
-
+  // Only the newest file counts when another is chosen before this one opens.
   async function openFile(file) {
-    // Opening is asynchronous. If another file is chosen before this one finishes, only the newer
-    // one counts, whichever finishes first.
-    const request = (openCount.current += 1)
+    const request = (latestOpen.current += 1)
     try {
-      const next = await readSkinFile(file)
-      if (request !== openCount.current) return
+      const skin = await readSkinFile(file)
+      if (request !== latestOpen.current) return
       setFileError(null)
-      apply(() => next, { id: 'action.opening', values: { file: file.name } })
-      const seeThrough = countSeeThrough(next, allFaces(model).filter((item) => item.layerId === 'base'))
-      announce(
-        seeThrough
-          ? t('status.openedSeeThrough', { file: file.name, count: seeThrough })
-          : t('status.opened', { file: file.name }),
-      )
+      perform({ type: 'open', skin, file: file.name })
     } catch (error) {
-      if (request !== openCount.current) return
+      if (request !== latestOpen.current) return
       setFileError(error instanceof SkinFileError ? error : new SkinFileError('unreadable'))
     }
   }
 
   async function download() {
     try {
-      await downloadSkin(pixels, SKIN_FILE_NAME)
+      await downloadSkin(pixels)
       setFileError(null)
       announce(t('status.downloaded', { file: SKIN_FILE_NAME }))
     } catch (error) {
@@ -280,45 +134,26 @@ export default function App() {
     }
   }
 
-  function startOver() {
-    apply(() => createSampleSkin(), { id: 'action.startingOver' })
-    announce(t('status.startedOver'))
-  }
-
-  function startPlain() {
-    if (!isOpaque(currentColor)) {
-      announce(t('status.plainNeedsSolid'))
-      return
-    }
-    apply(() => createPlainSkin(currentColor), { id: 'action.startingPlain' })
-    announce(t('status.startedPlain', { color: paintName }))
-  }
-
   function addColor(color, name) {
-    const existing = palette.find((item) => item.color === color)
-    setCurrentColor(color)
-    if (existing) {
-      announce(t('status.colorExists', { color: names.get(existing.id) }))
-      return
-    }
-    announce(t('status.added', { color: addToPalette({ id: newColorId(), name, color }) }))
+    const chosen = choose(color, name)
+    announce(t(chosen.added ? 'status.added' : 'status.colorExists', { color: chosen.name }))
   }
 
   function renameColor(id, name) {
-    setPalette((items) => items.map((item) => (item.id === id ? { ...item, name } : item)))
+    rename(id, name)
     announce(t('status.renamed', { from: names.get(id), to: name }))
   }
 
-  function pickFace(found) {
+  // A side picked on the texture map, or on the 3D model with the cursor moved to the pixel picked.
+  function openSide(found, at) {
     setSelection({ partId: found.partId, sideId: found.sideId, layerId: found.layerId })
-    announce(t('status.editing', { face: faceLabel(i18n, found) }))
-  }
-
-  // A click on the 3D model opens that side in the grid, with the cursor on that pixel.
-  function pickSpot({ face: found, col, row }) {
-    setSelection({ partId: found.partId, sideId: found.sideId, layerId: found.layerId })
-    setCursorRequest({ col, row })
-    announce(t('status.editingAt', { face: faceLabel(i18n, found), row: row + 1, col: col + 1 }))
+    const name = faceLabel(i18n, found)
+    if (!at) {
+      announce(t('status.editing', { face: name }))
+      return
+    }
+    setCursor(at)
+    announce(t('status.editingAt', { face: name, row: at.row + 1, col: at.col + 1 }))
   }
 
   return (
@@ -333,94 +168,78 @@ export default function App() {
       </header>
       <main className="layout">
         <div className="column">
-          <section className="panel" aria-labelledby="choose-heading">
-            <h2 id="choose-heading">{t('heading.choose')}</h2>
+          <Panel id="choose" title={t('heading.choose')}>
             <FacePicker
               selection={selection}
               model={model}
-              onChange={(change) => setSelection((current) => ({ ...current, ...change }))}
+              onChange={(change) => setSelection((value) => ({ ...value, ...change }))}
               onModelChange={setModel}
             />
-          </section>
+          </Panel>
         </div>
 
         <div className="column">
-          <section className="panel" aria-labelledby="pixels-heading">
-            <h2 id="pixels-heading" tabIndex={-1}>
-              {t('heading.pixels', { face: faceName })}
-            </h2>
-            <p id="grid-orientation" className="hint">
-              {t('grid.size', { w: face.w, h: face.h, orientation: faceOrientation(i18n, face) })}
-            </p>
-            <p id="grid-help" className="hint">
-              {t('grid.help')}
-            </p>
+          <Panel id="pixels" title={t('heading.pixels', { face: faceLabel(i18n, face) })} focusable>
             <PixelGrid
               face={face}
-              label={faceName}
               pixels={pixels}
               nameOf={nameOf}
-              sayPosition={settings.sayPosition}
-              cellSize={settings.cellSize}
-              showGridLines={settings.showGridLines}
-              describedBy="grid-orientation grid-help"
-              cursorRequest={cursorRequest}
-              onAction={handleGridAction}
+              settings={settings}
+              cursor={cursor}
+              onCursorChange={setCursor}
+              onAction={handleAction}
             />
             <p role="status" className="status">
               {status}
             </p>
-            <PaintColors palette={palette} names={names} currentColor={currentColor} onSelect={setCurrentColor} />
-          </section>
-          <section className="panel" aria-labelledby="tools-heading">
-            <h2 id="tools-heading">{t('heading.tools')}</h2>
+            <PaintColors palette={palette} names={names} current={current} onSelect={choose} />
+          </Panel>
+          <Panel id="tools" title={t('heading.tools')}>
             <Tools
               face={face}
               model={model}
               paintName={paintName}
               canUndo={history.past.length > 0}
               canRedo={history.future.length > 0}
-              onTool={handleTool}
+              onAction={handleAction}
             />
-          </section>
-          <section className="panel" aria-labelledby="words-heading">
-            <h2 id="words-heading">{t('heading.words')}</h2>
+          </Panel>
+          <Panel id="words" title={t('heading.words')}>
             <FaceDescription pixels={pixels} face={face} nameOf={nameOf} />
-          </section>
+          </Panel>
         </div>
 
         <div className="column">
-          <section className="panel" aria-labelledby="preview-heading">
-            <h2 id="preview-heading">{t('heading.preview')}</h2>
-            <Preview pixels={pixels} model={model} nameOf={nameOf} face={face} onPickSpot={pickSpot} />
-          </section>
-          <section className="panel" aria-labelledby="texture-heading">
-            <h2 id="texture-heading">{t('heading.texture')}</h2>
-            <TextureMap pixels={pixels} face={face} model={model} onPickFace={pickFace} />
-          </section>
-          <section className="panel" aria-labelledby="colors-heading">
-            <h2 id="colors-heading">{t('heading.colors')}</h2>
-            <ColorForms palette={palette} names={names} currentColor={currentColor} onAdd={addColor} onRename={renameColor} />
-          </section>
-          <section className="panel" aria-labelledby="file-heading">
-            <h2 id="file-heading">{t('heading.file')}</h2>
+          <Panel id="preview" title={t('heading.preview')}>
+            <Preview
+              pixels={pixels}
+              model={model}
+              nameOf={nameOf}
+              face={face}
+              onPickSpot={(spot) => openSide(spot.face, { col: spot.col, row: spot.row })}
+            />
+          </Panel>
+          <Panel id="texture" title={t('heading.texture')}>
+            <TextureMap pixels={pixels} face={face} model={model} onPickFace={(found) => openSide(found)} />
+          </Panel>
+          <Panel id="colors" title={t('heading.colors')}>
+            <ColorForms names={names} current={current} onAdd={addColor} onRename={renameColor} />
+          </Panel>
+          <Panel id="file" title={t('heading.file')}>
             <FilePanel
               error={fileError}
               paintName={paintName}
               onOpen={openFile}
               onDownload={download}
-              onStartOver={startOver}
-              onPlain={startPlain}
+              onAction={handleAction}
             />
-          </section>
-          <section className="panel" aria-labelledby="settings-heading">
-            <h2 id="settings-heading">{t('heading.settings')}</h2>
-            <Settings settings={settings} onChange={(change) => setSettings((current) => ({ ...current, ...change }))} />
-          </section>
-          <section className="panel" aria-labelledby="keys-heading">
-            <h2 id="keys-heading">{t('heading.keys')}</h2>
+          </Panel>
+          <Panel id="settings" title={t('heading.settings')}>
+            <Settings settings={settings} onChange={(change) => setSettings((value) => ({ ...value, ...change }))} />
+          </Panel>
+          <Panel id="keys" title={t('heading.keys')}>
             <Shortcuts />
-          </section>
+          </Panel>
         </div>
       </main>
       <footer className="app-footer">

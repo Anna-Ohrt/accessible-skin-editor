@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createI18n } from '../src/i18n/index.js'
 import {
-  actionText,
   colorName,
   colorNamer,
   describeFace,
@@ -9,6 +8,7 @@ import {
   describeView,
   faceLabel,
   faceOrientation,
+  messageText,
   paletteNames,
 } from '../src/i18n/words.js'
 import { getFace } from '../src/skin/layout.js'
@@ -100,7 +100,9 @@ describe('sides', () => {
     expect(faceLabel(en, sleeve)).toBe('Right arm, right side, outer layer (right sleeve)')
     expect(faceOrientation(en, sleeve)).toBe('Column 1 is at the back and column 4 is at the front.')
     expect(faceLabel(en, getFace('head', 'front', 'base'))).toBe('Head, front, base layer')
-    expect(faceOrientation(en, getFace('head', 'left', 'base'))).toBe('Column 1 is at the front and column 8 is at the back.')
+    expect(faceOrientation(en, getFace('head', 'left', 'base'))).toBe(
+      'Column 1 is at the front and column 8 is at the back.',
+    )
     expect(faceOrientation(en, getFace('head', 'front', 'base'))).toBe(
       "Seen from the front, so column 1 is on the character's right and column 8 is on their left.",
     )
@@ -131,7 +133,15 @@ describe('lines, sides and views in words', () => {
     expect(describeLine(en, [darker, lighter, A], nameOf)).toBe('2 brown, blue')
     const face = getFace('rightLeg', 'top', 'base')
     let pixels = fillFace(createSkin(), face, darker).pixels
-    pixels = paintCells(pixels, face, [{ col: 0, row: 0 }, { col: 1, row: 0 }], lighter)
+    pixels = paintCells(
+      pixels,
+      face,
+      [
+        { col: 0, row: 0 },
+        { col: 1, row: 0 },
+      ],
+      lighter,
+    )
     pixels = paintCells(pixels, face, [{ col: 3, row: 3 }], A)
     expect(describeFace(en, pixels, face, nameOf)).toBe('4 by 4 pixels: 15 brown (2 shades), 1 blue.')
   })
@@ -146,11 +156,11 @@ describe('lines, sides and views in words', () => {
     )
   })
 
-  it('says what an undo step did, naming the side it copied to', () => {
-    expect(actionText(en, { id: 'action.filling', values: { count: 1 } })).toBe('filling 1 pixel')
-    expect(actionText(en, { id: 'action.filling', values: { count: 1632 } })).toBe('filling 1,632 pixels')
-    expect(actionText(en, { id: 'action.copying', target: getFace('head', 'back', 'base') })).toBe(
-      'copying to Head, back, base layer',
-    )
+  it('says a stored message in the language, naming a side among its values', () => {
+    expect(messageText(en, { id: 'action.filling', values: { count: 1 } })).toBe('filling 1 pixel')
+    expect(messageText(en, { id: 'action.filling', values: { count: 1632 } })).toBe('filling 1,632 pixels')
+    const target = getFace('head', 'back', 'base')
+    expect(messageText(en, { id: 'action.copying', values: { target } })).toBe('copying to Head, back, base layer')
+    expect(messageText(en, { id: 'status.filledSide', values: { count: 64 } }, { color: 'red' })).toMatch(/red/)
   })
 })

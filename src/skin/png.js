@@ -11,14 +11,13 @@ export class SkinFileError extends Error {
   }
 }
 
-// Uncompressed, a 64 by 64 image is 16 KB, so this leaves plenty of room for extra data like
-// color profiles.
+// Uncompressed, a 64 by 64 image is 16 KB, so this leaves room for extra data like color profiles.
 export const MAX_FILE_MB = 1
+export const SKIN_FILE_NAME = 'skin.png'
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
-// The width and height in a PNG's header, or null if the bytes don't start like a PNG. The PNG
-// specification says every PNG starts with an 8-byte signature, and its first chunk is IHDR, whose
-// data starts with the width and height as 4-byte big-endian numbers.
+// The width and height from a PNG's header, or null if it isn't one. Per the PNG spec, an 8-byte signature
+// is followed by the IHDR chunk, which starts with the width and height as big-endian numbers.
 export function pngSize(bytes) {
   if (bytes.length < 24 || !SIGNATURE.every((byte, i) => bytes[i] === byte)) return null
   if (String.fromCharCode(...bytes.subarray(12, 16)) !== 'IHDR') return null
@@ -32,7 +31,7 @@ function checkSize(width, height) {
   throw new SkinFileError('size', { width, height })
 }
 
-export function bytesToPixels(bytes) {
+function bytesToPixels(bytes) {
   const pixels = new Uint32Array(SKIN_SIZE * SKIN_SIZE)
   for (let i = 0; i < pixels.length; i += 1) {
     pixels[i] = rgba(bytes[i * 4], bytes[i * 4 + 1], bytes[i * 4 + 2], bytes[i * 4 + 3])
@@ -46,15 +45,8 @@ export function pixelsToBytes(pixels) {
   return bytes
 }
 
-// Reads a skin PNG. Minecraft.net accepts 64 by 64 skins and older 64 by 32 ones; this prototype
-// opens only 64 by 64.
-//
-// The size is checked in the file's header before the image is decoded, because a small file can
-// hold a huge image, and decoding one could use gigabytes of memory.
-//
-// Known limit: a canvas stores colors with premultiplied alpha, so partly transparent pixels can
-// come back a step off (MDN, putImageData: "Data loss due to browser optimization"). Solid and
-// fully transparent pixels are exact. A production editor should encode and decode PNGs itself.
+// Opens a 64 by 64 skin, checking its size in the header first, since a small file can hold a huge image.
+// Partly transparent pixels can come back a step off through a canvas (MDN, putImageData); see README.
 export async function readSkinFile(file) {
   if (file.type && file.type !== 'image/png') throw new SkinFileError('notPng')
   if (file.size > MAX_FILE_MB * 1024 * 1024) throw new SkinFileError('tooBig', { max: MAX_FILE_MB })
@@ -81,7 +73,7 @@ export async function readSkinFile(file) {
   }
 }
 
-export function skinToBlob(pixels) {
+function skinToBlob(pixels) {
   const canvas = document.createElement('canvas')
   canvas.width = SKIN_SIZE
   canvas.height = SKIN_SIZE
@@ -91,7 +83,7 @@ export function skinToBlob(pixels) {
   })
 }
 
-export async function downloadSkin(pixels, fileName = 'skin.png') {
+export async function downloadSkin(pixels, fileName = SKIN_FILE_NAME) {
   const blob = await skinToBlob(pixels)
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

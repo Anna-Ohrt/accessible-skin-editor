@@ -1,13 +1,13 @@
-import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { describeView, faceLabel } from '../i18n/words.js'
 import { VIEWS, composeView } from '../skin/views.js'
 import { ANGLES } from '../skin/camera.js'
 import ErrorBoundary from './ErrorBoundary.jsx'
-import { drawPixels, webglAvailable } from './draw.js'
+import { Checkbox, Choices } from './fields.jsx'
+import { drawPixels, webglAvailable } from './canvas.js'
 
-// Babylon.js is most of the code, so it loads only when the 3D model is shown, after the rest of
-// the editor works.
+// Babylon.js is most of the code, so it loads only when the 3D model is shown.
 const Model3D = lazy(() => import('./Model3D.jsx'))
 
 const SCALE = 8
@@ -19,14 +19,13 @@ function viewFor(sideId, current) {
   return { viewId: sideId, angleId: 'level' }
 }
 
-// The character as a 3D model or as flat pictures from four sides. Either way the View choices
-// turn it, so nobody has to drag (WCAG 2.5.7), and the caption describes it in words.
+// The character as a 3D model or as flat pictures. The View choices turn it without dragging (WCAG 2.5.7),
+// and the caption describes it in words.
 export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
-  const id = useId()
   const i18n = useI18n()
   const { t } = i18n
   const canvasRef = useRef(null)
-  // Why the 3D model isn't showing: 'noWebgl', 'lost' (the graphics were reset) or 'failed'.
+  // Why the 3D model isn't showing: 'noWebgl', 'failed', or 'lost' when the graphics were reset.
   const [problem, setProblem] = useState(() => (webglAvailable() ? null : 'noWebgl'))
   const [style, setStyle] = useState('3d')
   const [camera, setCamera] = useState({ viewId: 'front', angleId: 'level' })
@@ -34,14 +33,12 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
   const [outline, setOutline] = useState(true)
   const [follow, setFollow] = useState(true)
   const [pointing, setPointing] = useState(null)
-  const can3D = problem !== 'noWebgl' && problem !== 'failed'
-  const is3D = style === '3d' && can3D
+  const is3D = style === '3d' && !problem
   const { viewId, angleId } = camera
   const view = useMemo(() => composeView(pixels, viewId, model, { showOuter }), [pixels, viewId, model, showOuter])
   const caption = useMemo(() => describeView(i18n, view, nameOf), [i18n, view, nameOf])
 
-  // Turns to the side being edited, so its outline and the new paint are in sight. This updates
-  // during render, as the React docs suggest for state that follows a prop.
+  // Turns to the side being edited, so its outline and new paint are in sight.
   const followKey = follow ? face.id : null
   const [followed, setFollowed] = useState(followKey)
   if (followKey !== followed) {
@@ -55,74 +52,49 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
 
   return (
     <>
-      <fieldset className="view-choice">
-        <legend>{t('preview.style')}</legend>
-        <label className="choice">
-          <input
-            type="radio"
-            name={`${id}-style`}
-            checked={is3D}
-            disabled={!can3D}
-            onChange={() => {
-              setStyle('3d')
-              if (problem === 'lost') setProblem(null)
-            }}
-          />
-          {t('preview.model')}
-        </label>
-        <label className="choice">
-          <input type="radio" name={`${id}-style`} checked={!is3D} onChange={() => setStyle('flat')} />
-          {t('preview.flat')}
-        </label>
-      </fieldset>
+      <Choices
+        className="view-choice"
+        legend={t('preview.style')}
+        options={[
+          { value: '3d', label: t('preview.model'), disabled: problem === 'noWebgl' || problem === 'failed' },
+          { value: 'flat', label: t('preview.flat') },
+        ]}
+        value={is3D ? '3d' : 'flat'}
+        onChange={(next) => {
+          setStyle(next)
+          if (next === '3d') setProblem(null)
+        }}
+      />
       {problem && <p className="hint">{t(`preview.${problem}`)}</p>}
-      <fieldset className="view-choice">
-        <legend>{t('preview.view')}</legend>
-        {VIEWS.map((item) => (
-          <label key={item} className="choice">
-            <input
-              type="radio"
-              name={`${id}-view`}
-              checked={viewId === item}
-              onChange={() => setCamera((current) => ({ ...current, viewId: item }))}
-            />
-            {t(`view.${item}`)}
-          </label>
-        ))}
-      </fieldset>
+      <Choices
+        className="view-choice"
+        legend={t('preview.view')}
+        options={VIEWS.map((item) => ({ value: item, label: t(`view.${item}`) }))}
+        value={viewId}
+        onChange={(next) => setCamera((current) => ({ ...current, viewId: next }))}
+      />
       {is3D && (
-        <fieldset className="view-choice">
-          <legend>{t('preview.angle')}</legend>
-          {ANGLES.map((angle) => (
-            <label key={angle.id} className="choice">
-              <input
-                type="radio"
-                name={`${id}-angle`}
-                checked={angleId === angle.id}
-                onChange={() => setCamera((current) => ({ ...current, angleId: angle.id }))}
-              />
-              {t(`angle.${angle.id}`)}
-            </label>
-          ))}
-        </fieldset>
+        <Choices
+          className="view-choice"
+          legend={t('preview.angle')}
+          options={ANGLES.map((angle) => ({ value: angle.id, label: t(`angle.${angle.id}`) }))}
+          value={angleId}
+          onChange={(next) => setCamera((current) => ({ ...current, angleId: next }))}
+        />
       )}
-      <label className="choice">
-        <input type="checkbox" checked={showOuter} onChange={(event) => setShowOuter(event.target.checked)} />
+      <Checkbox checked={showOuter} onChange={setShowOuter}>
         {t('preview.showOuter')}
-      </label>
-      <label className="choice">
-        <input type="checkbox" checked={follow} onChange={(event) => setFollow(event.target.checked)} />
+      </Checkbox>
+      <Checkbox checked={follow} onChange={setFollow}>
         {t('preview.follow')}
-      </label>
+      </Checkbox>
       {is3D && (
-        <label className="choice">
-          <input type="checkbox" checked={outline} onChange={(event) => setOutline(event.target.checked)} />
+        <Checkbox checked={outline} onChange={setOutline}>
           {t('preview.outline')}
-        </label>
+        </Checkbox>
       )}
+      {/* The figure ties the caption to the picture (W3C WAI Images tutorial), so it isn't read twice. */}
       <figure className="preview">
-        {/* The figcaption is the long description, tied to the picture by the figure (W3C WAI
-            Images tutorial, complex images). No aria-describedby, so it isn't read twice. */}
         {is3D ? (
           <ErrorBoundary onError={() => setProblem('failed')}>
             <Suspense
@@ -141,17 +113,13 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
                 viewId={viewId}
                 angleId={angleId}
                 label={t('preview.modelLabel', { view: viewId, angle: angleId })}
-                onTurn={(nextView, nextAngle) => setCamera({ viewId: nextView, angleId: nextAngle })}
+                onTurn={setCamera}
                 onPick={(spot) => {
                   setPointing(null)
                   onPickSpot(spot)
                 }}
                 onPoint={setPointing}
-                onUnavailable={() => setProblem('noWebgl')}
-                onLost={() => {
-                  setStyle('flat')
-                  setProblem('lost')
-                }}
+                onProblem={setProblem}
               />
             </Suspense>
           </ErrorBoundary>
@@ -171,7 +139,11 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
       {is3D && (
         <p className="hint">
           {pointing
-            ? t('preview.pointing', { face: faceLabel(i18n, pointing.face), row: pointing.row + 1, col: pointing.col + 1 })
+            ? t('preview.pointing', {
+                face: faceLabel(i18n, pointing.face),
+                row: pointing.row + 1,
+                col: pointing.col + 1,
+              })
             : t('preview.hint')}
         </p>
       )}

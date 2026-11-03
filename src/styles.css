@@ -11,7 +11,11 @@
   --grid-line: #767676;
   --checker: conic-gradient(#cfcfcf 25%, #ffffff 0 50%, #cfcfcf 0 75%, #ffffff 0);
   /* 100%, not 16px, so a larger default font size set in the browser still applies. */
-  font: 100%/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font:
+    100%/1.5 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -350,7 +354,9 @@ button[aria-disabled='true'] {
 /* Transparent and partly transparent pixels show a checkerboard behind their color. */
 .cell.is-see-through {
   background-image: linear-gradient(var(--pixel), var(--pixel)), var(--checker);
-  background-size: 100% 100%, 50% 50%;
+  background-size:
+    100% 100%,
+    50% 50%;
 }
 
 .cell:focus {
@@ -404,9 +410,8 @@ button[aria-disabled='true'] {
   margin-top: 8px;
 }
 
-/* The 3D model's box has its size before the model loads, so nothing on the page moves when it
-   appears. The canvas fills it. It gets a plain background; the checkerboard is for the flat
-   pictures. */
+/* The 3D model's box is sized before the model loads, so nothing moves when it appears. The checkerboard
+   is only for the flat pictures. */
 .model-wrap {
   width: 100%;
   max-width: 300px;
@@ -428,6 +433,8 @@ button[aria-disabled='true'] {
   width: 100%;
   height: 100%;
   cursor: grab;
+  /* One finger turns the model, and two can still zoom the page. */
+  touch-action: pinch-zoom;
 }
 
 .model-wrap canvas.model-3d:active {

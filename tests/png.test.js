@@ -1,17 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_FILE_MB, SkinFileError, pngSize, readSkinFile } from '../src/skin/png.js'
-
-// The first 24 bytes of a PNG: the signature, then the start of the IHDR chunk with the size.
-function pngHeader(width, height) {
-  const bytes = new Uint8Array(33)
-  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-  const view = new DataView(bytes.buffer)
-  view.setUint32(8, 13)
-  bytes.set([73, 72, 68, 82], 12)
-  view.setUint32(16, width)
-  view.setUint32(20, height)
-  return bytes
-}
+import { pngHeader } from './helpers.js'
 
 async function errorFrom(file) {
   try {
@@ -37,7 +26,9 @@ describe('opening PNG files', () => {
     const jpeg = await errorFrom(new File(['not a skin'], 'skin.jpg', { type: 'image/jpeg' }))
     expect(jpeg).toBeInstanceOf(SkinFileError)
     expect(jpeg.code).toBe('notPng')
-    const big = await errorFrom(new File([new Uint8Array(MAX_FILE_MB * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' }))
+    const big = await errorFrom(
+      new File([new Uint8Array(MAX_FILE_MB * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' }),
+    )
     expect([big.code, big.values]).toEqual(['tooBig', { max: MAX_FILE_MB }])
     expect((await errorFrom(new File(['just text'], 'fake.png', { type: 'image/png' }))).code).toBe('notPng')
   })

@@ -2,19 +2,13 @@ import { LAYERS, PARTS, getFace, partById } from './layout.js'
 import { alphaOf } from './color.js'
 import { getCell } from './pixels.js'
 
-// The character as boxes, in texture pixels: a box 8 pixels wide on the texture is 8 units wide.
-// The model faces +z, and the character's right is at -x, so its right is on the viewer's left
-// when seen from the front, as in Minecraft. Feet are at y = -16 and the top of the head at 16, so
-// the model is centered on the origin.
-//
-// The box sizes, and how each side's texture runs, are those of the Minecraft player model. A
-// check against skinview3d's model matched every corner of every side, for both arm widths.
-// skinview3d places the legs 1.9 units from the middle, so they overlap by 0.2; here they meet
-// edge to edge, so a click never lands on two legs at once.
+// The Minecraft player model as boxes, one unit per texture pixel, facing +z with feet at y = -16 and the
+// character's right at -x. Its texture mapping matched skinview3d's at every corner (see README).
 
 const CENTER_Y = 16
 
-// Where each part's box is centered, with the feet at y = 0, for arms `armWidth` pixels wide.
+// Where each part's box is centered, with the feet at y = 0. The legs meet edge to edge, so a click on
+// them lands on one leg.
 function centerOf(partId, armWidth) {
   switch (partId) {
     case 'head':
@@ -34,8 +28,7 @@ function centerOf(partId, armWidth) {
   }
 }
 
-// The outer layer sits a little outside the base: half a pixel all round for the hat, and a
-// quarter for the rest, as in Minecraft.
+// The outer layer sits outside the base by half a pixel for the hat, and a quarter elsewhere.
 const growthOf = (partId, layerId) => (layerId === 'base' ? 0 : partId === 'head' ? 0.5 : 0.25)
 
 export function boxOf(partId, layerId, model = 'classic') {
@@ -51,9 +44,8 @@ export function boxOf(partId, layerId, model = 'classic') {
   }
 }
 
-// One side of a box: the corner where the texture's first row and first column meet, the
-// direction and length its columns run across, the direction and length its rows run down, and
-// which way the side faces.
+// One side of a box: the corner where its first row and column meet, the vectors its columns and rows
+// run along, and which way it faces.
 export function sideFrame(box, sideId) {
   const [x0, y0, z0] = box.min
   const [x1, y1, z1] = box.max
@@ -79,15 +71,8 @@ const add = (a, b, scale = 1) => a.map((value, i) => value + b[i] * scale)
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 
-// Everything needed to draw one layer: positions, normals and texture coordinates for every
-// side of every part, and triangles counter-clockwise as seen from outside. Texture coordinates
-// count from the texture's top-left corner, so v = 0 is its first row.
-//
-// `bounds` gives every vertex its side's texture rectangle, as left, top, right and bottom. With
-// antialiasing, a graphics card can work out texture coordinates for a pixel just past a side's
-// edge, and on a side seen nearly edge-on that can land in the next rectangle of the texture and
-// draw a thin line of the wrong color. A shader that clamps to these bounds can't. `inset` keeps
-// both just inside the rectangle, a hundredth of a pixel, so rounding can't reach past it either.
+// One layer's vertices, triangles counter-clockwise from outside, and texture coordinates from the top-left.
+// `bounds` is each side's texture rectangle, so a shader can stop slanted edges sampling their neighbors.
 export function layerGeometry(layerId, model = 'classic', { size = 64, inset = 0 } = {}) {
   const positions = []
   const normals = []
@@ -102,7 +87,12 @@ export function layerGeometry(layerId, model = 'classic', { size = 64, inset = 0
       const first = positions.length / 3
       // Top-left, top-right, bottom-right and bottom-left of the texture rectangle.
       const corners = [corner, add(corner, across), add(add(corner, across), down), add(corner, down)]
-      const [left, top, right, bottom] = [rect.x + inset, rect.y + inset, rect.x + rect.w - inset, rect.y + rect.h - inset]
+      const [left, top, right, bottom] = [
+        rect.x + inset,
+        rect.y + inset,
+        rect.x + rect.w - inset,
+        rect.y + rect.h - inset,
+      ]
       const texels = [
         [left, top],
         [right, top],
@@ -115,8 +105,7 @@ export function layerGeometry(layerId, model = 'classic', { size = 64, inset = 0
         uvs.push(texels[i][0] / size, texels[i][1] / size)
         bounds.push(left / size, top / size, right / size, bottom / size)
       })
-      // Most sides show their texture as it is when seen from outside. The bottom shows it
-      // mirrored, as in Minecraft, so its corners go round the other way.
+      // Minecraft shows the bottom's texture mirrored, so its corners go round the other way.
       const mirrored = dot(cross(across, down), normal) > 0
       indices.push(...(mirrored ? [0, 1, 2, 0, 2, 3] : [0, 3, 2, 0, 2, 1]).map((i) => first + i))
     }
@@ -124,20 +113,23 @@ export function layerGeometry(layerId, model = 'classic', { size = 64, inset = 0
   return { positions, normals, uvs, bounds, indices }
 }
 
-// A flat frame around one side, from `inner` to `outer` units outside its edges, lifted `lift`
-// units off the surface, for outlining the side being edited.
+// A flat frame from `inner` to `outer` units outside one side's edges, for outlining the side being edited.
 export function frameGeometry(partId, sideId, layerId, model, inner, outer, lift = 0.05) {
   const { corner, across, down, normal } = sideFrame(boxOf(partId, layerId, model), sideId)
   const unitAcross = across.map((value) => value / Math.hypot(...across))
   const unitDown = down.map((value) => value / Math.hypot(...down))
   const base = add(corner, normal, lift)
-  // The rectangle grown by `by` units on every side, as top-left, top-right, bottom-right and
-  // bottom-left.
+  // The side's rectangle grown by `by` units, from its top-left corner clockwise.
   const ring = (by) => {
     const topLeft = add(add(base, unitAcross, -by), unitDown, -by)
     const width = Math.hypot(...across) + 2 * by
     const height = Math.hypot(...down) + 2 * by
-    return [topLeft, add(topLeft, unitAcross, width), add(add(topLeft, unitAcross, width), unitDown, height), add(topLeft, unitDown, height)]
+    return [
+      topLeft,
+      add(topLeft, unitAcross, width),
+      add(add(topLeft, unitAcross, width), unitDown, height),
+      add(topLeft, unitDown, height),
+    ]
   }
   const positions = [...ring(inner), ...ring(outer)].flat()
   // Four strips, each between an inner edge and the matching outer edge.
@@ -187,11 +179,9 @@ function cellAt(point, frame, face) {
   }
 }
 
-// The side and pixel a ray from the camera shows first, or null if it shows none. A fully
-// transparent outer layer pixel lets the ray through to whatever is behind it, as it looks on
-// screen. The outer layer is drawn from both sides, so the inside of a sleeve can show through a
-// gap in it.
-export function pickSpot(pixels, model, origin, direction, { showOuter = true } = {}) {
+// The side and pixel a ray from the camera shows first, or null. Rays pass through transparent outer pixels,
+// and the outer layer's inside counts too, since it shows through gaps.
+export function pickSpot(pixels, model, { origin, direction }, { showOuter = true } = {}) {
   const hits = []
   for (const layerId of showOuter ? LAYERS : ['base']) {
     for (const part of PARTS) {

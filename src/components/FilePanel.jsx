@@ -1,9 +1,8 @@
 import { useId } from 'react'
 import { useI18n } from '../i18n/context.js'
+import { SKIN_FILE_NAME } from '../skin/png.js'
 
-export const SKIN_FILE_NAME = 'skin.png'
-
-export default function FilePanel({ error, paintName, onOpen, onDownload, onStartOver, onPlain }) {
+export default function FilePanel({ error, paintName, onOpen, onDownload, onAction }) {
   const id = useId()
   const { t } = useI18n()
   return (
@@ -32,10 +31,10 @@ export default function FilePanel({ error, paintName, onOpen, onDownload, onStar
         <button type="button" onClick={onDownload}>
           {t('file.download', { file: SKIN_FILE_NAME })}
         </button>
-        <button type="button" onClick={onStartOver}>
+        <button type="button" onClick={() => onAction({ type: 'startOver' })}>
           {t('file.startOver')}
         </button>
-        <button type="button" onClick={onPlain}>
+        <button type="button" onClick={() => onAction({ type: 'startPlain' })}>
           {t('file.plain', { color: paintName })}
         </button>
       </div>

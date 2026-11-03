@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { historyReducer, initHistory } from '../src/editor/history.js'
+import { historyReducer, initHistory, nextStep } from '../src/editor/history.js'
 
 const set = (index, value) => (pixels) => {
   if (pixels[index] === value) return pixels
@@ -31,7 +31,8 @@ describe('undo history', () => {
     let state = initHistory(new Uint32Array(4))
     state = historyReducer(state, { type: 'apply', change: set(0, 5), label: 'painting' })
     state = historyReducer(state, { type: 'undo' })
-    expect(state.future[0].label).toBe('painting')
+    expect(nextStep(state, 'undo')).toBeUndefined()
+    expect(nextStep(state, 'redo').label).toBe('painting')
     state = historyReducer(state, { type: 'redo' })
     expect([...state.pixels]).toEqual([5, 0, 0, 0])
     state = historyReducer(state, { type: 'undo' })

@@ -26,6 +26,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Lint (ESLint, with accessibility and React hooks rules)
         run: npm run lint
+      - name: Check formatting (Prettier)
+        run: npm run format:check
       - name: Check the packages the site ships for known vulnerabilities
         run: npm audit --omit=dev --audit-level=high
       - name: Unit and screen reader behavior tests (Vitest, Testing Library)

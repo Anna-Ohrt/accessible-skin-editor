@@ -42,7 +42,9 @@ export function overflow(page) {
     })
     return {
       width: document.documentElement.scrollWidth,
-      outside: stickingOut.slice(0, 5).map((element) => element.tagName.toLowerCase() + (element.className ? `.${element.className}` : '')),
+      outside: stickingOut
+        .slice(0, 5)
+        .map((element) => element.tagName.toLowerCase() + (element.className ? `.${element.className}` : '')),
     }
   })
 }

@@ -20,7 +20,9 @@ describe('messages', () => {
     const { t } = createI18n('en')
     expect(t('status.cleared', { count: 1 })).toBe('Cleared this side. 1 pixel is transparent now.')
     expect(t('status.cleared', { count: 2 })).toBe('Cleared this side. 2 pixels are transparent now.')
-    expect(t('status.openedSeeThrough', { file: 'a.png', count: 1632 })).toMatch(/^Opened a\.png\. 1,632 base layer pixels are/)
+    expect(t('status.openedSeeThrough', { file: 'a.png', count: 1632 })).toMatch(
+      /^Opened a\.png\. 1,632 base layer pixels are/,
+    )
     expect(t('color.opacity', { color: 'red', opacity: 128 / 255 })).toBe('red, 50% opaque')
   })
 

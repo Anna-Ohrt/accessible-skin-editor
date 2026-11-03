@@ -3,11 +3,8 @@ import { join } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Every package bundled into the site asks for its license to travel with copies of it. MIT says
-// its notice "shall be included in all copies or substantial portions of the Software", and Apache
-// 2.0 asks for "a readable copy of the attribution notices" in a package's NOTICE file too. The
-// minifier drops license comments, so this writes the license of every package in the bundle, and
-// its NOTICE file if it has one, to third-party-notices.txt, next to the site.
+// MIT and Apache 2.0 ask for each package's license, and NOTICE file, to travel with copies. The minifier
+// drops license comments, so this writes them for every bundled package to third-party-notices.txt.
 function thirdPartyNotices() {
   return {
     name: 'third-party-notices',
@@ -49,14 +46,8 @@ function thirdPartyNotices() {
   }
 }
 
-// A Content Security Policy for the built site, as a <meta> tag, since GitHub Pages can't send
-// headers. Scripts may come only from the site itself, so an injected <script> or event handler
-// can't run, and Trusted Types stop code from turning text into HTML or script. Inline styles are
-// allowed so people's own tools still work, like the WCAG text spacing bookmarklet, which adds its
-// CSS to the page's <head> as an element; the CSP spec says policies "SHOULD NOT interfere with the
-// operation of user-agent features like addons, extensions, or bookmarklets". It's left out of the
-// dev server, which needs inline scripts for hot reloading. scripts/inline-build.mjs swaps 'self'
-// for a hash in the one-file copy, whose script is inline.
+// The built site's Content Security Policy, as a <meta> tag since GitHub Pages can't send headers (see README,
+// Security). The dev server needs inline scripts for hot reloading, so it goes without.
 export const CSP = [
   "default-src 'none'",
   "script-src 'self'",

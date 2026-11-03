@@ -35,7 +35,12 @@ describe('pixel operations', () => {
     let pixels = fillFace(createSkin(), headFront, A).pixels
     pixels = fillFace(pixels, headLeft, A).pixels
     // A wall of C down column 4 splits the front in two.
-    pixels = paintCells(pixels, headFront, Array.from({ length: 8 }, (_, row) => ({ col: 3, row })), C)
+    pixels = paintCells(
+      pixels,
+      headFront,
+      Array.from({ length: 8 }, (_, row) => ({ col: 3, row })),
+      C,
+    )
     const result = floodFill(pixels, headFront, 0, 0, B)
     expect(result.count).toBe(24)
     expect(getCell(result.pixels, headFront, 2, 7)).toBe(B)

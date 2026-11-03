@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import globals from 'globals'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
 import reactHooks from 'eslint-plugin-react-hooks'
+import { reactRefresh } from 'eslint-plugin-react-refresh'
 
 export default [
   { ignores: ['dist/', 'dist-single/', 'test-results/', 'playwright-report/', 'skin-editor.html'] },
@@ -10,6 +11,8 @@ export default [
   jsxA11y.flatConfigs.strict,
   // The Rules of Hooks, plus the React Compiler's checks for code React can't safely optimize.
   reactHooks.configs.flat.recommended,
+  // Files with components export only components, so Vite can update them in place while editing.
+  reactRefresh.configs.vite(),
   {
     files: ['**/*.{js,jsx,mjs}'],
     languageOptions: {
@@ -21,6 +24,10 @@ export default [
     rules: {
       // Components used only in JSX look unused to this rule, and their names start with a capital.
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      eqeqeq: ['error', 'smart'],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'object-shorthand': 'error',
     },
   },
   {

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { SKIN_SIZE, faceAt } from '../skin/layout.js'
-import { drawPixels } from './draw.js'
+import { drawPixels } from './canvas.js'
 
 const SCALE = 4
 
-// The whole texture, as it's saved in the PNG, with the side being edited outlined. Clicking it
-// picks a side, as a shortcut for mouse users; the Body part and Side menus do the same thing.
+// The whole texture as it's saved, with the side being edited outlined. Clicking picks a side, a mouse
+// shortcut for the menus under "Choose what to edit".
 export default function TextureMap({ pixels, face, model, onPickFace }) {
   const { t } = useI18n()
   const canvasRef = useRef(null)
@@ -33,7 +33,6 @@ export default function TextureMap({ pixels, face, model, onPickFace }) {
 
   return (
     <>
-      {/* A mouse shortcut only: the menus under "Choose what to edit" do the same from the keyboard. */}
       <canvas
         ref={canvasRef}
         className="texture-map"

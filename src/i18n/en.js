@@ -1,11 +1,5 @@
-// Every word the editor shows or speaks, in ICU message syntax, which lets translators handle
-// plurals, grammar and word order. {name} is filled in when the editor runs. {count, plural, ...}
-// picks the right form for a number, and {x, select, ...} picks a phrase by keyword, so translators
-// can change word order and grammar freely. <tag>...</tag> marks text that becomes a link or bold
-// text.
-//
-// To add a language: copy this file, translate everything outside the {braces} and <tags>, and
-// register it in ./index.js. Keep keywords like "veryDark" and "other" as they are.
+// Every word the editor shows or speaks, in ICU message syntax. To translate, copy this file, translate
+// the text outside {braces} and <tags>, and add the language in ./index.js.
 export default {
   // The page
   'app.title': 'Skin editor prototype',
@@ -15,9 +9,11 @@ export default {
   'app.skip': 'Skip to the pixels',
   'app.footer':
     'Made by {author}. Code and research: <repo>{repoName}</repo>. Open source software used here, with its licenses: <notices>third-party notices</notices>.',
-  'app.crashed': 'Something went wrong and the editor stopped. Your work is saved in this browser up to your last change.',
+  'app.crashed':
+    'Something went wrong and the editor stopped. Your work is saved in this browser up to your last change.',
   'app.reload': 'Reload the editor',
-  'app.crashedAgain': 'If it stops again after reloading, you can clear the saved work and start fresh. This deletes your skin.',
+  'app.crashedAgain':
+    'If it stops again after reloading, you can clear the saved work and start fresh. This deletes your skin.',
   'app.clearAndReload': 'Clear the saved work and reload',
 
   // Section headings
@@ -66,12 +62,14 @@ export default {
     '{part}, {side, select, front {front} back {back} right {right side} left {left side} top {top} other {bottom}}, {layer, select, base {base layer} other {outer layer ({outer})}}',
   'face.orientation.front':
     "Seen from the front, so column 1 is on the character's right and column {w, number} is on their left.",
-  'face.orientation.back': "Seen from behind, so column 1 is on the character's left and column {w, number} is on their right.",
+  'face.orientation.back':
+    "Seen from behind, so column 1 is on the character's left and column {w, number} is on their right.",
   'face.orientation.right': 'Column 1 is at the back and column {w, number} is at the front.',
   'face.orientation.left': 'Column 1 is at the front and column {w, number} is at the back.',
   'face.orientation.top':
     "Seen from above. Row 1 is at the back and row {h, number} is at the front. Column 1 is on the character's right.",
-  'face.orientation.bottom': "Row 1 is at the back and row {h, number} is at the front. Column 1 is on the character's right.",
+  'face.orientation.bottom':
+    "Row 1 is at the back and row {h, number} is at the front. Column 1 is on the character's right.",
 
   // The pixel grid
   'grid.size': '{w, number} by {h, number} pixels. {orientation}',
@@ -120,10 +118,10 @@ export default {
   'status.edge': '{edge, select, right {Right} left {Left} top {Top} other {Bottom}} edge.',
   'status.readRow': 'Row {row, number}, left to right: {line}.',
   'status.readColumn': 'Column {col, number}, top to bottom: {line}.',
-  'status.nothingToUndo': 'Nothing to undo.',
-  'status.undid': 'Undid {action}.',
-  'status.nothingToRedo': 'Nothing to redo.',
-  'status.redid': 'Redid {action}.',
+  'status.undo.none': 'Nothing to undo.',
+  'status.undo.done': 'Undid {action}.',
+  'status.redo.none': 'Nothing to redo.',
+  'status.redo.done': 'Redid {action}.',
   'status.sideAlready': 'This side is already all {color}.',
   'status.filledSide': 'Filled the whole side with {color}. {count, plural, one {# pixel} other {# pixels}} changed.',
   'status.sideEmpty': 'This side is already empty.',
@@ -194,7 +192,8 @@ export default {
   'preview.model': '3D model',
   'preview.flat': 'Flat pictures',
   'preview.noWebgl': 'The 3D model needs WebGL, which this browser can’t use right now, so it shows flat pictures.',
-  'preview.lost': 'The 3D model stopped because the graphics were reset, so it shows flat pictures. Choose 3D model to try again.',
+  'preview.lost':
+    'The 3D model stopped because the graphics were reset, so it shows flat pictures. Choose 3D model to try again.',
   'preview.failed': 'The 3D model couldn’t load, so it shows flat pictures.',
   'preview.loading': 'Loading the 3D model…',
   'preview.view': 'View',
@@ -211,7 +210,8 @@ export default {
   'preview.outline': 'Outline the side you’re editing',
   'preview.modelLabel':
     '3D model of the skin, seen from {view, select, front {the front} right {the right side} back {the back} other {the left side}}{angle, select, above { and above} below { and below} other {}}',
-  'preview.flatLabel': '{view, select, front {Front} right {Right side} back {Back} other {Left side}} view of the skin',
+  'preview.flatLabel':
+    '{view, select, front {Front} right {Right side} back {Back} other {Left side}} view of the skin',
   'preview.pointing': 'Pointing at {face}, row {row, number}, column {col, number}.',
   'preview.hint': 'Drag the model to turn it. Click a spot on it to edit that spot.',
 

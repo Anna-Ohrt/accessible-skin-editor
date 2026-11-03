@@ -9,10 +9,12 @@ const flatPicture = (page) => page.getByRole('img', { name: 'Front view of the s
 // The page's Content Security Policy, as a map from each directive to its values.
 async function policyOf(page) {
   const content = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')
-  return Object.fromEntries(content.split(';').map((directive) => {
-    const [name, ...values] = directive.trim().split(/\s+/)
-    return [name, values]
-  }))
+  return Object.fromEntries(
+    content.split(';').map((directive) => {
+      const [name, ...values] = directive.trim().split(/\s+/)
+      return [name, values]
+    }),
+  )
 }
 
 const POLICY = {

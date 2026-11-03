@@ -6,8 +6,7 @@ import { parseHex, toCss, toHex } from '../skin/color.js'
 
 const EXAMPLE_HEX = '#3a7bd5'
 
-// A name another color already uses, compared without case. `names` maps entry ids to the names
-// shown, including generated ones.
+// Whether another entry already shows this name, compared without case.
 function isTaken(i18n, name, names, exceptId) {
   const wanted = i18n.lower(name)
   return [...names].some(([id, other]) => id !== exceptId && i18n.lower(other) === wanted)
@@ -53,7 +52,7 @@ function AddColorForm({ names, onAdd }) {
 
   const errorId = `${id}-error`
   return (
-    <form className="add-color" noValidate onSubmit={handleSubmit}>
+    <form noValidate onSubmit={handleSubmit}>
       <h3>{t('colors.addHeading')}</h3>
       <div className="field">
         <label htmlFor={`${id}-hex`}>{t('colors.hex')}</label>
@@ -135,7 +134,7 @@ function RenameForm({ current, names, onRename }) {
   }
 
   return (
-    <form className="rename-color" noValidate onSubmit={handleSubmit}>
+    <form noValidate onSubmit={handleSubmit}>
       <h3>{t('colors.renameHeading')}</h3>
       <div className="field">
         <label htmlFor={`${id}-name`}>{t('colors.newName', { color: names.get(current.id) })}</label>
@@ -162,23 +161,17 @@ function RenameForm({ current, names, onRename }) {
   )
 }
 
-// The paint colors, as one radio group. It comes right after the pixel grid, so a keyboard user
-// gets from the grid to the colors and back with Tab and Shift+Tab.
-export function PaintColors({ palette, names, currentColor, onSelect }) {
+// One radio group, right after the pixel grid, so Tab and Shift+Tab move between the grid and the colors.
+export function PaintColors({ palette, names, current, onSelect }) {
   const { t, rich } = useI18n()
-  const current = palette.find((entry) => entry.color === currentColor) ?? palette[0]
+  const name = useId()
   return (
-    <fieldset className="palette">
+    <fieldset>
       <legend>{t('palette.legend')}</legend>
       <div className="swatches">
         {palette.map((entry) => (
           <label key={entry.id} className="swatch">
-            <input
-              type="radio"
-              name="paint-color"
-              checked={entry.color === currentColor}
-              onChange={() => onSelect(entry.color)}
-            />
+            <input type="radio" name={name} checked={entry.id === current.id} onChange={() => onSelect(entry.color)} />
             <span className="chip" style={{ '--pixel': toCss(entry.color) }} aria-hidden="true" />
             <span className="swatch-name">{names.get(entry.id)}</span>
           </label>
@@ -196,8 +189,7 @@ export function PaintColors({ palette, names, currentColor, onSelect }) {
   )
 }
 
-export function ColorForms({ palette, names, currentColor, onAdd, onRename }) {
-  const current = palette.find((entry) => entry.color === currentColor) ?? palette[0]
+export function ColorForms({ names, current, onAdd, onRename }) {
   return (
     <>
       <AddColorForm names={names} onAdd={onAdd} />

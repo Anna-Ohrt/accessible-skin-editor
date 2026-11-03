@@ -12,7 +12,9 @@ export default memo(function FaceDescription({ pixels, face, nameOf }) {
       <p>{describeFace(i18n, pixels, face, nameOf)}</p>
       <ul className="row-list">
         {Array.from({ length: face.h }, (_, row) => (
-          <li key={row}>{i18n.t('words.row', { row: row + 1, line: describeLine(i18n, rowOf(pixels, face, row), nameOf) })}</li>
+          <li key={row}>
+            {i18n.t('words.row', { row: row + 1, line: describeLine(i18n, rowOf(pixels, face, row), nameOf) })}
+          </li>
         ))}
       </ul>
     </>

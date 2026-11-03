@@ -1,14 +1,5 @@
-// Where each body part lives in a 64 by 64 Minecraft skin texture.
-//
-// Every body part is a box, and each of its six sides is a rectangle in the texture. The box
-// positions and sizes match the setSkinUVs calls in skinview3d
-// (github.com/bs-community/skinview3d, src/model.ts). Slim arms are 3 pixels wide instead of 4.
-//
-// Side names are from the character's point of view, like Minecraft's "right arm". Which edge
-// of each rectangle touches which part of the body was worked out from the same file and three.js
-// BoxGeometry, and the messages in src/i18n describe it in plain words.
-//
-// Only ids are here. The words for them are in the messages, so they can be in any language.
+// Where each side of each body part lives in a 64 by 64 skin texture, matching skinview3d's setSkinUVs.
+// Only ids are here; the messages in src/i18n name them, so they can be in any language.
 
 export const SKIN_SIZE = 64
 
@@ -63,10 +54,14 @@ export function getFace(partId, sideId, layerId, model = 'classic') {
 }
 
 export function allFaces(model = 'classic') {
-  return LAYERS.flatMap((layerId) => PARTS.flatMap((part) => SIDES.map((sideId) => getFace(part.id, sideId, layerId, model))))
+  return LAYERS.flatMap((layerId) =>
+    PARTS.flatMap((part) => SIDES.map((sideId) => getFace(part.id, sideId, layerId, model))),
+  )
 }
 
 // The face that contains a texture pixel, or null for the unused parts of the texture.
 export function faceAt(x, y, model = 'classic') {
-  return allFaces(model).find((face) => x >= face.x && x < face.x + face.w && y >= face.y && y < face.y + face.h) ?? null
+  return (
+    allFaces(model).find((face) => x >= face.x && x < face.x + face.w && y >= face.y && y < face.y + face.h) ?? null
+  )
 }

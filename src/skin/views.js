@@ -102,10 +102,8 @@ const GROUPS = [
   { id: 'legs', parts: ['rightLeg', 'leftLeg'] },
 ]
 
-// What a text alternative for the preview needs: for each group of body parts, its most common
-// color, whether that's most of it, and up to three other colors. In a side view only one arm and
-// one leg show, so `part` names that one, like "Right arm", instead of "Arms". The body is hidden
-// behind the arm in the side views, so it's left out there.
+// For the preview's text: each group's main color, whether it covers most of it, and up to three others.
+// A side view shows one arm and one leg, so `part` names that one; the body hides behind the arm there.
 export function summarizeView(view, nameOf) {
   const groups = []
   for (const group of GROUPS) {

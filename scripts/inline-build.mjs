@@ -1,6 +1,5 @@
-// Turns the Vite build into one HTML file that opens with a double-click, with no server.
-// Module scripts can't load from file:// URLs, but inline ones run fine.
-// usage: npm run build:single  (writes skin-editor.html next to package.json)
+// Turns the Vite build into skin-editor.html, which opens with a double-click: module scripts can't load from
+// file:// URLs, but inline ones run. Run it with npm run build:single.
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -35,7 +34,8 @@ html = html.replace(policy, `script-src 'sha256-${hash}'`)
 // This one file carries React's code, so it carries React's license too, as a comment at the top.
 const notices = readFileSync(join(dist, 'third-party-notices.txt'), 'utf8').replaceAll('-->', '-- >')
 html = html.replace(/^<!doctype html>/i, (doctype) => `${doctype}\n<!--\n${notices}-->`)
-if (!html.includes('Permission is hereby granted')) throw new Error('The third-party notices did not make it into the file.')
+if (!html.includes('Permission is hereby granted'))
+  throw new Error('The third-party notices did not make it into the file.')
 
 const out = join(root, 'skin-editor.html')
 writeFileSync(out, html)

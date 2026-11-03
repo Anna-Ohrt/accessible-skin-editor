@@ -2,15 +2,16 @@ import { useEffect, useRef } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { clearDraft } from '../editor/storage.js'
 
-// Shown instead of the editor if it stops with an error, so the page isn't left blank. Reloading
-// usually fixes it. If the saved work itself is what breaks the editor, reloading won't, so there's
-// a way to clear it too.
+// Shown if the editor stops with an error, instead of a blank page. If the saved work is what breaks it,
+// reloading won't help, so it can be cleared too.
 export default function CrashNotice() {
   const { t } = useI18n()
   const headingRef = useRef(null)
 
   // Whatever had focus is gone, so focus moves to the message.
-  useEffect(() => headingRef.current?.focus(), [])
+  useEffect(() => {
+    headingRef.current?.focus()
+  }, [])
 
   return (
     <main className="crash">

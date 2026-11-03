@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   DISTANCE,
+  MAX_PITCH,
   VIEW_YAW,
   cameraDirection,
+  dragAngles,
   nearestAngle,
   nearestView,
   normalizeYaw,
@@ -38,6 +40,12 @@ describe('3D camera', () => {
     expect(nearestAngle(50)).toBe('above')
     expect(nearestAngle(-20)).toBe('below')
     expect(nearestAngle(5)).toBe('level')
+  })
+
+  it('turns with a drag, and tilts no further than MAX_PITCH', () => {
+    expect(dragAngles({ yaw: 0, pitch: 0 }, 20, 10)).toEqual({ yaw: -10, pitch: 5 })
+    expect(dragAngles({ yaw: 0, pitch: 50 }, 0, 100).pitch).toBe(MAX_PITCH)
+    expect(dragAngles({ yaw: 0, pitch: -50 }, 0, -100).pitch).toBe(-MAX_PITCH)
   })
 
   it("doesn't animate when people ask for reduced motion", () => {

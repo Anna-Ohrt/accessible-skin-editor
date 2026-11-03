@@ -3,9 +3,8 @@ import { IntlMessageFormat } from 'intl-messageformat'
 import en from './en.js'
 import { accentMessage, mirrorMessage } from './pseudo.js'
 
-// The languages the editor can show. `formats` is the locale for numbers, plurals and lists.
-// Pseudo-locales are for testing, so they're only used when the address asks for them, like
-// ?lang=en-XA, never picked from browser settings.
+// `formats` is the locale for numbers, plurals and lists. Pseudo-locales are only used when the address
+// asks for them, like ?lang=en-XA, never from browser settings.
 export const LOCALES = {
   en: { messages: en, dir: 'ltr', formats: 'en' },
   'en-XA': { messages: en, dir: 'ltr', formats: 'en', pseudo: accentMessage },
@@ -34,8 +33,7 @@ export function pickLocale(search = '', languages = []) {
   return 'en'
 }
 
-// Everything the components need to show text in one language. Each message is parsed once, the
-// first time it's used.
+// Everything the components need to show text in one language. Each message is parsed on first use.
 export function createI18n(localeId = 'en') {
   const id = Object.hasOwn(LOCALES, localeId) ? localeId : 'en'
   const locale = LOCALES[id]
@@ -80,7 +78,6 @@ export function createI18n(localeId = 'en') {
 
   return {
     id,
-    lang: id,
     dir: locale.dir,
     t,
     rich,
@@ -89,10 +86,9 @@ export function createI18n(localeId = 'en') {
   }
 }
 
-// Sets the page's language, direction and title, so screen readers use the right voice and
-// browsers lay text out the right way.
+// The page's language and direction tell screen readers which voice to use and browsers how to lay out text.
 export function applyToDocument(i18n, doc = document) {
-  doc.documentElement.lang = i18n.lang
+  doc.documentElement.lang = i18n.id
   doc.documentElement.dir = i18n.dir
   doc.title = i18n.t('app.title')
 }

@@ -45,7 +45,11 @@ test('Windows contrast themes keep the pixel colors and show focus and disabled 
   await expect(cell(page, 1, 1)).toBeFocused()
   const pixel = await cell(page, 1, 1).evaluate((element) => {
     const css = getComputedStyle(element)
-    return { background: css.backgroundColor, outline: `${css.outlineStyle} ${css.outlineWidth}`, adjust: css.forcedColorAdjust }
+    return {
+      background: css.backgroundColor,
+      outline: `${css.outlineStyle} ${css.outlineWidth}`,
+      adjust: css.forcedColorAdjust,
+    }
   })
   expect(pixel).toEqual({ background: 'rgb(74, 50, 32)', outline: 'solid 3px', adjust: 'none' })
   const [undo, grayText] = await page.evaluate(() => {
@@ -93,7 +97,9 @@ test('text spacing can be increased without cutting off text (WCAG 1.4.12)', asy
       .filter((element) => {
         const css = getComputedStyle(element)
         const hides = /hidden|clip/.test(`${css.overflowX} ${css.overflowY}`)
-        return hides && (element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1)
+        return (
+          hides && (element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1)
+        )
       })
       .map((element) => element.outerHTML.slice(0, 80)),
   )
@@ -123,14 +129,17 @@ test('Tab reaches every control with a visible focus ring, and the grid is one s
       element.dataset.visited = 'yes'
       const css = getComputedStyle(element)
       const ring = (css.outlineStyle !== 'none' && parseFloat(css.outlineWidth) > 0) || css.boxShadow !== 'none'
-      const kind = element.getAttribute('role') ?? `${element.tagName.toLowerCase()}${element.type ? ` ${element.type}` : ''}`
+      const kind =
+        element.getAttribute('role') ?? `${element.tagName.toLowerCase()}${element.type ? ` ${element.type}` : ''}`
       const name = element.getAttribute('aria-label') ?? element.labels?.[0]?.textContent ?? element.textContent
       return { kind, name: name.trim().replace(/\s+/g, ' ').slice(0, 60), ring }
     })
     if (!stop) break
     stops.push(stop)
   }
-  test.info().annotations.push({ type: 'Tab stops', description: stops.map((stop) => `${stop.kind}: ${stop.name}`).join(' | ') })
+  test
+    .info()
+    .annotations.push({ type: 'Tab stops', description: stops.map((stop) => `${stop.kind}: ${stop.name}`).join(' | ') })
   expect(stops.filter((stop) => !stop.ring)).toEqual([])
   const gridStops = stops.filter((stop) => stop.kind === 'gridcell')
   expect(gridStops).toHaveLength(1)
@@ -165,7 +174,9 @@ test('the grid works from the keyboard, and Chromium exposes it as a named grid 
   await expect(page.getByRole('heading', { name: 'Pixels: Head, front, base layer' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(cell(page, 1, 1)).toBeFocused()
-  await expect(grid(page)).toHaveAccessibleDescription(/^8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/)
+  await expect(grid(page)).toHaveAccessibleDescription(
+    /^8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/,
+  )
   await expect(grid(page)).toMatchAriaSnapshot(`
     - grid "Head, front, base layer":
       - row:
@@ -214,13 +225,18 @@ test('ships the license text of every open source package in the site, and links
   // package's NOTICE file.
   expect(notices).toContain('Apache License\nVersion 2.0, January 2004')
   expect(notices).toContain('NOTICE file from @babylonjs/core:\n\nBabylon.js\nCopyright 2023 The Babylon.js team')
-  await expect(page.getByRole('link', { name: 'third-party notices' })).toHaveAttribute('href', /third-party-notices\.txt$/)
+  await expect(page.getByRole('link', { name: 'third-party notices' })).toHaveAttribute(
+    'href',
+    /third-party-notices\.txt$/,
+  )
 })
 
 test.describe('3D model', () => {
   const model = (page) => page.getByRole('img', { name: /^3D model of the skin/ })
 
-  test('shows the side facing the camera in its true colors, and an empty outer layer adds nothing', async ({ page }) => {
+  test('shows the side facing the camera in its true colors, and an empty outer layer adds nothing', async ({
+    page,
+  }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await model(page).scrollIntoViewIfNeeded()
     // The sample's eye blue and mouth red, exactly. That only happens if the face is on the front,
@@ -257,14 +273,20 @@ test.describe('3D model', () => {
     await page.getByRole('radio', { name: 'From above' }).check()
     await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back and above')
 
-    // Dragging 180 pixels turns it 90 degrees, and the View choice follows to the nearest side.
+    // Dragging 160 pixels turns it 80 degrees. The View choice follows to the nearest side, but the model stays put.
     const [x, y] = await centerOf(model(page))
     await page.mouse.move(x, y)
     await page.mouse.down()
-    await page.mouse.move(x + 180, y, { steps: 6 })
+    await page.mouse.move(x + 160, y, { steps: 6 })
     await page.mouse.up()
     await expect(page.getByRole('radio', { name: 'Left side' })).toBeChecked()
     await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the left side and above')
+    const dragged = await model(page).screenshot()
+    await page.getByRole('radio', { name: 'Back' }).check()
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back and above')
+    await page.getByRole('radio', { name: 'Left side' }).check()
+    await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the left side and above')
+    expect((await model(page).screenshot()).equals(dragged), 'the drag left it between two views').toBe(false)
 
     await page.getByRole('radio', { name: 'Front' }).check()
     await page.getByRole('radio', { name: 'Straight on' }).check()
@@ -309,7 +331,9 @@ test.describe('3D model', () => {
   })
 })
 
-test('a click paints on release, sliding off cancels, and a fast drag paints a gapless line undone in one step', async ({ page }) => {
+test('a click paints on release, sliding off cancels, and a fast drag paints a gapless line undone in one step', async ({
+  page,
+}) => {
   await page.getByRole('radio', { name: 'red' }).check()
   const undo = page.getByRole('button', { name: 'Undo' })
 
@@ -340,8 +364,10 @@ test('a click paints on release, sliding off cancels, and a fast drag paints a g
   await page.mouse.down()
   await page.mouse.move(...end, { steps: 2 })
   await page.mouse.up()
-  for (let col = 1; col <= 8; col += 1) await expect(cell(page, 3, col)).toHaveAccessibleName(`red, row 3, column ${col}`)
+  for (let col = 1; col <= 8; col += 1)
+    await expect(cell(page, 3, col)).toHaveAccessibleName(`red, row 3, column ${col}`)
   await undo.click()
-  for (let col = 1; col <= 8; col += 1) await expect(cell(page, 3, col)).toHaveAccessibleName(`tan, row 3, column ${col}`)
+  for (let col = 1; col <= 8; col += 1)
+    await expect(cell(page, 3, col)).toHaveAccessibleName(`tan, row 3, column ${col}`)
   await expect(undo).toHaveAttribute('aria-disabled', 'true')
 })

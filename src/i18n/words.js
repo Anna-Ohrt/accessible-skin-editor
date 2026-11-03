@@ -1,5 +1,4 @@
-// Everything the editor says about colors, sides and pictures, in the language of `i18n`. The skin
-// modules work out what to say; this puts it into words.
+// Everything the editor says about colors, sides and pictures, in the language of `i18n`.
 import { channels, classifyColor, isTransparent, toHex } from '../skin/color.js'
 import { countByName, faceValues, runsOf } from '../skin/pixels.js'
 import { summarizeView } from '../skin/views.js'
@@ -12,9 +11,8 @@ export function colorName(i18n, color) {
   return a === 255 ? name : i18n.t('color.opacity', { color: name, opacity: a / 255 })
 }
 
-// The name shown and spoken for each palette entry, by id. A name someone typed stays as typed.
-// Other entries are named by how they look, and when that name is taken, they get a number, like
-// "blue 2". Names are compared without case, so "Blue" and "blue" count as the same.
+// Each palette entry's name, by id: the name someone typed, or how it looks, numbered when taken
+// ("blue 2"). Names are compared without case.
 export function paletteNames(i18n, palette) {
   const names = new Map()
   const taken = new Set(palette.filter((entry) => entry.name).map((entry) => i18n.lower(entry.name)))
@@ -32,8 +30,8 @@ export function paletteNames(i18n, palette) {
   return names
 }
 
-// A function that names any color: its palette name if it's in the palette, otherwise a
-// description. Names repeat a lot in a skin, so each one is worked out once.
+// Names any color by its palette name, or else by how it looks. Each name is worked out once, since a
+// skin repeats a few colors many times.
 export function colorNamer(i18n, palette, names, { sayHex = false } = {}) {
   const byColor = new Map(palette.map((entry) => [entry.color, names.get(entry.id)]))
   const cache = new Map()
@@ -61,12 +59,11 @@ export function faceLabel(i18n, { partId, sideId, layerId }) {
   })
 }
 
-// Which way a side's rows and columns run, so people who can't see the texture can orient
-// themselves. Row and column numbers start at 1, like the grid announces them.
+// Which way a side's rows and columns run, so people who can't see the texture can find their way.
 export const faceOrientation = (i18n, face) => i18n.t(`face.orientation.${face.sideId}`, { w: face.w, h: face.h })
 
-// "2 dark brown, tan, 3 blue": the way a row or column is read out. Neighbors are grouped by what
-// they sound like, so two shades that are both called "brown" read as "2 brown", like each pixel does.
+// A row or column as it's read out, like "2 dark brown, tan, 3 blue". Neighbors are grouped by how
+// they sound, so two shades both called "brown" read as "2 brown".
 export function describeLine(i18n, values, nameOf) {
   const runs = runsOf(values.map(nameOf)).map(({ value, count }) =>
     count > 1 ? i18n.t('words.run', { count, color: value }) : value,
@@ -77,7 +74,9 @@ export function describeLine(i18n, values, nameOf) {
 // "8 by 8 pixels: 42 tan, 16 dark brown, 2 white." Shades that share a name are counted together.
 export function describeFace(i18n, pixels, face, nameOf) {
   const counts = countByName(faceValues(pixels, face), nameOf).map(({ name, count, shades }) =>
-    shades > 1 ? i18n.t('words.countShades', { count, color: name, shades }) : i18n.t('words.count', { count, color: name }),
+    shades > 1
+      ? i18n.t('words.countShades', { count, color: name, shades })
+      : i18n.t('words.count', { count, color: name }),
   )
   return i18n.t('words.summary', { w: face.w, h: face.h, counts: i18n.list(counts, 'unit') })
 }
@@ -95,8 +94,9 @@ export function describeView(i18n, view, nameOf) {
     .join(' ')
 }
 
-// What Undo and Redo say. An undo step stores a message id and its values rather than words, so
-// it's said in the editor's language. A side to copy to is stored as the side and named here.
-export function actionText(i18n, { id, values = {}, target }) {
-  return i18n.t(id, target ? { ...values, target: faceLabel(i18n, target) } : values)
+// A message kept as an id and values, in the editor's language. A side among the values, like the
+// one a copy went to, is named.
+export function messageText(i18n, { id, values }, extra) {
+  const { target, ...rest } = values ?? {}
+  return i18n.t(id, { ...extra, ...rest, ...(target && { target: faceLabel(i18n, target) }) })
 }

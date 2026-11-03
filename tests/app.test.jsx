@@ -6,6 +6,11 @@ import CrashNotice from '../src/components/CrashNotice.jsx'
 import ErrorBoundary from '../src/components/ErrorBoundary.jsx'
 import { I18nContext } from '../src/i18n/context.js'
 import { createI18n } from '../src/i18n/index.js'
+import { saveDraft } from '../src/editor/storage.js'
+import { DEFAULT_SETTINGS } from '../src/editor/settings.js'
+import { rgba } from '../src/skin/color.js'
+import { createSampleSkin } from '../src/skin/pixels.js'
+import { findUntranslated, pngHeader } from './helpers.js'
 
 function setup(localeId = 'en') {
   const user = userEvent.setup({ applyAccept: false })
@@ -19,21 +24,10 @@ function setup(localeId = 'en') {
   }
 }
 
-// The first 33 bytes of a PNG file of the given size: the signature and the IHDR chunk.
-function pngHeader(width, height) {
-  const bytes = new Uint8Array(33)
-  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-  const view = new DataView(bytes.buffer)
-  view.setUint32(8, 13)
-  bytes.set([73, 72, 68, 82], 12)
-  view.setUint32(16, width)
-  view.setUint32(20, height)
-  return bytes
-}
-
 const grid = () => screen.getByRole('grid')
 const cells = () => within(grid()).getAllByRole('gridcell')
-const cell = (row, col) => cells().find((item) => item.dataset.row === String(row - 1) && item.dataset.col === String(col - 1))
+const cell = (row, col) =>
+  cells().find((item) => item.dataset.row === String(row - 1) && item.dataset.col === String(col - 1))
 const status = () => screen.getByRole('status')
 const radio = (name) => screen.getByRole('radio', { name })
 const button = (name) => screen.getByRole('button', { name })
@@ -50,7 +44,9 @@ describe('Skin editor', () => {
     setup()
     expect(status()).toHaveTextContent('Each change you make is described here.')
     expect(grid()).toHaveAccessibleName('Head, front, base layer')
-    expect(grid()).toHaveAccessibleDescription(/^8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/)
+    expect(grid()).toHaveAccessibleDescription(
+      /^8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/,
+    )
     expect(cells()).toHaveLength(64)
     expect(cells().filter((item) => item.tabIndex === 0)).toHaveLength(1)
     expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
@@ -137,6 +133,8 @@ describe('Skin editor', () => {
     expect(cell(2, 1)).toHaveAccessibleName('red, row 2, column 1')
     expect(cell(3, 1)).toHaveAccessibleName('red, row 3, column 1')
     expect(document.activeElement).toBe(cell(3, 1))
+    // The new color is in the cell names, so the status doesn't repeat it.
+    expect(status()).toHaveTextContent('Each change you make is described here.')
   })
 
   it('reads rows and columns, picks up colors, and fills', async () => {
@@ -226,6 +224,23 @@ describe('Skin editor', () => {
     await user.click(button('Undo'))
     for (const col of [1, 2, 3, 4]) expect(cell(3, col)).toHaveAccessibleName(`tan, row 3, column ${col}`)
     expect(button('Undo')).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('says why a drag paints nothing on the base layer with a see-through color', async () => {
+    // A see-through paint color comes from picking a pixel of an opened skin.
+    const glass = rgba(255, 0, 0, 128)
+    const palette = [{ id: 'glass', name: 'Glass', color: glass }]
+    saveDraft({
+      pixels: createSampleSkin(),
+      palette,
+      model: 'classic',
+      currentColor: glass,
+      settings: DEFAULT_SETTINGS,
+    })
+    const { user } = setup()
+    await user.pointer([{ keys: '[MouseLeft>]', target: cell(3, 1) }, { target: cell(3, 2) }, { keys: '[/MouseLeft]' }])
+    expect(status()).toHaveTextContent('Choose a solid paint color')
+    expect(cell(3, 1)).toHaveAccessibleName('tan, row 3, column 1')
   })
 
   it('switches body parts, sides and arm width', async () => {
@@ -364,7 +379,9 @@ describe('Skin editor', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Choose a PNG file. Minecraft skins are PNG images.')
     // The size comes from the file's header, so a wrong-sized image is refused before it's decoded.
     await user.upload(input, new File([pngHeader(128, 128)], 'big.png', { type: 'image/png' }))
-    expect(await screen.findByText('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.'),
+    ).toBeInTheDocument()
     expect(input).toHaveAccessibleDescription('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.')
   })
 
@@ -410,20 +427,8 @@ describe('Skin editor', () => {
   })
 
   it('takes every word on the page from the messages, so all of it can be translated', () => {
-    // In the en-XA pseudo-locale every message has accented letters, so plain English is text that
-    // skipped the messages. Names and addresses aren't translated, so they're allowed. So is "and":
-    // it joins lists, and comes from the browser's list formatting for the language
-    // (Intl.ListFormat), so a real translation gets its own word for it without a message.
     setup('en-XA')
-    const allowed = ['Anna Ohrt', 'github.com/Anna-Ohrt/accessible-skin-editor', 'skin.png', ' and ']
-    const english = (text) => /[A-Za-z]{2,}/.test(allowed.reduce((rest, word) => rest.replaceAll(word, ' '), text))
-    const found = []
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) if (english(node.textContent)) found.push(node.textContent)
-    for (const element of document.querySelectorAll('[aria-label]')) {
-      if (english(element.getAttribute('aria-label'))) found.push(element.getAttribute('aria-label'))
-    }
-    expect(found).toEqual([])
+    expect(findUntranslated()).toEqual([])
     expect(cells()).toHaveLength(64)
   })
 

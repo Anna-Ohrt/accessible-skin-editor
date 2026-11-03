@@ -100,12 +100,6 @@ export function runsOf(values) {
   return runs
 }
 
-export function colorCounts(values) {
-  const counts = new Map()
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1)
-  return [...counts].map(([color, count]) => ({ color, count })).sort((a, b) => b.count - a.count)
-}
-
 // Counts pixels by spoken name, most common first, and how many different colors share a name.
 export function countByName(values, nameOf) {
   const groups = new Map()
@@ -136,10 +130,8 @@ export function countSeeThrough(pixels, faces) {
   return count
 }
 
-// ---------- The sample skin ----------
-// A simple original character made for this prototype, so nothing here is Mojang's art.
-
-// Keys say where the sample character uses each color. Names say what the color looks like.
+// The sample skin: an original character made for this prototype, so none of it is Mojang's art. Keys say
+// where it uses each color.
 export const SAMPLE_COLORS = {
   skin: rgba(198, 156, 109), // tan
   hair: rgba(74, 50, 32), // dark brown
@@ -205,9 +197,33 @@ export function createSampleSkin() {
   rows('head', 'right', 0, 2, c.hair)
   rows('head', 'left', 0, 2, c.hair)
   rows('head', 'front', 0, 1, c.hair)
-  dots('head', 'front', [{ col: 1, row: 4 }, { col: 6, row: 4 }], c.eyeWhite)
-  dots('head', 'front', [{ col: 2, row: 4 }, { col: 5, row: 4 }], c.eye)
-  dots('head', 'front', [{ col: 3, row: 6 }, { col: 4, row: 6 }], c.mouth)
+  dots(
+    'head',
+    'front',
+    [
+      { col: 1, row: 4 },
+      { col: 6, row: 4 },
+    ],
+    c.eyeWhite,
+  )
+  dots(
+    'head',
+    'front',
+    [
+      { col: 2, row: 4 },
+      { col: 5, row: 4 },
+    ],
+    c.eye,
+  )
+  dots(
+    'head',
+    'front',
+    [
+      { col: 3, row: 6 },
+      { col: 4, row: 6 },
+    ],
+    c.mouth,
+  )
 
   for (const side of SIDES) fill('body', side, c.shirt)
   fill('body', 'bottom', c.pants)

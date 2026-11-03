@@ -22,7 +22,12 @@ describe('saved work', () => {
     expect(saveDraft(saved)).toBe(true)
     const loaded = loadDraft()
     expect([...loaded.pixels]).toEqual([...saved.pixels])
-    expect(loaded).toMatchObject({ palette: saved.palette, model: 'slim', currentColor: saved.currentColor, settings: saved.settings })
+    expect(loaded).toMatchObject({
+      palette: saved.palette,
+      model: 'slim',
+      currentColor: saved.currentColor,
+      settings: saved.settings,
+    })
   })
 
   it('moves version 2 work over, turning names the editor made back into generated ones', () => {

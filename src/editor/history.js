@@ -6,6 +6,9 @@ export function initHistory(pixels) {
   return { pixels, past: [], future: [], stroke: null }
 }
 
+// The step that undo or redo would take, if there is one.
+export const nextStep = (history, type) => (type === 'undo' ? history.past.at(-1) : history.future[0])
+
 export function historyReducer(state, action) {
   switch (action.type) {
     case 'apply': {

@@ -1,13 +1,11 @@
 import { SKIN_SIZE } from '../skin/layout.js'
-import { createSamplePalette } from '../skin/pixels.js'
+import { createSamplePalette, createSampleSkin } from '../skin/pixels.js'
 import { createI18n } from '../i18n/index.js'
 import { colorName } from '../i18n/words.js'
-import { readSettings } from './settings.js'
+import { DEFAULT_SETTINGS, readSettings } from './settings.js'
 
-// Keeps the work in localStorage, so a refresh doesn't lose it.
-//
-// Version 3 stores no generated color names, so they can follow the editor's language. Drafts from
-// version 2 are moved over. Drafts from version 1 had different sample colors and are left alone.
+// Version 3 stores no generated color names, so they follow the language. Version 2 work moves over;
+// version 1 had other sample colors and is left alone.
 const KEY = 'skin-editor-prototype:v3'
 const V2_KEY = 'skin-editor-prototype:v2'
 export const MAX_NAME_LENGTH = 40
@@ -45,7 +43,8 @@ export function readPalette(value) {
     if (!entry || typeof entry !== 'object') continue
     const { id, name, color } = entry
     const idOk = typeof id === 'string' && id.length > 0 && id.length <= MAX_ID_LENGTH && !ids.has(id)
-    const nameOk = name === null || (typeof name === 'string' && name.trim().length > 0 && name.length <= MAX_NAME_LENGTH)
+    const nameOk =
+      name === null || (typeof name === 'string' && name.trim().length > 0 && name.length <= MAX_NAME_LENGTH)
     if (!idOk || !nameOk || !isColor(color) || colors.has(color)) continue
     ids.add(id)
     colors.add(color)
@@ -75,8 +74,8 @@ function read(key) {
   }
 }
 
-// Each part is checked on its own, so damage to one part keeps the rest. Without valid pixels there's
-// no work to keep, so the editor starts fresh.
+// Each part is checked on its own, so damage to one keeps the rest. Without valid pixels there's no work
+// to keep.
 export function loadDraft() {
   let data = read(KEY)
   if (!data) {
@@ -94,6 +93,18 @@ export function loadDraft() {
     model: data.model === 'slim' ? 'slim' : 'classic',
     currentColor,
     settings: readSettings(data.settings),
+  }
+}
+
+// The sample skin, for a first visit or when there's no saved work.
+export function startingDraft() {
+  const palette = createSamplePalette()
+  return {
+    pixels: createSampleSkin(),
+    palette,
+    model: 'classic',
+    currentColor: palette[0].color,
+    settings: DEFAULT_SETTINGS,
   }
 }
 
@@ -117,8 +128,8 @@ export function clearDraft() {
   }
 }
 
-// Saves the latest draft once changes stop for `delay` milliseconds, instead of on every pixel of
-// a drag. The page calls flush() when it's hidden or closed, so the last change isn't lost.
+// Saves the latest draft once changes pause for `delay` milliseconds, rather than on every pixel of a drag.
+// flush() saves at once.
 export function createSaver(save = saveDraft, delay = 400) {
   let timer = null
   let pending = null
