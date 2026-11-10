@@ -11,14 +11,16 @@ export const status = (page) => page.getByRole('status')
 // The 3D model's canvas, found by class so it works in every language.
 export const modelCanvas = (page) => page.locator('canvas.model-3d')
 
-export async function scan(page) {
+// axe's violations. With includeReview, also what axe couldn't decide and left for a person to review.
+export async function scan(page, { includeReview = false } = {}) {
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze()
   // "Incomplete" means axe couldn't decide and a person has to look, so they go in the report.
   for (const item of results.incomplete) {
     const where = item.nodes.map((node) => node.target.join(' ')).join(', ')
     test.info().annotations.push({ type: 'axe: needs a person to check', description: `${item.id}: ${where}` })
   }
-  return results.violations.map((item) => `${item.id}: ${item.nodes.map((node) => node.target.join(' ')).join(', ')}`)
+  const found = includeReview ? [...results.violations, ...results.incomplete] : results.violations
+  return found.map((item) => `${item.id}: ${item.nodes.map((node) => node.target.join(' ')).join(', ')}`)
 }
 
 // Screenshots for a person to look at, only when SHOTS_DIR is set.
@@ -32,20 +34,30 @@ export async function centerOf(locator) {
   return [box.x + box.width / 2, box.y + box.height / 2]
 }
 
-// The page's width, and anything sticking out past the right edge. The pixel grid may scroll
-// inside its own box, so what's inside it doesn't count.
+// The page's width, and anything sticking out past its edge or out of its panel, which can happen without
+// sideways scrolling. The pixel grid scrolls inside its own box, so what's inside it doesn't count.
 export function overflow(page) {
   return page.evaluate(() => {
     const edge = document.documentElement.clientWidth
-    const stickingOut = [...document.querySelectorAll('body *')].filter((element) => {
+    const name = (element) => element.tagName.toLowerCase() + (element.className ? `.${element.className}` : '')
+    const elements = [...document.querySelectorAll('body *')].filter(
+      (element) => !element.parentElement.closest('.grid-wrap'),
+    )
+    const stickingOut = elements.filter((element) => {
       const box = element.getBoundingClientRect()
-      return (box.right > edge + 0.5 || box.left < -0.5) && !element.parentElement.closest('.grid-wrap')
+      return box.right > edge + 0.5 || box.left < -0.5
+    })
+    const outOfPanel = elements.filter((element) => {
+      const panel = element.parentElement.closest('.panel')
+      const box = element.getBoundingClientRect()
+      if (!panel || (box.width === 0 && box.height === 0)) return false
+      const outer = panel.getBoundingClientRect()
+      return box.right > outer.right + 0.5 || box.left < outer.left - 0.5
     })
     return {
       width: document.documentElement.scrollWidth,
-      outside: stickingOut
-        .slice(0, 5)
-        .map((element) => element.tagName.toLowerCase() + (element.className ? `.${element.className}` : '')),
+      outside: stickingOut.slice(0, 5).map(name),
+      outOfPanel: outOfPanel.slice(0, 5).map(name),
     }
   })
 }

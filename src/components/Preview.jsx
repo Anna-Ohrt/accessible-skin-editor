@@ -76,7 +76,6 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
   return (
     <>
       <Choices
-        className="view-choice"
         legend={t('preview.style')}
         options={[
           { value: '3d', label: t('preview.model'), disabled: problem === 'noWebgl' || problem === 'failed' },
@@ -90,7 +89,6 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
       />
       {problem && <p className="hint">{t(`preview.${problem}`)}</p>}
       <Choices
-        className="view-choice"
         legend={t('preview.view')}
         options={VIEWS.map((item) => ({ value: item, label: t(`view.${item}`) }))}
         value={viewId}
@@ -98,7 +96,6 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
       />
       {is3D && (
         <Choices
-          className="view-choice"
           legend={t('preview.angle')}
           options={ANGLES.map((angle) => ({ value: angle.id, label: t(`angle.${angle.id}`) }))}
           value={angleId}

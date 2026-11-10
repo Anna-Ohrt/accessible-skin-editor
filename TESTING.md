@@ -10,7 +10,7 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 127 component tests
+### 2. 128 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
@@ -24,6 +24,7 @@ These run with Vitest and Testing Library on every change. They find things the 
 - Every editing command on its own: what it changes, its undo label and its message, and when it refuses or changes nothing.
 - Replace: the colors on the skin, most first, with their pixel counts and without transparent; hex codes added only when two shades share a name; one undo step for the whole skin; and a see-through color refused where the color is on the base layer.
 - The skip link is inside the header's banner landmark, the shortcuts table is named by its caption, and links are named by where they go.
+- Key names shown as keys keep their words: the grid's description and the keys of all 17 shortcuts read as before. The mark beside the title is hidden from screen readers.
 - Error messages: they're announced, the field is marked invalid, and focus moves to it. That includes a color name over 40 characters.
 - A screen reader's click, which has no pointer events, still paints.
 - Mouse painting happens on release, sliding off cancels it, and a drag undoes in one step.
@@ -45,15 +46,15 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | Check | Result | Standard |
 | --- | --- | --- |
 | axe-core 4.14 scan in the light theme, the dark theme, and with error messages and other options showing | No violations, and nothing left for a person to review | Automated WCAG 2.2 A and AA rules, axe's level AAA rules such as 7:1 text contrast, plus best practices |
-| Windows contrast theme (emulated) | Pixels keep their colors, the focus ring uses the system highlight, disabled buttons use the system's gray, and axe finds no violations | |
-| 320 CSS pixels wide, like 400% zoom, with the default font, a wide one and text twice as big, at every pixel size from 24 to 64 | No sideways scrolling | 1.4.10 Reflow |
+| Windows contrast theme (emulated) | Pixels keep their colors, the focus ring uses the system highlight, disabled buttons use the system's gray, and the message next to the pixel and the main button use system colors. axe finds no violations and leaves nothing for a person to review | |
+| 320 CSS pixels wide, like 400% zoom, with the default font, a wide one and text twice as big, at every pixel size from 24 to 64 | No sideways scrolling, and nothing sticks out of its panel | 1.4.10 Reflow |
 | Larger line, letter, word and paragraph spacing | No text cut off | 1.4.12 Text Spacing |
 | A 24 pixel default font size in the browser | The page follows it | |
 | Zoom with two fingers over the pixels | Allowed: the grid uses `touch-action: pinch-zoom` | |
 | Tab through the whole page | Every stop shows a focus ring. The grid is one stop, the paint colors are the next stop, and the Side menu is 3 stops before the grid | 2.4.3, 2.4.7 |
 | Size of every control, at the smallest pixel size | All at least 24 by 24 CSS pixels | 2.5.8 |
 | The browser's accessibility tree and the keyboard | A grid named "Head, front, base layer" with named cells. Space paints, R reads the row, Ctrl+arrow goes to where the color changes, A says the area, and the status message says what happened | 4.1.2, 4.1.3 |
-| The message next to the focused pixel, at 100%, 200% and 400% zoom of a 1280 by 720 window, at the four corners of the 8 by 12 body front | Always fully on screen and never over the focused pixel. At 100% and 200% it's beside the grid, over no pixels. It shows why Delete did nothing, Escape hides it, and axe finds no violations while it shows | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, 1.4.13 |
+| The message next to the focused pixel, at 100%, 200% and 400% zoom of a 1280 by 720 window, at the four corners of the 8 by 12 body front | Showing the row, column and color, it's always fully on screen and never over the focused pixel. At 100% and 200% it's beside the grid, over no pixels. It shows why Delete did nothing, Escape hides it, and axe finds no violations while it shows. A message that long can run past the bottom at 400%, as in section 9 | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, 1.4.13 |
 | A real mouse | Pointing names the pixel below the grid. A click paints on release and shows no message next to the pixel, which is for keyboard focus. Sliding off cancels, and a fast drag paints every pixel and undoes in one step | 1.4.1, 2.5.2, 2.5.7 |
 | The 3D model, turned by the View and Angle choices and by dragging | Its name says which way it faces, it stays where a drag leaves it, it doesn't animate when reduced motion is on, it shows new paint at once, and it turns to the side being edited | 1.1.1, 2.5.7, 2.3.3 |
 | Pointing at and clicking the 3D model | The page names the side and pixel under the pointer, and a click opens that pixel in the grid | |
@@ -67,7 +68,7 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | The graphics reset (a lost WebGL context) | The preview switches to flat pictures and says why, and choosing 3D model works again | |
 | The 3D code fails to load | Flat pictures show with a note, and painting still works | |
 | The page is hidden, like switching tabs | The last change is saved at once | |
-| Loading the 3D model | Nothing on the page moves: the layout shift is 0. The pixels work while the 3D code is held back | |
+| Loading the 3D model | The 3D box is the same size before and after the model loads, and nothing on the page moves: the layout shift is 0. The pixels work while the 3D code is held back | |
 | A phone-sized screen, 390 by 844 CSS pixels | The 3D code isn't requested until the preview comes near the screen | |
 
 ### 4. Making sure the tests catch bugs
@@ -80,13 +81,17 @@ For Replace and the checker fixes, 12 more were planted, such as a replace that 
 
 For the large text, zoom and keyboard pass, 20 more were planted, one per new behavior. Among them: Ctrl+arrow moving one pixel, areas that never reach the last column, the message next to the pixel covering it at 400% zoom, landing on the grid in right-to-left pages or showing after a mouse click, Escape not hiding it, and the 3D code loading at once on a phone. Three earlier ones were rewritten to fit the changed code. The tests caught all 23. One first showed as missed only because its filter had a "+" in it, which Vitest reads as a pattern, so no test ran; with the filter fixed, its test caught it.
 
-Then all 79 were planted again, one at a time, in the final code, and the tests caught every one.
+For the redesign, 8 more were planted: gray text on the backdrop behind the pixels under 7:1, the main button's text under 7:1 in each theme, the message next to the pixel and the main button keeping their own colors in a contrast theme, key names dropping out of the help and out of the shortcuts table, and screen readers finding the logo. The earlier bug for gray text was moved to the new gray. The tests caught all 9.
+
+When all 87 were planted again in the redesigned code, the tests missed 2 older ones, because the new layout hid them from their tests. Paint colors too wide for a narrow screen with text twice as big now stuck out of their panel without making the page scroll sideways. A 3D box with no set height now grew below the bottom of the test's window, where movement doesn't count as a layout shift. The reflow checks now also fail when anything sticks out of its panel. The layout shift check now holds back the 3D code, compares the box before and after it loads, and uses a window tall enough to show the panels below it. The stricter reflow check also found a problem the live site already had, in section 9. A 9th bug was planted for its fix, and the tests caught all 3.
+
+Then all 88 were planted again, one at a time, in the final code, and the tests caught every one.
 
 ### 5. Checks by hand in a browser
 
-- Text and control contrast in the light and dark themes, worked out from the colors: every pair passes, and the lowest is 3.15 to 1 (border on background, light theme), above the 3 to 1 minimum. All text is at least 7 to 1, WCAG's AAA level.
+- Text and control contrast in the light and dark themes, worked out from the colors the page puts together: every pair passes. After the redesign, the lowest is 3.83 to 1 (control borders on a panel, light theme), above the 3 to 1 minimum. All text is at least 7 to 1, WCAG's AAA level; the lowest is 7.34 to 1 (links on the page background, light theme).
 - The focus ring shows on white and on dark pixels.
-- Screenshots of the light theme, dark theme, emulated contrast theme and 320 pixel width were looked at.
+- Screenshots of the light theme, dark theme, emulated contrast theme and 320 pixel width were looked at. After the redesign, so were a phone, 200% zoom, right to left, the message next to the pixel, and the panels below the grid.
 - Saving and reopening a PNG: 4,095 of 4,096 pixels came back exactly; the one half-transparent pixel was off by 1.
 - Opening a 64 by 32 skin gives a clear message.
 
@@ -152,6 +157,17 @@ Shift+arrow painting changes pixels and moves focus at once, so it does the most
 **Slowest key press.** The browser's Event Timing API times each key press from the press to the next frame, "rounded to the nearest 8ms" ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming)). The same keys were pressed, plus the new ones on the new build: 36 presses before and 43 after. Over 3 alternating runs, with the processor 86% busy from other programs when they started and 70% when they ended, the slowest press took 48 to 56 ms before and 48 to 64 ms after. web.dev says "An INP below or at 200 milliseconds means a page has good responsiveness" ([web.dev](https://web.dev/articles/inp)).
 
 **Loading on a phone.** Lighthouse's mobile test, run 3 times each, middle values. Local builds, before and after the 3D code waited for the preview to come near: score 73 to 78, and Total Blocking Time 1,805 to 1,001 ms. The live site before and after this pass: score 73 to 80, and Total Blocking Time 1,775 to 894 ms.
+
+### 9. The redesign
+
+On November 10, 2026, the page got a look of its own, described under Design in the [README](README.md#design). These checks show what changed for people using assistive technology, and what didn't:
+
+- **The same words for screen readers.** In Edge's accessibility tree, the grid's description, the help text and the names of the 17 rows of the shortcuts table read word for word as on the live site before. Styling the key names as `inline-block` boxes made Edge add spaces inside the names, like "Ctrl + Y", so they're styled inline instead. A test checks the key names, and that the face beside the title is hidden from screen readers.
+- **Contrast themes.** In the emulated Windows contrast theme, axe first reported the message next to the pixel, at 1.13 to 1: it compared the message's own light text with the theme's white background. It also left the Download button for a person to review. In contrast themes both now use system colors, and that check fails on anything left for review, too. Over 3 runs, axe found nothing.
+- **400% zoom.** In a 1280 by 720 window at 400% zoom, which shows 320 by 180 CSS pixels, with the focused pixel in the top left corner, the message about a refused Delete runs 14 CSS pixels past the bottom of the window. The live site did the same before the redesign. The new padding first made it 46, so on narrow screens the backdrop and the message have less padding, which brought it back to 14. There, axe leaves the message's contrast for a person to review, as it did before, because it "partially overlaps other elements": the pixels around the focused one. Its colors are 15.12 to 1.
+- **Reflow.** At 320 CSS pixels wide with text twice as big, the color picker next to the hex code field stuck out of its panel, squeezed to 12 pixels wide on the live site. The page didn't scroll sideways, so the reflow check passed. Now the hex code field narrows instead, and the reflow checks fail when anything sticks out of its panel.
+- **Five checkers again.** axe with every rule, Alfa, IBM Equal Access, HTML_CodeSniffer and the W3C HTML checker ran on the live site before the redesign and on the new build, in the light theme, the dark theme, and with error messages showing. The W3C checker found one error in the new build: spaces in the address of the new tab icon, which are now encoded. After that, all five reported the same findings for both. The only differences from November 9 come from the large text and zoom pass: axe's experimental hidden-content rule says it couldn't check the message next to the pixel, which is hidden until a pixel has focus, and IBM counts one more checkbox.
+- **Alfa and the message next to the pixel.** Since that message was added, Alfa applies none of the page's styles, because of the style sheet's two `@position-try` rules. So it reported every paragraph's line height as `normal`, where the browser computes 1.5. With those two rules taken out for the check, Alfa reports what it did on November 9: the pixels, at 32 CSS pixels, are under AAA's 44.
 
 ## What these checks can't tell you
 

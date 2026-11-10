@@ -6,7 +6,7 @@ A web prototype of a Minecraft skin editor that works with a keyboard, a screen 
 
 Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. The sample skin and its colors were made for this prototype; none of it is Mojang's art.
 
-![The editor in its light theme. On the left, menus choose the body part (Head) and side (Front), the layer and the arm width. In the middle, an 8 by 8 grid of pixels shows a face with dark brown hair, white and blue eyes and a red mouth, with 15 paint colors listed by name below it. On the right, a 3D model of the character, with the front of its head outlined, and its written description.](docs/screenshot.png)
+![The editor in its light theme, with a small pixel picture of the sample character's face beside the title. On the left, menus choose the body part (Head) and side (Front), and choices set the layer and the arm width. In the middle, an 8 by 8 grid of pixels shows a face with dark brown hair, white and blue eyes and a red mouth, on a beige backdrop with a bar for messages below it, and 15 paint colors listed by name. On the right, a 3D model of the character, with the front of its head outlined.](docs/screenshot.png)
 
 ## Try it with the keyboard
 
@@ -34,7 +34,7 @@ With a mouse or touch, drag the 3D model to turn it. Pointing at it names the si
 | Pixels are small | Pixel size from 24 to 64 CSS pixels | WCAG 2.5.8 |
 | Letter shortcuts can clash with screen readers and typing | They only work while a pixel has focus | WCAG 2.1.4 |
 | The focused pixel can be any color | A white ring inside a black ring, visible on any color | WCAG 2.4.7, 1.4.11 |
-| Windows contrast themes replace colors | The pixel art keeps its colors with `forced-color-adjust: none`; focus and disabled buttons use system colors | |
+| Windows contrast themes replace colors | The pixel art and the face beside the title keep their colors with `forced-color-adjust: none`. Focus, disabled buttons, the message next to the pixel and the Download button use system colors | |
 | Zoom and large text | The page reflows at 320 CSS pixels wide, follows the browser's font size, and two fingers can still zoom over the pixels | WCAG 1.4.4, 1.4.10 |
 | With a magnifier or zoom, messages below the grid are out of sight | The row, column and latest message also show next to the focused pixel: beside the grid when there's room, otherwise just below or above the pixel, never over it. Escape hides them until you move, and a setting turns them off | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, WCAG 1.4.13 |
 | Colors can be hard to tell apart | Pointing at a pixel names its color and hex code below the grid, so finding out doesn't take a click, which would paint it | WCAG 1.4.1 |
@@ -85,7 +85,7 @@ Settings let you leave out the row and column (so does P in the pixels), add hex
 ### Performance
 
 - Babylon.js is in its own files, loaded only when the 3D model is shown: 9 files, 917 KB (222 KB compressed), counted in the browser. That's more than the three.js and skinview3d it replaced, but the editor doesn't wait for it. The editor's main script went from 789 KB (215 KB compressed), when it included three.js, to 312 KB (99 KB compressed), so the pixels work before the 3D code arrives, and a test paints one while it's held back.
-- The 3D model's box has its size before the model loads, so nothing moves: the test measures a layout shift of 0.
+- The 3D model's box has its size before the model loads, so nothing moves: the test holds back the 3D code, finds the box the same size before and after, and measures a layout shift of 0.
 - On a phone the preview is far down the page, so the 3D code waits until the preview is within half a screen of view, and a test checks that a phone-sized page doesn't request it sooner. On the live site, the middle of 3 runs of Lighthouse's mobile test went from a Total Blocking Time of 1,775 ms before this pass to 894 ms after, and a score of 73 to 80.
 - Keys stay quick. On this machine, with other programs keeping its processor busy, each kind of key or pointer move in the grid took 7 to 32 ms of main-thread time on average, and the slowest single key press took 48 to 64 ms from the press to the next frame, against 48 to 56 ms before. [web.dev](https://web.dev/articles/inp) calls 200 ms or less good responsiveness. [TESTING.md](TESTING.md) has the numbers.
 - Pointing at pixels changes only the readout, so the grid's cells are built again only when the pixels, the side or the cursor change.
@@ -100,6 +100,17 @@ Settings let you leave out the row and column (so does P in the pixels), add hex
 - Babylon.js is wrapped in one class, `SkinScene`. The React component that shows it only passes it the current state, one effect per kind of change, and a separate module tells clicks from drags.
 - Form controls share three small components (`Choices`, `Checkbox` and `SelectField`), and React files export only components, as Vite's Fast Refresh needs.
 - Prettier formats the code, ESLint checks it, and no comment is longer than two lines.
+
+### Design
+
+The page was redesigned on November 10, 2026, without changing what screen readers hear.
+
+- The colors, spacing and type are set once, as custom properties at the top of [`src/styles.css`](src/styles.css). Margins, padding and gaps use only 4, 8, 12, 16, 24 and 32 pixels.
+- The green is based on the sample character's shirt: darker in the light theme and lighter in the dark theme, so the Download button's text is at least 7:1.
+- The title and panel headings use a DIN-style font that comes with the system: Bahnschrift on Windows 10 and 11 ([Microsoft](https://learn.microsoft.com/en-us/typography/font-list/bahnschrift)), and DIN Alternate on a Mac ([Apple](https://support.apple.com/en-us/122869)). No font is downloaded, and other systems use their own.
+- The pixels sit on a backdrop, with the status message in a bar attached below it. The picture beside the title is the sample character's face, drawn from the sample skin, and hidden from screen readers.
+- Key names in the help and the shortcuts look like keys. They stay inline, so screen readers hear the same words as before.
+- In Windows contrast themes, the message next to the pixel and the Download button, the one filled button, use system colors.
 
 ## Software in the site
 
@@ -117,11 +128,11 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 
 [TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
 
-- **127 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, areas of one color and where the color changes, the message next to the pixel, messages and languages, PNG checks, and saving.
+- **128 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, areas of one color and where the color changes, the message next to the pixel, messages and languages, PNG checks, and saving.
 - **32 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
   - axe found no WCAG 2.2 A or AA violations, no violations of its level AAA rules, such as 7:1 text contrast, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, with error messages and other options showing, and with the message next to the pixel showing.
-  - The page reflows at 320 CSS pixels wide, with the default font, a wide one, text twice as big, and both made-up languages, at every pixel size from 24 to 64. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
-  - At 100%, 200% and 400% zoom, the message next to the focused pixel stays on screen at all four corners of the body's front and never covers the pixel. When there's room, it sits beside the grid, inside the panel, and on the grid's left in right-to-left pages.
+  - The page reflows at 320 CSS pixels wide, with the default font, a wide one, text twice as big, and both made-up languages, at every pixel size from 24 to 64, and nothing sticks out of its panel. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
+  - At 100%, 200% and 400% zoom, the message next to the focused pixel, showing its row, column and color, stays on screen at all four corners of the body's front and never covers the pixel. When there's room, it sits beside the grid, inside the panel, and on the grid's left in right-to-left pages.
   - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
   - The browser's accessibility tree has a named grid of named cells, and Ctrl+arrow and A work in the browser.
   - Pointing names the pixel under the mouse. A click paints on release, sliding off cancels it, and a fast drag paints a gapless line that undoes in one step.
@@ -129,9 +140,9 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
   - The checks under Engineering: the policy, the one-file copy, a downloaded skin opening with every pixel the same, a reset or missing 3D model, saving when the page is hidden, layout shift, and the 3D code waiting on a phone.
   - The site ships the license text of every open source package in it.
 - **ESLint** with the jsx-a11y accessibility rules (strict set), the React Hooks rules including the React Compiler's checks, the Fast Refresh rule from Vite's React template, and strict equality, `const` and no `var`. **Prettier** checks the formatting.
-- **8 accessibility checkers**, on November 9, 2026: Lighthouse, axe-core with every rule, Siteimprove Alfa, IBM Equal Access, HTML_CodeSniffer, the W3C HTML checker, WAVE and AudioEye. Six reported no WCAG A or AA failures; IBM and AudioEye reported a few under level A criteria. The findings led to darker gray text, links and error text, a caption for the shortcuts table, the skip link inside the header, and a footer link named by where it goes. [TESTING.md](TESTING.md) lists every finding, including the false positives and why.
+- **8 accessibility checkers**, on November 9, 2026: Lighthouse, axe-core with every rule, Siteimprove Alfa, IBM Equal Access, HTML_CodeSniffer, the W3C HTML checker, WAVE and AudioEye. Six reported no WCAG A or AA failures; IBM and AudioEye reported a few under level A criteria. The findings led to darker gray text, links and error text, a caption for the shortcuts table, the skip link inside the header, and a footer link named by where it goes. [TESTING.md](TESTING.md) lists every finding, including the false positives and why. After the redesign, the five that run inside the page reported the same findings as on the live site before it, once spaces in the new tab icon's address were encoded.
 - **Large text and zoom**, measured on November 10, 2026: at 200% and 400% zoom, with pixel sizes 32 and 48 and normal or double text, the status message below the grid was fully on screen at only 8 of 32 positions. The message next to the focused pixel was fully on screen, and clear of the pixel, at all 32.
-- **79 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45, both of the 2 planted later for the P key, all 12 planted for Replace and the checker fixes, and all 20 planted for the large text, zoom and keyboard pass.
+- **88 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45, both of the 2 planted later for the P key, all 12 planted for Replace and the checker fixes, all 20 planted for the large text, zoom and keyboard pass, and all 9 planted for the redesign. Two older ones were missed at first in the new layout, so two tests got stricter; [TESTING.md](TESTING.md) has how.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
 ## Not done yet
@@ -141,6 +152,7 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 - Partly transparent pixels can come back one step off after saving and opening, because a canvas stores colors with premultiplied alpha ([MDN, `putImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData)). Solid and fully transparent pixels come back exactly.
 - Older 64 by 32 skins and Bedrock's 128 by 128 skins don't open.
 - Nobody has tried the 3D model, or the message next to the pixel, with a screen magnifier yet.
+- At 400% zoom of a 1280 by 720 window, a long message next to the pixel, like why Delete did nothing, runs 14 CSS pixels past the bottom of the window when the focused pixel is in the top left corner. It did before the redesign too. The same words are in the status message below the grid.
 - Which way the top and bottom sides run comes from skinview3d's code. Check it in the game.
 
 ## Facts it relies on
@@ -167,7 +179,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180. Add `?lang=en-XA` or `?lang=ar-XB` to the address for the made-up languages |
-| `npm test` | Runs the 127 tests |
+| `npm test` | Runs the 128 tests |
 | `npm run test:e2e` | Runs the 32 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
 | `npm run lint` | Runs ESLint |
 | `npm run format` | Formats the code with Prettier. `npm run format:check` only checks it |
@@ -197,10 +209,12 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/components/canvas.js` | Drawing pixels on a canvas, and checking for WebGL |
 | `src/components/Preview.jsx` | The choice of 3D model or flat pictures, with View and Angle, and what happens when 3D fails |
 | `src/components/ErrorBoundary.jsx`, `CrashNotice.jsx` | What shows if the editor stops with an error |
+| `src/components/Logo.jsx` | The picture of the sample character's face beside the title |
+| `src/styles.css` | The colors, spacing and type, and how everything looks |
 | `src/App.jsx` | Puts it together, and says what happened after each action |
 | `src/editor/edits.js` | Every editing command, as a pure function |
 | `src/editor/` | Also undo history, settings, saving, and the hooks for the palette, saving and the status message |
-| `tests/` | The 127 Vitest tests |
+| `tests/` | The 128 Vitest tests |
 | `e2e/` | The 32 browser checks: accessibility, languages, and security, reliability and performance |
 | `vite.config.js` | The build, the Content Security Policy and the third-party notices |
 | `TESTING.md` | What has been tested, and how to test with screen readers and players |

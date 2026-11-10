@@ -631,4 +631,33 @@ describe('Skin editor', () => {
       'https://help.minecraft.net/hc/articles/4408894664461',
     )
   })
+
+  it('shows key names as keys without changing their words, and keeps the logo out of what screen readers say', () => {
+    const { container } = setup()
+    expect(grid()).toHaveAccessibleDescription(
+      /Arrow keys move, and Ctrl with an arrow goes to where the color changes\. Space paints, and Shift with an arrow paints as you move\. F fills, I picks up a color, R or C reads a row or column/,
+    )
+    const keys = within(screen.getByRole('table', { name: 'Keys for the pixel grid' }))
+    expect(keys.getAllByRole('rowheader').map((header) => header.textContent)).toEqual([
+      'Arrow keys',
+      'Ctrl+arrow key',
+      'Home, End',
+      'Ctrl+Home, Ctrl+End',
+      'Page Up, Page Down',
+      'Space or Enter',
+      'Shift+arrow key',
+      'F',
+      'I',
+      'Delete or Backspace',
+      'R',
+      'C',
+      'A',
+      'P',
+      'Escape',
+      'Ctrl+Z',
+      'Ctrl+Y or Ctrl+Shift+Z',
+    ])
+    expect(container.querySelectorAll('.hint kbd')).toHaveLength(11)
+    expect(container.querySelector('.logo')).toHaveAttribute('aria-hidden', 'true')
+  })
 })

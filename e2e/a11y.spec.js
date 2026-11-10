@@ -62,7 +62,8 @@ test('Windows contrast themes keep the pixel colors and show focus and disabled 
   })
   expect(undo).toBe(grayText)
   await shot(page, 'forced-colors')
-  expect(await scan(page)).toEqual([])
+  // axe reads the page's own text color against the system background, so light-on-dark parts need system colors.
+  expect(await scan(page, { includeReview: true })).toEqual([])
 })
 
 test('reflows at 320 CSS pixels wide, like 400% zoom, with no sideways page scrolling', async ({ page }) => {
@@ -77,8 +78,9 @@ test('reflows at 320 CSS pixels wide, like 400% zoom, with no sideways page scro
     if (font === 'twice as big') await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
     for (const size of ['24', '32', '48', '64']) {
       await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption(size)
-      const { width, outside } = await overflow(page)
+      const { width, outside, outOfPanel } = await overflow(page)
       expect(width, `${font} font, pixel size ${size}, sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
+      expect(outOfPanel, `${font} font, pixel size ${size}, sticking out of a panel`).toEqual([])
     }
   }
   await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption('32')

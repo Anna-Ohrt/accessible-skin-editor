@@ -1,10 +1,10 @@
 import { useId } from 'react'
 
 // Radio buttons for one choice, as a fieldset with a visible legend.
-export function Choices({ legend, options, value, onChange, className }) {
+export function Choices({ legend, options, value, onChange }) {
   const name = useId()
   return (
-    <fieldset className={className}>
+    <fieldset>
       <legend>{legend}</legend>
       {options.map((option) => (
         <label key={option.value} className="choice">

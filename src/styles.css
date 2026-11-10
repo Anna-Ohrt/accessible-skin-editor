@@ -1,17 +1,32 @@
+/* The look comes from the sample character: its shirt green is the accent, on the warm gray of stone.
+   Text colors are at least 7:1 on every background they sit on, WCAG's AAA level. */
 :root {
   color-scheme: light dark;
-  --bg: #f4f2ec;
+  --bg: #f2f0eb;
   --surface: #ffffff;
-  --text: #1b1b1a;
-  /* Text colors are at least 7:1 on --bg and --surface, WCAG's AAA level. */
-  --muted: #524f4a;
+  /* Behind the pixels, and the status bar under them. */
+  --stage: #ebe7df;
+  --bar: #e5e1d8;
+  --text: #1c1b18;
+  --muted: #4b4741;
   --link: #124aa0;
-  --border: #8a8886;
-  --accent: #2f6b1f;
+  /* --line only separates things. --border outlines controls, so it's at least 3:1 (WCAG 1.4.11). */
+  --line: #dcd7cd;
+  --border: #86827a;
+  --accent: #1d5e46;
+  --accent-hover: #164a37;
+  --on-accent: #ffffff;
+  --accent-tint: #e3eee8;
   --focus: #1a5fc7;
   --error: #9b2019;
   --grid-line: #767676;
   --checker: conic-gradient(#cfcfcf 25%, #ffffff 0 50%, #cfcfcf 0 75%, #ffffff 0);
+  --hover: color-mix(in srgb, var(--text) 6%, var(--surface));
+  --pressed: color-mix(in srgb, var(--text) 12%, var(--surface));
+  --gutter: 16px;
+  /* Headings use a DIN-style face that comes with Windows (Bahnschrift) and macOS (DIN Alternate), so
+     nothing is downloaded. Spacing sticks to one scale: 4, 8, 12, 16, 24 and 32 pixels. */
+  --display: Bahnschrift, 'DIN Alternate', system-ui, -apple-system, 'Segoe UI', sans-serif;
   /* 100%, not 16px, so a larger default font size set in the browser still applies. */
   font:
     100%/1.5 system-ui,
@@ -20,15 +35,28 @@
     sans-serif;
 }
 
+@media (min-width: 48rem) {
+  :root {
+    /* Past 100rem the content stops widening, and the extra space goes to the sides. */
+    --gutter: max(24px, calc((100% - 100rem) / 2));
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121212;
-    --surface: #1f1f1f;
-    --text: #f2f2f2;
-    --muted: #c8c6c0;
+    --bg: #111311;
+    --surface: #1a1d1a;
+    --stage: #0d0f0d;
+    --bar: #252925;
+    --text: #eef0eb;
+    --muted: #c3c7bf;
     --link: #8ab4ff;
-    --border: #8a8886;
-    --accent: #7ccf5a;
+    --line: #2c312c;
+    --border: #878c85;
+    --accent: #86d3ad;
+    --accent-hover: #a6e2c4;
+    --on-accent: #0b1a13;
+    --accent-tint: #1d3329;
     --focus: #8ab4ff;
     --error: #ff8a80;
     --grid-line: #9a9a9a;
@@ -47,59 +75,107 @@ body {
   overflow-wrap: break-word;
 }
 
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--accent-tint);
+}
+
+a {
+  color: var(--link);
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .skip-link {
   position: absolute;
   top: -200px;
   inset-inline-start: 8px;
   z-index: 10;
-  padding: 8px 12px;
+  padding: 8px 16px;
+  font-weight: 600;
   color: var(--text);
   background: var(--surface);
   border: 2px solid var(--focus);
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .skip-link:focus {
   top: 8px;
 }
 
+/* The banner: the editor's mark beside its name and what it is. */
 .app-header {
-  max-width: 60rem;
-  padding: 16px 24px 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 16px;
+  padding: 24px var(--gutter);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.app-header > :not(.logo, .skip-link) {
+  grid-column: 2;
+}
+
+/* The sample character's face, pixel for pixel. */
+.logo {
+  grid-row: span 3;
+  width: 3rem;
+  height: 3rem;
 }
 
 .app-header h1 {
-  margin: 0 0 4px;
-  font-size: 1.6rem;
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .app-header p {
+  max-width: 70ch;
   margin: 0;
   color: var(--muted);
 }
 
 .app-header .disclaimer {
-  margin-top: 4px;
-  font-size: 0.9rem;
+  max-width: none;
+  font-size: 0.875rem;
 }
 
 .app-footer {
-  padding: 0 24px 32px;
+  padding: 24px var(--gutter) 32px;
   color: var(--muted);
+  font-size: 0.875rem;
+  border-top: 1px solid var(--line);
 }
 
 .app-footer p {
   margin: 0;
 }
 
-a {
-  color: var(--link);
-}
-
 .layout {
   display: grid;
   gap: 16px;
-  padding: 16px 24px 32px;
+  padding: 24px var(--gutter) 32px;
 }
 
 @media (min-width: 48rem) {
@@ -110,6 +186,15 @@ a {
 
   .layout > .column:last-child {
     grid-column: 1 / -1;
+  }
+
+  /* The side picker stays in view while the page scrolls. Taller than the window, as with large text, it
+     scrolls by itself. */
+  .layout > .column:first-child {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
   }
 }
 
@@ -132,63 +217,113 @@ a {
 
 .panel {
   min-width: 0;
-  padding: 12px 16px 16px;
+  padding: 16px 16px 24px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
 .panel h2 {
-  margin: 0 0 8px;
-  font-size: 1.15rem;
+  margin: 0 0 16px;
+  font-family: var(--display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* The pixels are what the page is for, so their heading leads. */
+#pixels-heading {
+  margin-bottom: 8px;
+  font-size: 1.375rem;
 }
 
 .panel h3 {
-  margin: 16px 0 4px;
+  margin: 24px 0 8px;
   font-size: 1rem;
 }
 
-:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+.panel form > h3:first-child {
+  margin-top: 0;
 }
 
 .hint {
   margin: 4px 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
+/* Key names look like keys. They stay inline, so the words around them read the same to screen readers. */
+kbd {
+  padding: 0 4px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-bottom: 2px solid var(--border);
+  border-radius: 4px;
+  box-decoration-break: clone;
+}
+
+/* Forms */
 .field {
-  margin-bottom: 12px;
-}
-
-.panel form + form {
-  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .field label {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   font-weight: 600;
+}
+
+.panel form + form {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
 }
 
 input:not([type]),
 input[type='text'],
 select {
   max-width: 100%;
-  min-height: 2.5rem;
-  padding: 6px 8px;
+  min-height: 2.75rem;
+  padding: 8px 12px;
   font: inherit;
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
+}
+
+input:not([type]):hover,
+input[type='text']:hover,
+select:hover {
+  border-color: var(--text);
 }
 
 /* Its width comes from the browser and its font, so it could stick out of a narrow panel. */
 input[type='file'] {
   max-width: 100%;
+  font: inherit;
+}
+
+/* The browser's own button for choosing a file, made to match the others. */
+input[type='file']::file-selector-button {
+  min-height: 2.75rem;
+  margin-inline-end: 12px;
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: var(--hover);
+  border-color: var(--text);
 }
 
 input[aria-invalid='true'] {
@@ -197,57 +332,116 @@ input[aria-invalid='true'] {
 
 fieldset {
   min-width: 0;
-  margin: 0 0 12px;
-  padding: 6px 12px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
 }
 
 legend {
-  padding: 0 4px;
+  padding: 0 0 8px;
   font-weight: 600;
 }
 
+/* A checkbox, or one option of a choice. The whole label takes the click. */
 .choice {
   display: flex;
   gap: 8px;
   align-items: center;
-  min-height: 2rem;
+  min-height: 2.25rem;
+  cursor: pointer;
 }
 
 .choice input {
-  width: 1.1rem;
-  height: 1.1rem;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
   margin: 0;
   accent-color: var(--accent);
 }
 
+/* The options of a choice line up as chips in equal columns, as many as fit. */
+fieldset:has(> .choice) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
+  gap: 8px;
+}
+
+fieldset > .choice {
+  min-height: 2.75rem;
+  padding: 4px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+fieldset > .choice:hover {
+  background: var(--hover);
+}
+
+fieldset > .choice:has(input:checked) {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+fieldset > .choice:has(input:disabled) {
+  color: var(--muted);
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
 button {
   min-height: 2.75rem;
-  padding: 6px 14px;
+  padding: 8px 16px;
   font: inherit;
+  font-weight: 600;
   color: var(--text);
   background: var(--surface);
-  border: 2px solid var(--accent);
+  border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
 }
 
 button:hover {
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  background: var(--hover);
+  border-color: var(--text);
+}
+
+/* A press moves the button down a pixel, so it feels pressed. */
+button:active {
+  background: var(--pressed);
+  transform: translateY(1px);
+}
+
+/* The main action of its panel. */
+button.primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+button.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 button[aria-disabled='true'] {
   color: var(--muted);
-  border-color: var(--border);
+  background: var(--surface);
+  border-color: var(--line);
   cursor: not-allowed;
+  transform: none;
 }
 
 .button-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.button-row + form {
+  margin-top: 16px;
 }
 
 .error {
@@ -261,26 +455,32 @@ button[aria-disabled='true'] {
   display: grid;
   /* min() lets a swatch shrink below 8.5rem when large text leaves less room than that (WCAG 1.4.10). */
   grid-template-columns: repeat(auto-fill, minmax(min(8.5rem, 100%), 1fr));
-  gap: 4px;
+  gap: 8px;
 }
 
 .swatch {
   display: flex;
   gap: 8px;
   align-items: center;
-  min-height: 2.5rem;
-  padding: 4px 6px;
-  border: 2px solid transparent;
+  min-height: 2.75rem;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
   border-radius: 6px;
   cursor: pointer;
+}
+
+.swatch:hover {
+  background: var(--hover);
 }
 
 .swatch:has(input:checked) {
   font-weight: 700;
   border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
 }
 
 .swatch input {
+  flex: none;
   margin: 0;
   accent-color: var(--accent);
 }
@@ -301,12 +501,12 @@ button[aria-disabled='true'] {
   width: 1.5rem;
   height: 1.5rem;
   background: var(--pixel);
-  border: 1px solid var(--text);
+  border: 1px solid var(--border);
   border-radius: 4px;
 }
 
 .current-color {
-  margin: 8px 0;
+  margin: 12px 0 0;
 }
 
 .inline-fields {
@@ -315,19 +515,29 @@ button[aria-disabled='true'] {
   align-items: center;
 }
 
-.inline-fields input[type='color'] {
-  width: 2.75rem;
-  height: 2.5rem;
-  padding: 2px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+/* With large text on a narrow screen, the hex code field narrows, so the color picker keeps its size. */
+.inline-fields input:not([type='color']) {
+  min-width: 0;
 }
 
-/* Pixels */
-.grid-wrap {
+.inline-fields input[type='color'] {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
   padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Pixels: the grid sits on its own backdrop, with the status bar attached below it. */
+.grid-wrap {
+  margin-top: 12px;
+  padding: 16px;
   overflow-x: auto;
+  background: var(--stage);
+  border-radius: 8px 8px 0 0;
 }
 
 .pixel-grid {
@@ -336,6 +546,7 @@ button[aria-disabled='true'] {
   flex-direction: column;
   gap: var(--gap);
   padding: var(--gap);
+  vertical-align: top;
   background: var(--grid-line);
   user-select: none;
   /* One finger draws instead of scrolling the page. Two fingers still pan and zoom: "touch-action:
@@ -381,8 +592,9 @@ button[aria-disabled='true'] {
 }
 
 .cursor-readout {
-  margin: 8px 0 0;
+  margin: 12px 0 0;
   color: var(--muted);
+  font-size: 0.9375rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -402,9 +614,10 @@ button[aria-disabled='true'] {
   min-width: 10rem;
   max-width: 20rem;
   margin: 0;
-  padding: 4px 8px;
-  color: var(--text);
-  background: var(--surface);
+  padding: 8px 12px;
+  /* Light on dark in a light page, and the other way round in a dark one, so it stands out by any pixel. */
+  color: var(--bg);
+  background: var(--text);
   border: 2px solid var(--text);
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
@@ -450,22 +663,28 @@ button[aria-disabled='true'] {
 }
 
 .status {
-  min-height: 2.5rem;
-  margin: 8px 0 0;
-  padding: 6px 10px;
-  background: var(--bg);
-  border-inline-start: 4px solid var(--accent);
+  min-height: 2.75rem;
+  margin: 0 0 24px;
+  padding: 8px 16px;
+  background: var(--bar);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 8px 8px;
+}
+
+/* On a narrow screen, as at 400% zoom, less padding leaves more room for the pixels and the message. */
+@media (max-width: 30rem) {
+  .grid-wrap {
+    padding: 8px;
+  }
+
+  .callout {
+    padding: 4px 8px;
+  }
 }
 
 /* Preview and texture */
-.view-choice {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-}
-
 .preview {
-  margin: 8px 0 0;
+  margin: 16px 0 0;
 }
 
 .preview > canvas,
@@ -474,7 +693,8 @@ button[aria-disabled='true'] {
   image-rendering: pixelated;
   background: var(--checker);
   background-size: 16px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
+  border-radius: 4px;
 }
 
 .preview figcaption {
@@ -488,8 +708,8 @@ button[aria-disabled='true'] {
   max-width: 300px;
   aspect-ratio: 4 / 5;
   overflow: hidden;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--stage);
+  border-radius: 8px;
 }
 
 .model-wrap.is-loading {
@@ -523,36 +743,43 @@ button[aria-disabled='true'] {
 .row-list {
   margin: 0;
   padding: 0;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
   list-style: none;
 }
 
 .row-list li {
-  padding: 2px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .shortcuts {
   width: 100%;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   border-collapse: collapse;
 }
 
 .shortcuts caption {
-  padding: 0 6px 4px;
+  padding: 0 0 8px;
   font-weight: 600;
   text-align: start;
 }
 
 .shortcuts th,
 .shortcuts td {
-  padding: 4px 6px;
+  padding: 8px;
   text-align: start;
   vertical-align: top;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   /* A long word, like a long compound word in another language, breaks rather than widening the
      page. That only happens when it can't fit any other way. */
   overflow-wrap: anywhere;
+}
+
+.shortcuts thead th {
+  color: var(--muted);
+  font-size: 0.875rem;
+  border-bottom-color: var(--border);
 }
 
 .shortcuts thead th:first-child {
@@ -560,7 +787,7 @@ button[aria-disabled='true'] {
 }
 
 .shortcuts tbody th {
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .crash {
@@ -574,6 +801,7 @@ button[aria-disabled='true'] {
   :root {
     --muted: var(--text);
     --border: var(--text);
+    --line: var(--text);
     --grid-line: var(--text);
   }
 
@@ -587,6 +815,7 @@ button[aria-disabled='true'] {
 @media (forced-colors: active) {
   .cell,
   .chip,
+  .logo,
   .preview canvas,
   .texture-map {
     forced-color-adjust: none;
@@ -602,8 +831,22 @@ button[aria-disabled='true'] {
     box-shadow: none;
   }
 
-  .swatch:has(input:checked) {
+  .swatch:has(input:checked),
+  fieldset > .choice:has(input:checked) {
     border-color: Highlight;
+  }
+
+  /* The parts that are light on dark get the system's colors too. */
+  .callout {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+  }
+
+  button.primary {
+    color: ButtonText;
+    background: ButtonFace;
+    border-color: ButtonText;
   }
 
   /* aria-disabled doesn't get the browser's disabled colors, so use the system's. */

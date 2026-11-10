@@ -279,7 +279,7 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
         {t('grid.size', { w: face.w, h: face.h, orientation: faceOrientation(i18n, face) })}
       </p>
       <p id={`${id}-help`} className="hint">
-        {t('grid.help')}
+        {i18n.rich('grid.help', { kbd: (chunks) => <kbd>{chunks}</kbd> })}
       </p>
       <div className="grid-wrap">
         {/* The cells take focus, not the grid. It stays left to right in any language, since it's a picture. */}

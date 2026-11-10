@@ -31,7 +31,7 @@ export default function FilePanel({ error, paintName, onOpen, onDownload, onActi
         )}
       </div>
       <div className="button-row">
-        <button type="button" onClick={onDownload}>
+        <button type="button" className="primary" onClick={onDownload}>
           {t('file.download', { file: SKIN_FILE_NAME })}
         </button>
         <button type="button" onClick={() => onAction({ type: 'startOver' })}>

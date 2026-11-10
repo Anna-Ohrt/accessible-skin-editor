@@ -177,9 +177,24 @@ test.describe('Performance', () => {
         for (const entry of list.getEntries()) window.layoutShift += entry.value
       }).observe({ type: 'layout-shift', buffered: true })
     })
+    // Only movement on screen counts as a layout shift, so the window shows the panels below the model too.
+    await page.setViewportSize({ width: 1280, height: 1600 })
+    let release
+    const held = new Promise((resolve) => {
+      release = resolve
+    })
+    await page.route(/Model3D-[^/]*\.js$/, async (route) => {
+      await held
+      await route.continue()
+    })
     await page.goto('./')
+    await expect(page.getByText('Loading the 3D model\u2026')).toBeVisible()
+    const box = page.locator('.model-wrap')
+    const before = await box.boundingBox()
+    release()
     await expect(modelCanvas(page)).toBeVisible()
     await page.waitForTimeout(500)
+    expect(await box.boundingBox()).toEqual(before)
     // Cumulative Layout Shift. Google's "good" threshold is 0.1; this page should have none.
     expect(await page.evaluate(() => window.layoutShift)).toBe(0)
   })

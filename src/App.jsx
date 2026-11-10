@@ -22,6 +22,7 @@ import TextureMap from './components/TextureMap.jsx'
 import FilePanel from './components/FilePanel.jsx'
 import Settings from './components/Settings.jsx'
 import Shortcuts from './components/Shortcuts.jsx'
+import Logo from './components/Logo.jsx'
 
 const REPO_URL = 'https://github.com/Anna-Ohrt/accessible-skin-editor'
 const NOTICES_URL = 'https://anna-ohrt.github.io/accessible-skin-editor/third-party-notices.txt'
@@ -168,6 +169,7 @@ export default function App() {
         <a className="skip-link" href="#pixels-heading">
           {t('app.skip')}
         </a>
+        <Logo />
         <h1>{t('app.title')}</h1>
         <p>{t('app.intro')}</p>
         <p className="disclaimer">{t('app.disclaimer')}</p>

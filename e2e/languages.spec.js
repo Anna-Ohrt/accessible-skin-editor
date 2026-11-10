@@ -27,8 +27,9 @@ test.describe('en-XA, longer accented text', () => {
     for (const font of ['default', 'wide']) {
       if (font === 'wide')
         await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
-      const { width, outside } = await overflow(page)
+      const { width, outside, outOfPanel } = await overflow(page)
       expect(width, `${font} font, sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
+      expect(outOfPanel, `${font} font, sticking out of a panel`).toEqual([])
     }
   })
 })
@@ -75,8 +76,9 @@ test.describe('ar-XB, right to left', () => {
     for (const font of ['default', 'wide']) {
       if (font === 'wide')
         await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
-      const { width, outside } = await overflow(page)
+      const { width, outside, outOfPanel } = await overflow(page)
       expect(width, `${font} font, sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
+      expect(outOfPanel, `${font} font, sticking out of a panel`).toEqual([])
     }
   })
 })
