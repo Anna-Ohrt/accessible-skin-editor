@@ -151,7 +151,7 @@ Shift+arrow painting changes pixels and moves focus at once, so it does the most
 
 **Slowest key press.** The browser's Event Timing API times each key press from the press to the next frame, "rounded to the nearest 8ms" ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming)). The same keys were pressed, plus the new ones on the new build: 36 presses before and 43 after. Over 3 alternating runs, with the processor 86% busy from other programs when they started and 70% when they ended, the slowest press took 48 to 56 ms before and 48 to 64 ms after. web.dev says "An INP below or at 200 milliseconds means a page has good responsiveness" ([web.dev](https://web.dev/articles/inp)).
 
-**Loading on a phone.** Lighthouse's mobile test, run 3 times each, middle values. Local builds, before and after the 3D code waited for the preview to come near: score 73 to 78, and Total Blocking Time 1,805 to 1,001 ms. The live site before this pass: score 73, and Total Blocking Time 1,775 ms.
+**Loading on a phone.** Lighthouse's mobile test, run 3 times each, middle values. Local builds, before and after the 3D code waited for the preview to come near: score 73 to 78, and Total Blocking Time 1,805 to 1,001 ms. The live site before and after this pass: score 73 to 80, and Total Blocking Time 1,775 to 894 ms.
 
 ## What these checks can't tell you
 
