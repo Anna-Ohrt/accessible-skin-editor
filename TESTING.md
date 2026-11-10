@@ -113,6 +113,8 @@ IBM, Alfa and HTML_CodeSniffer also list items only a person can judge, like whe
 
 After the changes, the five checkers that run inside the page (axe, Alfa, IBM, HTML_CodeSniffer and the W3C checker) were run again on the new build. The findings above were gone, and no new kind of finding appeared. The warnings about menus, focus and unnamed forms now also count the new Replace menu, button and form.
 
+Once the changes were live, Lighthouse scored 100 again on mobile and desktop, WAVE found 0 errors and 0 contrast errors on the one-file copy, and AudioEye no longer reported the caption or the footer link. Its three other reports, explained above, remain.
+
 ## What these checks can't tell you
 
 Playwright's own documentation says: "Automated accessibility tests can detect some common accessibility problems such as missing or invalid properties. But many accessibility problems can only be discovered through manual testing." ([Playwright](https://playwright.dev/docs/accessibility-testing))
