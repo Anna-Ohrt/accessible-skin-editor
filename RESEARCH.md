@@ -1,6 +1,6 @@
 # Accessible web skin editor
 
-Research and a working prototype for a web Minecraft skin editor that screen reader users can use. November 2, 2026. Every quote was checked against its source on this date. Recommendations and next steps are proposals; everything else is sourced or was measured.
+Research and a working prototype for a web Minecraft skin editor that screen reader users can use. November 2, 2026, updated November 9, 2026. Every quote was checked against its source on one of those dates. Recommendations and next steps are proposals; everything else is sourced or was measured.
 
 Try the prototype at [anna-ohrt.github.io/accessible-skin-editor](https://anna-ohrt.github.io/accessible-skin-editor/). The code is at [github.com/Anna-Ohrt/accessible-skin-editor](https://github.com/Anna-Ohrt/accessible-skin-editor).
 
@@ -10,7 +10,8 @@ Not an official Minecraft product. Not approved by or associated with Mojang or 
 
 - **The problem.** A skin is a 64 by 64 PNG with a base layer and an outer layer, each with 1,632 usable pixels ([Minecraft Wiki](https://minecraft.wiki/w/Skin)). If an editor draws it on a `<canvas>`, a screen reader gets nothing: "Canvas content is not exposed to accessibility tools as semantic HTML is" ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/canvas)).
 - **The approach.** Edit one side of one body part at a time, such as "Head, front, base layer", as an ARIA grid where every pixel is a focusable cell named by its color. Arrow keys move as in the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and every action reports its result in words.
-- **The prototype.** A React prototype does this, with an optional 3D model, and it's [online](https://anna-ohrt.github.io/accessible-skin-editor/). A review against WCAG 2.2, the ARIA grid pattern and the research below led to 12 changes. An engineering pass then made every word translatable and added a strict Content Security Policy, error recovery and faster loading. Every package the site ships is one that Minecraft's own sites already ship: React and FormatJS on minecraft.net, and Babylon.js, for the 3D model, on classic.minecraft.net. It passes 111 tests and 29 browser checks, including axe-core with no violations. The only screen reader test so far, a first try with NVDA, found the position said twice, which led to a P key that leaves the editor's own out. Testing with more screen readers, and with players, is the most important next step.
+- **The prototype.** A React prototype does this, with an optional 3D model, and it's [online](https://anna-ohrt.github.io/accessible-skin-editor/). A review against WCAG 2.2, the ARIA grid pattern and the research below led to 12 changes. An engineering pass then made every word translatable and added a strict Content Security Policy, error recovery and faster loading. Every package the site ships is one that Minecraft's own sites already ship: React and FormatJS on minecraft.net, and Babylon.js, for the 3D model, on classic.minecraft.net. A Replace tool changes one color on the whole skin in one step. It passes 119 tests and 29 browser checks, including axe-core with no violations, AAA contrast included. Eight accessibility checkers led to small fixes, such as darker gray text for AAA contrast; six of them reported no WCAG A or AA failures. The only screen reader test so far, a first try with NVDA, found the position said twice, which led to a P key that leaves the editor's own out. Testing with more screen readers, and with players, is the most important next step.
+- **How skins get made today.** Minecraft's own guide says "Creating a skin from scratch requires an image editor" ([minecraft.net](https://www.minecraft.net/en-us/article/what-is-minecraft-skin)), and a user reported that Narrator and NVDA can't read GIMP's menus or dialogs ([GNOME Discourse, 2023](https://discourse.gnome.org/t/gimp-accessibility-for-screen-readers/14631)). No way to make a skin with a screen reader turned up in this research.
 - **Prior art.** Two 2026 comparisons of skin editors ([VGKami](https://vgkami.com/best-minecraft-skin-editors-2026-free-tools-to-make-your-own-skin/), [BlockSkinLab](https://www.blockskinlab.com/blog/best-free-minecraft-skin-editors/)) never mention screen readers, accessibility or keyboards, and [Blockbench's issues](https://github.com/JannisX11/blockbench/issues?q=is%3Aissue%20screen%20reader) have no results for "screen reader". The closest match is a [keyboard pixel editor for MakeCode Arcade](https://github.com/loretod/keyboard-sprite-editor), whose author says it "has not yet been tested end-to-end with assistive technology users".
 - **Research.** Blind screen reader users in visual editors report "high cognitive loads from a lack of feedback about artboard contents and object state" and "constant uncertainty about whether object manipulations were successful" ([Schaadhardt et al., CHI 2021](https://doi.org/10.1145/3411764.3445242)). The prototype's text views and spoken results target both.
 
@@ -89,6 +90,19 @@ On November 2, 2026 the prototype was reviewed against WCAG 2.2 A and AA, the AR
 | With a wider font, as on the Linux test machine, the file picker and the shortcuts table stuck out past a 320 pixel wide screen, making the page 336 pixels wide. | [WCAG 1.4.10 Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html): content works "without requiring scrolling in two dimensions" at "a width equivalent to 320 CSS pixels". | Both fit now, and the test checks a wide font too. |
 | The page had no disclaimer. | Minecraft's usage guidelines say to "Prominently include the disclaimer" ([archived November 2, 2026](http://web.archive.org/web/20261102172738/https://www.minecraft.net/en-us/usage-guidelines)). | It's at the top of the page. |
 
+## Accessibility checker audit
+
+On November 9, 2026 the live site went through eight checkers: [Lighthouse](https://developer.chrome.com/docs/lighthouse/overview), [axe-core](https://github.com/dequelabs/axe-core), [Siteimprove Alfa](https://github.com/Siteimprove/alfa), [IBM Equal Access](https://github.com/IBMa/equal-access), [HTML_CodeSniffer](https://squizlabs.github.io/HTML_CodeSniffer/), [W3C Nu HTML Checker](https://validator.w3.org/nu/), [WAVE](https://wave.webaim.org/), [AudioEye](https://www.audioeye.com/website-accessibility-checker/). Six reported no WCAG A or AA failures. IBM Equal Access and AudioEye reported a few findings under WCAG level A criteria. These are the findings that led to changes.
+
+| Finding | Checker | Change |
+| --- | --- | --- |
+| In the light theme, gray text (6.86 to 1), links (5.35 to 1) and error messages (6.53 to 1) were under the 7 to 1 contrast of WCAG 1.4.6 (AAA). | axe-core, Siteimprove Alfa | Darker colors, all at least 7.18 to 1. The browser checks now include axe's AAA rules. |
+| The skip link was outside any landmark. | IBM Equal Access | It moved into the header. |
+| The shortcuts table had no caption. | HTML_CodeSniffer, AudioEye | It has the caption "Keys for the pixel grid". |
+| The footer link was named by its address. | AudioEye | It says "Code and research on GitHub". |
+
+AudioEye also reported a nested interactive element, but its own fix script made it: AudioEye added `role="button"` to a box whose only child is a button, then flagged the button inside. The editor has no `role="button"`. IBM listed the unnamed forms under WCAG 1.3.1, but "If a form has no accessible name, do not expose the element as a landmark" ([HTML-AAM](https://www.w3.org/TR/html-aam-1.0/#el-form)). Pixels stay 32 CSS pixels by default, under the 44 that Alfa checks for WCAG 2.5.5 (AAA), so a side fits on a phone; 48 is in Settings. WAVE loads the main site blank, because it serves its own copy of the page and the site's Content Security Policy blocks its scripts; on the one-file copy it found 0 errors. [TESTING.md](https://github.com/Anna-Ohrt/accessible-skin-editor/blob/main/TESTING.md) lists every finding.
+
 ## Prior art
 
 | Work | What it shows |
@@ -112,6 +126,20 @@ On November 2, 2026 the prototype was reviewed against WCAG 2.2 A and AA, the AR
 - Bedrock's "Text To Speech For UI" lets players "hear menu options, interface elements, and other UI text spoken aloud", and "Text To Speech with Device Settings" follows the device ([Bedrock settings](https://help.minecraft.net/hc/en-us/articles/360061416591-Accessibility-Settings-for-Minecraft-Bedrock-Edition)).
 - Minecraft Education "will automatically enable menu UI narration when the game is launched" if a screen reader is on ([Education](https://edusupport.minecraft.net/hc/en-us/articles/360061503031-Accessibility-Features)).
 - A web editor runs in the browser, so the player's own screen reader reads it, not the game's narration.
+
+## How screen reader users make skins today
+
+No way to make a skin with a screen reader turned up in this research. What did turn up:
+
+- Minecraft's own guide says "Creating a skin from scratch requires an image editor" ([What is a Minecraft Skin?](https://www.minecraft.net/en-us/article/what-is-minecraft-skin), June 2023).
+- GIMP, a free image editor: in 2023 a user reported that with Narrator or NVDA on Windows "None of the menus or dialogs can be read natively". GIMP's maintainer answered "Blind people too have the right to edit images" and "GIMP is for everyone", but that they "haven't had many contributors in the last 11 years at least ... who worked for long enough on the accessibility of GIMP". Another user, trying it on Linux with the Orca screen reader, said "it should have at least basic accessibility", though Orca read "the image title multiple times for every brush-stroke" ([GNOME Discourse](https://discourse.gnome.org/t/gimp-accessibility-for-screen-readers/14631)).
+- In 2019 a player asked Minecraft for narration in skin selection, "so those that use narrator can change skins without having to rely on sighted help to change their characters skin" ([Minecraft Feedback](https://feedback.minecraft.net/hc/en-us/community/posts/360048769871)). In Bedrock, "Text to Speech support has been added to all dressing room pages" ([Minecraft Wiki, Narrator](https://minecraft.wiki/w/Narrator)). The Dressing Room builds a character from ready-made items and equips skins; for a new skin, Minecraft's guide above points to an image editor.
+- Java players upload a skin file on their Minecraft profile page or in the Launcher's Skins tab ([Minecraft Help](https://help.minecraft.net/hc/articles/4408894664461)). The editor now links to those steps under File.
+- A study of avatars in social VR heard the same problem. A visually impaired participant said: "When I was designing [my avatar], I did have to have my daughter help. It wasn't very accessible ... because I can't confirm that I like it". Another said: "I would choose my hair color and it will be like 60 of them. Those processes [pose] accessibility hazards." Some participants suggested the system "should automatically generate a baseline avatar ... and allow the user to adjust details" ([Zhang et al., ASSETS 2022](https://doi.org/10.1145/3517428.3544829)).
+- Describing a model isn't enough for editing it. A 2026 study with blind and low vision makers found "a systematic use-to-editing gap: descriptions that support accurate but incomplete mental models are insufficient for specifying modifications, because editing requires knowing the state of features the user did not know to ask about" ([Kim et al., 2026](https://arxiv.org/abs/2610.35562)). The editor's text views list every row and every color, not only a summary.
+- Pixel art may suit touch: "Pixel Art tactile graphics on a pin array are clear and comprehensible to tactile readers" ([Bhatnagar et al., DIS 2023](https://doi.org/10.1145/3563657.3596044)).
+
+The editor starts from a sample skin, and Replace changes it a color at a time. That's close to the avatar study's suggestion, though no player has tried it yet.
 
 ## The prototype
 
@@ -151,11 +179,12 @@ Real output for the sample skin:
 - Side summary: "8 by 8 pixels: 42 tan, 16 dark brown, 2 white, 2 blue, 2 red."
 - Preview: "Head: mostly tan, with dark brown, white, and blue. Body: mostly green. Arms: mostly tan, with green. Legs: mostly dark blue, with dark gray."
 - Colors outside the palette: Red 182, Green 96, Blue 38 is "brown", and a half-transparent green is "green, 50% opaque".
+- Replace, with red as the paint color: "Replaced green with red on the whole skin. 480 pixels changed." Its list starts "green: 480 pixels", "tan: 474 pixels".
 
 ### Checked
 
-- 111 automated tests (Vitest, Testing Library): layout counts and positions, color names, every editing command, undo, the 3D camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
-- 29 browser checks (Playwright, axe-core 4.14) in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux, and against the live site. axe found no WCAG 2.2 A or AA violations and no best practice violations in the light theme, the dark theme, an emulated Windows contrast theme, two made-up test languages (one about 40% longer, one right to left), and with error messages and other options showing. No scan had results that axe leaves for a person to review.
+- 119 automated tests (Vitest, Testing Library): layout counts and positions, color names, every editing command, undo, the 3D camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
+- 29 browser checks (Playwright, axe-core 4.14) in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux, and against the live site. axe found no WCAG 2.2 A or AA violations, no violations of its AAA rules such as 7:1 text contrast, and no best practice violations in the light theme, the dark theme, an emulated Windows contrast theme, two made-up test languages (one about 40% longer, one right to left), and with error messages and other options showing. No scan had results that axe leaves for a person to review.
 - In the same checks: the page reflows at 320 CSS pixels wide with no sideways scrolling, at every pixel size and with a wide font. WCAG 1.4.12 text spacing cuts off no text. The page follows a 24 pixel browser font size.
 - Every Tab stop shows a focus ring, every control is at least 24 by 24 CSS pixels, and the grid is one Tab stop.
 - The browser's accessibility tree has a grid named "Head, front, base layer" with cells named like "dark brown, row 1, column 1".
@@ -163,10 +192,11 @@ Real output for the sample skin:
 - The 3D model turns with the View and Angle choices or by dragging, stays where a drag leaves it, doesn't animate when reduced motion is on, shows new paint at once, and turns to the side being edited. Pointing at it names the spot, and a click opens that pixel in the grid.
 - The site ships the license text of every open source package in it.
 - The engineering pass is checked too: the exact Content Security Policy, with no violations; a downloaded skin opening with every pixel the same; flat pictures with a note when the 3D model fails or its graphics reset; saving when the page is hidden; no layout shift while the 3D model loads; and the 3D model's true colors.
-- 45 bugs were planted one at a time in the final code, one for each protected behavior: 34 from earlier passes and 11 for the code-quality pass. The tests caught all 45, and both of the 2 planted later for the P key.
-- Contrast in light and dark themes: every pair passes. The lowest is 3.15 to 1 (border on background, light theme), above the 3 to 1 minimum.
+- 45 bugs were planted one at a time in the final code, one for each protected behavior: 34 from earlier passes and 11 for the code-quality pass. The tests caught all 45, both of the 2 planted later for the P key, and all 12 planted for Replace and the checker fixes.
+- Contrast in light and dark themes: every pair passes. The lowest is 3.15 to 1 (border on background, light theme), above the 3 to 1 minimum. All text is at least 7 to 1.
 - Save and reopen: 4,095 of 4,096 pixels came back exactly. The one half-transparent pixel was off by 1, which [MDN](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData) explains: such pixels "might be returned to an equivalent getImageData() as different values".
-- GitHub Actions runs the 111 tests, the 29 browser checks, ESLint and a Prettier formatting check on every change, and publishes the site only when they pass.
+- GitHub Actions runs the 119 tests, the 29 browser checks, ESLint and a Prettier formatting check on every change, and publishes the site only when they pass.
+- Eight accessibility checkers on November 9, 2026, described above under Accessibility checker audit.
 
 ### Not checked
 
@@ -187,7 +217,7 @@ Real output for the sample skin:
 - **Color names.** The prototype's names are simpler than React Aria's. Whether players find either set useful is untested.
 - **Touch (untested).** VoiceOver on iOS and TalkBack move by swipe, which may be slow across 96 cells.
 - **Speech recognition (untested).** Buttons have visible names that people can say. Pixels have no visible labels, so how a Voice Access or Dragon user reaches one is unknown.
-- **Pixel by pixel, or higher level?** Players may prefer tools such as "recolor everything that's dark brown" or ready-made parts. The wiki notes that skin programs may offer "a wide variety of pre-made selections (such as hats, boots, sweaters, etc.)" ([Minecraft Wiki](https://minecraft.wiki/w/Skin)). Ask players.
+- **Pixel by pixel, or higher level?** The prototype now has Replace, which changes every pixel of one color at once. Players may also want ready-made parts: the wiki notes that skin programs may offer "a wide variety of pre-made selections (such as hats, boots, sweaters, etc.)" ([Minecraft Wiki](https://minecraft.wiki/w/Skin)). Ask players.
 
 ## Suggested next steps
 
@@ -197,7 +227,8 @@ Real output for the sample skin:
 2. Test with NVDA (Firefox, Chrome), JAWS (Chrome), Narrator (Edge), VoiceOver (Safari on macOS and iOS) and TalkBack (Chrome on Android).
 3. Test keyboard only, speech recognition, real Windows contrast themes and 400% browser zoom, in Firefox and Safari too.
 4. Keep the automated checks running on every change, knowing that "many accessibility problems can only be discovered through manual testing" ([Playwright](https://playwright.dev/docs/accessibility-testing)).
-5. Prototype recolor by color (change every dark brown pixel at once) and compare it with pixel editing in the player sessions.
+5. Compare Replace with pixel editing in the player sessions, and ask which other bigger tools players want.
+6. Later, try showing a side on a refreshable tactile display, since pixel art on a pin array was "clear and comprehensible to tactile readers" ([Bhatnagar et al.](https://doi.org/10.1145/3563657.3596044)).
 
 ## Sources
 
@@ -222,3 +253,10 @@ Real output for the sample skin:
 - [Playwright, Accessibility testing](https://playwright.dev/docs/accessibility-testing).
 - NVDA 2026.3 source: [speech.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/speech/speech.py#L2105-L2123); [configSpec.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/config/configSpec.py#L271). Freedom Scientific, [JAWS issue 587](https://github.com/FreedomScientific/standards-support/issues/587).
 - Skin editor comparisons: [VGKami, October 27, 2026](https://vgkami.com/best-minecraft-skin-editors-2026-free-tools-to-make-your-own-skin/); [BlockSkinLab, October 25, 2026](https://www.blockskinlab.com/blog/best-free-minecraft-skin-editors/); [Blockbench issue search](https://github.com/JannisX11/blockbench/issues?q=is%3Aissue%20screen%20reader).
+- Minecraft: [What is a Minecraft Skin?](https://www.minecraft.net/en-us/article/what-is-minecraft-skin); [Make a Custom Skin in Minecraft: Java Edition](https://help.minecraft.net/hc/articles/4408894664461); [Feedback post, choose skin accessibility, August 15, 2019](https://feedback.minecraft.net/hc/en-us/community/posts/360048769871). Minecraft Wiki: [Narrator](https://minecraft.wiki/w/Narrator).
+- GNOME Discourse: [Gimp accessibility for screen readers](https://discourse.gnome.org/t/gimp-accessibility-for-screen-readers/14631), March 2023.
+- Zhang et al. ["It's Just Part of Me:" Understanding Avatar Diversity and Self-presentation of People with Disabilities in Social Virtual Reality](https://doi.org/10.1145/3517428.3544829). ASSETS 2022.
+- Kim, Oskiper, Follmer, Hofmann. [Beyond Being Accurate: Implications for Using Natural Language Descriptions for Accessible 3D Modeling with Blind and Low Vision Makers](https://arxiv.org/abs/2610.35562). arXiv, October 2026.
+- Bhatnagar et al. [Pixelated Interactions: Exploring Pixel Art for Graphical Primitives on a Pin Array Tactile Display](https://doi.org/10.1145/3563657.3596044). DIS 2023.
+- W3C, [HTML Accessibility API Mappings, form](https://www.w3.org/TR/html-aam-1.0/#el-form).
+- Accessibility checkers: [Lighthouse](https://developer.chrome.com/docs/lighthouse/overview); [axe-core](https://github.com/dequelabs/axe-core); [Siteimprove Alfa](https://github.com/Siteimprove/alfa); [IBM Equal Access](https://github.com/IBMa/equal-access); [HTML_CodeSniffer](https://squizlabs.github.io/HTML_CodeSniffer/); [W3C Nu HTML Checker](https://validator.w3.org/nu/); [WAVE](https://wave.webaim.org/); [AudioEye](https://www.audioeye.com/website-accessibility-checker/).

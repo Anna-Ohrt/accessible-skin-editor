@@ -49,6 +49,21 @@ export function colorNamer(i18n, palette, names, { sayHex = false } = {}) {
   }
 }
 
+// The colors on the skin as offered for replacing. Shades that share a name, like two called "blue",
+// also say their hex codes, so each choice sounds different.
+export function colorChoices(i18n, counts, nameOf) {
+  const uses = new Map()
+  for (const { color } of counts) uses.set(nameOf(color), (uses.get(nameOf(color)) ?? 0) + 1)
+  return counts.map(({ color, count }) => {
+    const name = nameOf(color)
+    return {
+      color,
+      count,
+      name: uses.get(name) > 1 ? i18n.t('color.withHex', { color: name, hex: toHex(color) }) : name,
+    }
+  })
+}
+
 // "Head, front, base layer"
 export function faceLabel(i18n, { partId, sideId, layerId }) {
   return i18n.t('face.label', {
@@ -95,8 +110,13 @@ export function describeView(i18n, view, nameOf) {
 }
 
 // A message kept as an id and values, in the editor's language. A side among the values, like the
-// one a copy went to, is named.
-export function messageText(i18n, { id, values }, extra) {
-  const { target, ...rest } = values ?? {}
-  return i18n.t(id, { ...extra, ...rest, ...(target && { target: faceLabel(i18n, target) }) })
+// one a copy went to, is named, and so is a color a replace changed.
+export function messageText(i18n, { id, values }, extra, nameOf) {
+  const { target, oldColor, ...rest } = values ?? {}
+  return i18n.t(id, {
+    ...extra,
+    ...rest,
+    ...(target && { target: faceLabel(i18n, target) }),
+    ...(oldColor !== undefined && { oldColor: nameOf(oldColor) }),
+  })
 }

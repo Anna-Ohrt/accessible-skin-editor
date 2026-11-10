@@ -27,6 +27,7 @@ With a mouse or touch, drag the 3D model to turn it. Pointing at it names the si
 | Hex codes are hard to listen to | Every color has a name for how it looks, like "dark brown", and you can rename any color | |
 | Changes happen without focus moving | One visible `role="status"` message reports every action, like "Filled 42 pixels with dark brown." | WCAG 4.1.3 |
 | Drawing usually means dragging | Every drag has another way: click a pixel, Shift+arrow, fill, mirror, or copy a side | WCAG 2.5.7 |
+| Changing a color used all over, like a shirt's, means painting side after side | Replace swaps one color for the paint color on every side and both layers in one step, and says how many pixels changed. The list of colors on the skin gives each one's pixel count | |
 | A mis-tap paints the wrong pixel | A click paints when you let go, so sliding off first cancels it, and everything can be undone | WCAG 2.5.2 |
 | Pixels are small | Pixel size from 24 to 48 CSS pixels | WCAG 2.5.8 |
 | Letter shortcuts can clash with screen readers and typing | They only work while a pixel has focus | WCAG 2.1.4 |
@@ -43,9 +44,10 @@ With a mouse or touch, drag the 3D model to turn it. Pointing at it names the si
 | Letter shortcuts on keyboards for other scripts | With a Russian or Greek keyboard, F, I, R, C, P and Ctrl+Z still work, found by the key's position | |
 | Screen readers differ on positions in a grid | Each pixel's name includes its row and column, because JAWS doesn't say them in a grid ([open report](https://github.com/FreedomScientific/standards-support/issues/587)). NVDA says the row or column itself when it changes, so P leaves the editor's out | |
 | Some people need more contrast | When the system asks for more contrast, text, borders and grid lines get full strength, and disabled buttons get a dashed border | |
+| Gray text and links can be hard to read | All text is at least 7:1 against its background in the light and dark themes | WCAG 1.4.6 (AAA) |
 | Screen readers need to know the language | The page's `lang` and `dir` follow the language it's shown in | WCAG 3.1.1 |
 
-Settings let you leave out the row and column (so does P in the pixels), add hex codes, hide grid lines and change the pixel size. The work and the settings are saved in the browser.
+Settings let you leave out the row and column (so does P in the pixels), add hex codes, hide grid lines and change the pixel size. The work and the settings are saved in the browser. Under File, a link goes to Minecraft Help's steps for wearing the skin in Java Edition.
 
 ## Engineering
 
@@ -106,9 +108,9 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 
 [TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
 
-- **111 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
+- **119 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, messages and languages, PNG checks, and saving.
 - **29 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
-  - axe found no WCAG 2.2 A or AA violations, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, and with error messages and other options showing.
+  - axe found no WCAG 2.2 A or AA violations, no violations of its level AAA rules, such as 7:1 text contrast, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, and with error messages and other options showing.
   - The page reflows at 320 CSS pixels wide, with the default font, a wide one, and both made-up languages. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
   - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
   - The browser's accessibility tree has a named grid of named cells.
@@ -117,7 +119,8 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
   - The checks under Engineering: the policy, the one-file copy, a downloaded skin opening with every pixel the same, a reset or missing 3D model, saving when the page is hidden, and layout shift.
   - The site ships the license text of every open source package in it.
 - **ESLint** with the jsx-a11y accessibility rules (strict set), the React Hooks rules including the React Compiler's checks, the Fast Refresh rule from Vite's React template, and strict equality, `const` and no `var`. **Prettier** checks the formatting.
-- **45 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45, and both of the 2 planted later for the P key.
+- **8 accessibility checkers**, on November 9, 2026: Lighthouse, axe-core with every rule, Siteimprove Alfa, IBM Equal Access, HTML_CodeSniffer, the W3C HTML checker, WAVE and AudioEye. Six reported no WCAG A or AA failures; IBM and AudioEye reported a few under level A criteria. The findings led to darker gray text, links and error text, a caption for the shortcuts table, the skip link inside the header, and a footer link named by where it goes. [TESTING.md](TESTING.md) lists every finding, including the false positives and why.
+- **45 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45, both of the 2 planted later for the P key, and all 12 planted for Replace and the checker fixes.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
 ## Not done yet
@@ -153,7 +156,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180. Add `?lang=en-XA` or `?lang=ar-XB` to the address for the made-up languages |
-| `npm test` | Runs the 111 tests |
+| `npm test` | Runs the 119 tests |
 | `npm run test:e2e` | Runs the 29 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
 | `npm run lint` | Runs ESLint |
 | `npm run format` | Formats the code with Prettier. `npm run format:check` only checks it |
@@ -169,7 +172,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/i18n/pseudo.js` | The two made-up languages for testing |
 | `src/skin/layout.js` | Where each body part, side and layer is in the texture |
 | `src/skin/color.js` | Color storage, hex codes, and sorting a color into the parts of its name |
-| `src/skin/pixels.js` | Painting, fill, mirror, copy, counting colors, and the sample skin and colors |
+| `src/skin/pixels.js` | Painting, fill, mirror, copy, replacing a color, counting colors, and the sample skin and colors |
 | `src/skin/views.js` | The flat preview from four sides, and what its description says |
 | `src/skin/camera.js` | The 3D model's camera math, and the ray from the camera through the pointer |
 | `src/skin/model.js` | The 3D character: its boxes, how the skin wraps them, and which side and pixel a ray lands on |
@@ -179,13 +182,14 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/components/skinScene.js` | The Babylon.js scene: the character, its texture and outline, the camera, and turning |
 | `src/components/pointer.js` | Tells a click from a drag, and reports hovering once a frame |
 | `src/components/fields.jsx` | Radio buttons, checkboxes and menus shared by the panels |
+| `src/components/Tools.jsx`, `ReplaceColor.jsx` | Tools for the whole side, and replacing a color on the whole skin |
 | `src/components/canvas.js` | Drawing pixels on a canvas, and checking for WebGL |
 | `src/components/Preview.jsx` | The choice of 3D model or flat pictures, with View and Angle, and what happens when 3D fails |
 | `src/components/ErrorBoundary.jsx`, `CrashNotice.jsx` | What shows if the editor stops with an error |
 | `src/App.jsx` | Puts it together, and says what happened after each action |
 | `src/editor/edits.js` | Every editing command, as a pure function |
 | `src/editor/` | Also undo history, settings, saving, and the hooks for the palette, saving and the status message |
-| `tests/` | The 111 Vitest tests |
+| `tests/` | The 119 Vitest tests |
 | `e2e/` | The 29 browser checks: accessibility, languages, and security, reliability and performance |
 | `vite.config.js` | The build, the Content Security Policy and the third-party notices |
 | `TESTING.md` | What has been tested, and how to test with screen readers and players |

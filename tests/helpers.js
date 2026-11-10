@@ -11,9 +11,9 @@ export function pngHeader(width, height) {
 }
 
 // Plain English in the page's text or accessible names, which in en-XA means text that skipped the messages.
-// It's self-contained so Playwright can run it in the page. Names, addresses and Intl's " and " are allowed.
+// It's self-contained so Playwright can run it in the page. Names and Intl's " and " are allowed.
 export function findUntranslated() {
-  const allowed = ['Anna Ohrt', 'github.com/Anna-Ohrt/accessible-skin-editor', 'skin.png', ' and ']
+  const allowed = ['Anna Ohrt', 'skin.png', ' and ']
   const english = (text) => /[A-Za-z]{2,}/.test(allowed.reduce((rest, word) => rest.replaceAll(word, ' '), text))
   const texts = [document.title]
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)

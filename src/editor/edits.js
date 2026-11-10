@@ -5,11 +5,13 @@ import {
   countSeeThrough,
   createPlainSkin,
   createSampleSkin,
+  faceValues,
   fillFace,
   floodFill,
   getCell,
   mirrorFace,
   paintCells,
+  replaceColor,
 } from '../skin/pixels.js'
 
 // A plan is a message to announce, and for a real change, a function from the current pixels to the
@@ -74,6 +76,19 @@ export function planEdit(action, { pixels, face, model, color }) {
       const label = { id: 'action.copying', values: { target } }
       const id = flip ? 'status.copiedFlipped' : 'status.copied'
       return change((current) => copyFace(current, face, target, { flip }), label, id, { target })
+    }
+    // Every side and both layers, so a color used all over, like a shirt's, changes in one step.
+    case 'replace': {
+      const { from } = action
+      if (from === color) return say('status.replaceSame')
+      const faces = allFaces(model)
+      const { count } = replaceColor(pixels, faces, from, color)
+      if (count === 0) return say('status.replaceNone', { oldColor: from })
+      const onBase = faces.some((item) => item.layerId === 'base' && faceValues(pixels, item).includes(from))
+      if (onBase && !isOpaque(color)) return refuse('status.plainNeedsSolid')
+      const label = { id: 'action.replacing', values: { count } }
+      const apply = (current) => replaceColor(current, faces, from, color).pixels
+      return change(apply, label, 'status.replaced', { count, oldColor: from })
     }
     case 'open': {
       const { skin, file } = action

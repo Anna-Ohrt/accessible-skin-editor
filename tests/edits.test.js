@@ -64,6 +64,37 @@ describe('editing commands', () => {
     expect(result.message).toEqual({ id: 'status.copiedFlipped', values: { target } })
   })
 
+  it('replaces a color on every side and layer of the model, keeping the color it replaced for the message', () => {
+    const shirt = getCell(createSampleSkin(), getFace('body', 'front', 'base'), 0, 0)
+    const pixels = paintCells(createSampleSkin(), hat, [{ col: 0, row: 0 }], shirt)
+    const result = plan({ type: 'replace', from: shirt }, { pixels })
+    expect(result.label).toEqual({ id: 'action.replacing', values: { count: 481 } })
+    expect(result.message).toEqual({ id: 'status.replaced', values: { count: 481, oldColor: shirt } })
+    const replaced = result.change(pixels)
+    expect(getCell(replaced, getFace('leftArm', 'back', 'base'), 0, 0)).toBe(red)
+    expect(getCell(replaced, hat, 0, 0)).toBe(red)
+    expect(planEdit({ type: 'replace', from: shirt }, { pixels, model: 'slim', color: red }).message.values.count).toBe(
+      465,
+    )
+  })
+
+  it('says why a replace changes nothing, and keeps the base layer solid', () => {
+    const shirt = getCell(createSampleSkin(), getFace('body', 'front', 'base'), 0, 0)
+    expect(plan({ type: 'replace', from: red }).message).toEqual({ id: 'status.replaceSame' })
+    expect(plan({ type: 'replace', from: rgba(1, 2, 3) }).message).toEqual({
+      id: 'status.replaceNone',
+      values: { oldColor: rgba(1, 2, 3) },
+    })
+    expect(plan({ type: 'replace', from: shirt }, { color: glass })).toEqual({
+      message: { id: 'status.plainNeedsSolid' },
+      refused: true,
+    })
+    const onlyOuter = paintCells(createSampleSkin(), hat, [{ col: 0, row: 0 }], rgba(1, 2, 3))
+    expect(plan({ type: 'replace', from: rgba(1, 2, 3) }, { pixels: onlyOuter, color: glass }).change).toBeTypeOf(
+      'function',
+    )
+  })
+
   it('opens a skin as one undo step, counting see-through pixels in the base layer', () => {
     const skin = paintCells(createSampleSkin(), head, [{ col: 0, row: 0 }], glass)
     const result = plan({ type: 'open', skin, file: 'mine.png' })

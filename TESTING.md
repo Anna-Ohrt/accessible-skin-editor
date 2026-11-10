@@ -1,6 +1,6 @@
 # Accessibility testing
 
-What has been tested, what that can't tell you, and what to do next. Status on November 3, 2026.
+What has been tested, what that can't tell you, and what to do next. Status on November 9, 2026.
 
 **In short:** the automated and code checks are done and pass. Testing with real screen readers has only had a first try, with NVDA, and testing with blind and low vision players hasn't started. That's the most important next step.
 
@@ -10,7 +10,7 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 111 component tests
+### 2. 119 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
@@ -19,6 +19,8 @@ These run with Vitest and Testing Library on every change. They find things the 
 - P leaves the row and column out of the pixel names and puts them back, and focus stays on the pixel.
 - The status message after each action, like "Painted green." and "Nothing to undo.", with the right plural: "1 pixel is", "2 pixels are". Shift+arrow painting and drags show their result in the pixels' names rather than repeating it, but still say why when they can't paint.
 - Every editing command on its own: what it changes, its undo label and its message, and when it refuses or changes nothing.
+- Replace: the colors on the skin, most first, with their pixel counts and without transparent; hex codes added only when two shades share a name; one undo step for the whole skin; and a see-through color refused where the color is on the base layer.
+- The skip link is inside the header's banner landmark, the shortcuts table is named by its caption, and links are named by where they go.
 - Error messages: they're announced, the field is marked invalid, and focus moves to it. That includes a color name over 40 characters.
 - A screen reader's click, which has no pointer events, still paints.
 - Mouse painting happens on release, sliding off cancels it, and a drag undoes in one step.
@@ -39,7 +41,7 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 
 | Check | Result | Standard |
 | --- | --- | --- |
-| axe-core 4.14 scan in the light theme, the dark theme, and with error messages and other options showing | No violations, and nothing left for a person to review | Automated WCAG 2.2 A and AA rules, plus best practices |
+| axe-core 4.14 scan in the light theme, the dark theme, and with error messages and other options showing | No violations, and nothing left for a person to review | Automated WCAG 2.2 A and AA rules, axe's level AAA rules such as 7:1 text contrast, plus best practices |
 | Windows contrast theme (emulated) | Pixels keep their colors, the focus ring uses the system highlight, disabled buttons use the system's gray, and axe finds no violations | |
 | 320 CSS pixels wide, like 400% zoom, with the default font and a wide one, at every pixel size | No sideways scrolling | 1.4.10 Reflow |
 | Larger line, letter, word and paragraph spacing | No text cut off | 1.4.12 Text Spacing |
@@ -69,9 +71,11 @@ Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier
 
 After the code-quality pass, the 35 from the review on were planted again in the rewritten code. Two of them were the same bug, so 34 remain, and 11 more cover the new structure: the editing commands, telling clicks from drags, the grid's cursor, and saving when the editor closes. The tests caught all 45, and both of the 2 planted later for the P key. Two tests were changed first, because they couldn't have caught two of the new bugs: the drag test turned the model exactly 90 degrees, which can't show whether it snaps to the nearest view, so it now turns 80, and a new test drags with a see-through color on the base layer.
 
+For Replace and the checker fixes, 12 more were planted, such as a replace that changes only one side, transparent offered as a color, the skip link outside the header, and each of the three darker colors put back. The tests caught all 12.
+
 ### 5. Checks by hand in a browser
 
-- Text and control contrast in the light and dark themes, worked out from the colors: every pair passes, and the lowest is 3.15 to 1 (border on background, light theme), above the 3 to 1 minimum.
+- Text and control contrast in the light and dark themes, worked out from the colors: every pair passes, and the lowest is 3.15 to 1 (border on background, light theme), above the 3 to 1 minimum. All text is at least 7 to 1, WCAG's AAA level.
 - The focus ring shows on white and on dark pixels.
 - Screenshots of the light theme, dark theme, emulated contrast theme and 320 pixel width were looked at.
 - Saving and reopening a PNG: 4,095 of 4,096 pixels came back exactly; the one half-transparent pixel was off by 1.
@@ -82,6 +86,32 @@ After the code-quality pass, the 35 from the review on were planted again in the
 On November 3, 2026, moving through the pixels with NVDA 2026.3 read the column number twice. NVDA's source code shows why. With its default settings, NVDA says the row or column number itself whenever it changes, right after the cell's name ([speech.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/speech/speech.py#L2105-L2123), [configSpec.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/config/configSpec.py#L271)). The pixel names already end with the row and column, so moving right reads "dark brown, row 1, column 2, column 2", and moving down repeats the row the same way.
 
 JAWS is the opposite. An open report on Freedom Scientific's tracker, last confirmed with JAWS 2022, says JAWS reads only the cell's contents while arrowing through a grid ([issue 587](https://github.com/FreedomScientific/standards-support/issues/587)). So the pixel names keep the row and column by default, and P, pressed in the pixels, leaves them out or puts them back.
+
+### 7. Eight accessibility checkers
+
+On November 9, 2026, the live site went through eight checkers, each with its own rules. Lighthouse, axe, Alfa, HTML_CodeSniffer, the W3C checker and WAVE reported no WCAG A or AA failures. IBM Equal Access and AudioEye reported some findings under WCAG level A criteria; each one is below, with what changed or why nothing did.
+
+| Checker | What it found | What changed |
+| --- | --- | --- |
+| Lighthouse 13.6, run in Edge because PageSpeed Insights was returning errors | Accessibility score 100 on mobile and desktop | |
+| axe-core 4.14 with every rule, including experimental and AAA ones | In the light theme, gray text (6.86 to 1), links (5.35 to 1) and error messages (6.53 to 1) were under AAA's 7 to 1 contrast | Darker colors, all at least 7.18 to 1. The browser checks now include axe's AAA rules |
+| Siteimprove Alfa | The same AAA contrast. Pixels are 32 CSS pixels by default, under AAA's 44 | Contrast fixed. Pixel size kept: 32 fits a phone, and 48 is in Settings |
+| IBM Equal Access | The skip link was outside any landmark | The skip link moved into the header |
+| HTML_CodeSniffer, WCAG 2 AA | The shortcuts table had no caption | It has the caption "Keys for the pixel grid" |
+| W3C HTML checker, on the page as rendered | No errors, so no nested interactive elements or misused ARIA | |
+| WAVE | The main site loads blank in WAVE, because WAVE serves its own copy of the page and the site's Content Security Policy blocks its scripts. On the one-file copy: 0 errors, 0 contrast errors, and 1 alert, for the `<noscript>` message | |
+| AudioEye | The footer link was named by its address, "github.com/Anna-Ohrt/accessible-skin-editor", and the shortcuts table had no caption | The link says "Code and research on GitHub" |
+
+Some findings were false positives, so nothing changed for them:
+
+- **AudioEye's nested interactive element.** Its own fix script made it. AudioEye added `role="button"` to a box whose only child is a button, which on this page is the box around "Fill this side with black", and then flagged the button inside. The editor has no `role="button"` anywhere. If AudioEye's script ever ran on the site, that fix would create the problem for real.
+- **AudioEye's other reports:** a missing caption for the pixel grid, which is an ARIA grid named by `aria-label`, not a table; a missing skip link, though there is one; a download warning for the license file, which opens in the browser; and an unclear name for "Download skin.png".
+- **IBM's unnamed forms.** IBM lists the forms under WCAG 1.3.1, because their names aren't unique, as if they were landmarks. But the HTML accessibility mappings say "If a form has no accessible name, do not expose the element as a landmark" ([HTML-AAM](https://www.w3.org/TR/html-aam-1.0/#el-form)). It also calls `http-equiv` deprecated, but the page uses it for the Content Security Policy, which HTML allows.
+- **HTML_CodeSniffer's other warnings** ask a person to check: menus without a value in the HTML (React sets it from script), menus that could use groups, and footer links that could be a list.
+
+IBM, Alfa and HTML_CodeSniffer also list items only a person can judge, like whether focus is visible. The browser checks and the checks by hand cover those.
+
+After the changes, the five checkers that run inside the page (axe, Alfa, IBM, HTML_CodeSniffer and the W3C checker) were run again on the new build. The findings above were gone, and no new kind of finding appeared. The warnings about menus, focus and unnamed forms now also count the new Replace menu, button and form.
 
 ## What these checks can't tell you
 
@@ -116,7 +146,8 @@ Use the same tasks with every screen reader, and later with players:
 4. Make a mistake and undo it.
 5. Give the character a red hat: paint the top of the head on the outer layer.
 6. Check what the back of the character looks like, using the Preview.
-7. Download the skin.
+7. Change the shirt from green to purple everywhere at once.
+8. Download the skin, and find out how to wear it in Minecraft.
 
 For each task, write down whether it got done, how long it took, and anything the screen reader said that was confusing, missing or said twice.
 
@@ -152,7 +183,7 @@ This is the most important step, because only players can say whether this way o
 
 - Find players who use screen readers every day, ideally Minecraft players. [Fable](https://makeitfable.com/) connects teams with "a vetted community of people with disabilities", and [AbleGamers](https://ablegamers.org/player-panels/) runs a Player Panel Program.
 - Give them the tasks above, ask them to think aloud, and only help if they're stuck.
-- Ask whether they'd rather paint pixel by pixel or use bigger tools, like changing every dark brown pixel at once.
+- Ask whether Replace, which changes every pixel of one color at once, helps, and what other bigger tools they'd want, like ready-made parts.
 - Ask sighted and low vision players to find and fix a spot by clicking the 3D model, then by using the menus, and which felt easier.
 
 ### 5. Keep the automated checks running

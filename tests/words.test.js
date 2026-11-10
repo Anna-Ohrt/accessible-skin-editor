@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createI18n } from '../src/i18n/index.js'
 import {
+  colorChoices,
   colorName,
   colorNamer,
   describeFace,
@@ -92,6 +93,20 @@ describe('color names', () => {
     expect(colorNamer(en, palette, names)(parseHex('#ff0000'))).toBe('red')
     expect(colorNamer(en, palette, names, { sayHex: true })(0)).toBe('transparent')
   })
+
+  it('offers colors to replace by name, adding hex codes only where two shades share a name', () => {
+    const nameOf = colorNamer(en, [], new Map())
+    const counts = [
+      { color: parseHex('#3b5fcd'), count: 3 },
+      { color: parseHex('#000000'), count: 2 },
+      { color: parseHex('#3355dd'), count: 1 },
+    ]
+    expect(colorChoices(en, counts, nameOf)).toEqual([
+      { color: parseHex('#3b5fcd'), count: 3, name: 'blue, #3b5fcd' },
+      { color: parseHex('#000000'), count: 2, name: 'black' },
+      { color: parseHex('#3355dd'), count: 1, name: 'blue, #3355dd' },
+    ])
+  })
 })
 
 describe('sides', () => {
@@ -162,5 +177,12 @@ describe('lines, sides and views in words', () => {
     const target = getFace('head', 'back', 'base')
     expect(messageText(en, { id: 'action.copying', values: { target } })).toBe('copying to Head, back, base layer')
     expect(messageText(en, { id: 'status.filledSide', values: { count: 64 } }, { color: 'red' })).toMatch(/red/)
+  })
+
+  it('names the color a replace changed, when the message is said', () => {
+    const message = { id: 'status.replaced', values: { count: 480, oldColor: rgba(47, 143, 107) } }
+    expect(messageText(en, message, { color: 'red' }, sampleNameOf)).toBe(
+      'Replaced green with red on the whole skin. 480 pixels changed.',
+    )
   })
 })

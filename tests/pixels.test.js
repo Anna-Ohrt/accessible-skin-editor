@@ -5,6 +5,7 @@ import {
   SAMPLE_COLORS,
   copyFace,
   countByName,
+  countColors,
   countSeeThrough,
   createSamplePalette,
   createSampleSkin,
@@ -14,6 +15,7 @@ import {
   getCell,
   mirrorFace,
   paintCells,
+  replaceColor,
   rowOf,
   runsOf,
 } from '../src/skin/pixels.js'
@@ -90,6 +92,32 @@ describe('pixel operations', () => {
     pixels = paintCells(pixels, headFront, [{ col: 0, row: 0 }], rgba(1, 2, 3, 128))
     expect(countSeeThrough(pixels, [headFront])).toBe(1)
     expect(countSeeThrough(pixels, [headFront, hat])).toBe(65)
+  })
+
+  it('replaces one color on every side and layer it is given, and leaves the rest alone', () => {
+    const hat = getFace('head', 'front', 'outer')
+    let pixels = fillFace(createSkin(), headFront, A).pixels
+    pixels = fillFace(pixels, headLeft, A).pixels
+    pixels = paintCells(pixels, hat, [{ col: 0, row: 0 }], A)
+    pixels = paintCells(pixels, headFront, [{ col: 0, row: 0 }], C)
+    const result = replaceColor(pixels, [headFront, hat], A, B)
+    expect(result.count).toBe(64)
+    expect(getCell(result.pixels, headFront, 1, 0)).toBe(B)
+    expect(getCell(result.pixels, hat, 0, 0)).toBe(B)
+    expect(getCell(result.pixels, headFront, 0, 0)).toBe(C)
+    expect(getCell(result.pixels, headLeft, 0, 0)).toBe(A)
+    expect(replaceColor(pixels, [headFront], B, A)).toEqual({ pixels, count: 0 })
+  })
+
+  it('counts each color on the skin, most first, leaving out transparent pixels', () => {
+    const counts = countColors(createSampleSkin(), allFaces('classic'))
+    expect(counts.slice(0, 2)).toEqual([
+      { color: SAMPLE_COLORS.shirt, count: 480 },
+      { color: SAMPLE_COLORS.skin, count: 474 },
+    ])
+    expect(counts).toHaveLength(8)
+    expect(counts.reduce((total, { count }) => total + count, 0)).toBe(1632)
+    expect(countColors(createSampleSkin(), allFaces('slim'))[0]).toEqual({ color: SAMPLE_COLORS.shirt, count: 464 })
   })
 
   it('starts with a sample skin whose base layer is solid and outer layer is empty', () => {

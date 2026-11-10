@@ -1,8 +1,9 @@
 import { test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-// WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe-core's best practices.
-const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
+// WCAG 2.0, 2.1 and 2.2 at levels A and AA, axe-core's level AAA rules (such as 7:1 text contrast), plus
+// its best practices.
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag2aaa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 
 export const grid = (page) => page.getByRole('grid')
 export const cell = (page, row, col) => grid(page).locator(`[data-row="${row - 1}"][data-col="${col - 1}"]`)

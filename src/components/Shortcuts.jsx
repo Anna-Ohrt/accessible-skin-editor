@@ -41,6 +41,7 @@ export default function Shortcuts() {
     <>
       <p>{t('keys.intro')}</p>
       <table className="shortcuts">
+        <caption>{t('keys.caption')}</caption>
         <thead>
           <tr>
             <th scope="col">{t('keys.keysHeader')}</th>

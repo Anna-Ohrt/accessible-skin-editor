@@ -2,9 +2,12 @@ import { useId } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { SKIN_FILE_NAME } from '../skin/png.js'
 
+const JAVA_SKIN_HELP_URL = 'https://help.minecraft.net/hc/articles/4408894664461'
+
 export default function FilePanel({ error, paintName, onOpen, onDownload, onAction }) {
   const id = useId()
-  const { t } = useI18n()
+  const i18n = useI18n()
+  const { t } = i18n
   return (
     <>
       <div className="field">
@@ -38,6 +41,7 @@ export default function FilePanel({ error, paintName, onOpen, onDownload, onActi
           {t('file.plain', { color: paintName })}
         </button>
       </div>
+      <p className="hint">{i18n.rich('file.useIt', { help: (chunks) => <a href={JAVA_SKIN_HELP_URL}>{chunks}</a> })}</p>
       <p className="hint">{t('file.saved')}</p>
     </>
   )

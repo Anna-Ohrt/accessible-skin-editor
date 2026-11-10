@@ -329,6 +329,41 @@ describe('Skin editor', () => {
     expect(status()).toHaveTextContent('Filled the whole side with tan. 22 pixels changed.')
   })
 
+  it('replaces one color with the paint color on the whole skin, as one undo step', async () => {
+    const { user } = setup()
+    const replace = screen.getByRole('combobox', { name: 'Color to replace on the whole skin' })
+    expect(
+      within(replace)
+        .getAllByRole('option')
+        .map((item) => item.textContent),
+    ).toEqual([
+      'green: 480 pixels',
+      'tan: 474 pixels',
+      'dark blue: 384 pixels',
+      'dark brown: 192 pixels',
+      'dark gray: 96 pixels',
+      'white: 2 pixels',
+      'blue: 2 pixels',
+      'red: 2 pixels',
+    ])
+    await user.click(radio('red'))
+    await user.click(button('Replace green with red'))
+    expect(status()).toHaveTextContent('Replaced green with red on the whole skin. 480 pixels changed.')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Body part' }), 'leftArm')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    expect(within(replace).getAllByRole('option')[0]).toHaveTextContent('red: 482 pixels')
+    expect(button('Replace tan with red')).toBeInTheDocument()
+
+    await user.click(button('Undo'))
+    expect(status()).toHaveTextContent('Undid replacing 480 pixels.')
+    expect(cell(1, 1)).toHaveAccessibleName('green, row 1, column 1')
+    await user.selectOptions(replace, 'red: 2 pixels')
+    await user.click(button('Replace red with red'))
+    expect(status()).toHaveTextContent(
+      'Nothing changed: red is already the paint color. Choose a different paint color first.',
+    )
+  })
+
   it('describes the preview and the side in words', async () => {
     const { user } = setup()
     const front = screen.getByRole('img', { name: 'Front view of the skin' })
@@ -472,5 +507,19 @@ describe('Skin editor', () => {
     expect(
       screen.getByText('Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.'),
     ).toBeInTheDocument()
+  })
+
+  it('keeps the skip link in the banner, captions the shortcuts table, and names links by where they go', () => {
+    setup()
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Skip to the pixels' })).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Keys for the pixel grid' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Code and research on GitHub' })).toHaveAttribute(
+      'href',
+      'https://github.com/Anna-Ohrt/accessible-skin-editor',
+    )
+    expect(screen.getByRole('link', { name: 'Minecraft Help\u2019s steps for changing your skin' })).toHaveAttribute(
+      'href',
+      'https://help.minecraft.net/hc/articles/4408894664461',
+    )
   })
 })

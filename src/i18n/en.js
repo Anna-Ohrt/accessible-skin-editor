@@ -8,7 +8,7 @@ export default {
   'app.disclaimer': 'Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.',
   'app.skip': 'Skip to the pixels',
   'app.footer':
-    'Made by {author}. Code and research: <repo>{repoName}</repo>. Open source software used here, with its licenses: <notices>third-party notices</notices>.',
+    'Made by {author}. <repo>Code and research on GitHub</repo>. Open source software used here, with its licenses: <notices>third-party notices</notices>.',
   'app.crashed':
     'Something went wrong and the editor stopped. Your work is saved in this browser up to your last change.',
   'app.reload': 'Reload the editor',
@@ -136,6 +136,10 @@ export default {
   'status.copyNoChange': 'Nothing changed. {target} already matches.',
   'status.copied': 'Copied this side to {target}.',
   'status.copiedFlipped': 'Copied this side to {target}, flipped.',
+  'status.replaced':
+    'Replaced {oldColor} with {color} on the whole skin. {count, plural, one {# pixel} other {# pixels}} changed.',
+  'status.replaceSame': 'Nothing changed: {color} is already the paint color. Choose a different paint color first.',
+  'status.replaceNone': 'No pixels are {oldColor}, so nothing changed.',
   'status.opened': 'Opened {file}. Undo brings back the skin you had.',
   'status.openedSeeThrough':
     'Opened {file}. {count, plural, one {# base layer pixel is} other {# base layer pixels are}} see-through, but Java Edition makes the base layer fully opaque. Undo brings back the skin you had.',
@@ -156,6 +160,7 @@ export default {
   'action.clearingSide': 'clearing the side',
   'action.mirroring': 'mirroring the {from, select, left {left} other {right}} half',
   'action.copying': 'copying to {target}',
+  'action.replacing': 'replacing {count, plural, one {# pixel} other {# pixels}}',
   'action.opening': 'opening {file}',
   'action.startingOver': 'starting over',
   'action.startingPlain': 'starting a plain skin',
@@ -188,6 +193,9 @@ export default {
   'tools.copyTo': 'Copy this side to',
   'tools.flip': 'Flip it left to right',
   'tools.copy': 'Copy',
+  'tools.replaceLabel': 'Color to replace on the whole skin',
+  'tools.replaceOption': '{color}: {count, plural, one {# pixel} other {# pixels}}',
+  'tools.replace': 'Replace {from} with {color}',
 
   // Preview
   'preview.style': 'Show the skin as',
@@ -227,6 +235,7 @@ export default {
   'file.startOver': 'Start over with the sample skin',
   'file.plain': 'Start a plain skin in {color}',
   'file.saved': 'Your work and settings are saved in this browser as you go.',
+  'file.useIt': 'To wear your skin in Java Edition, follow <help>Minecraft Help’s steps for changing your skin</help>.',
   'file.error.notPng': 'Choose a PNG file. Minecraft skins are PNG images.',
   'file.error.tooBig': 'This file is larger than {max, number} MB, which is too big for a 64 by 64 skin.',
   'file.error.unreadable': "That file couldn't be opened as an image.",
@@ -244,6 +253,7 @@ export default {
   // Keyboard shortcuts. The letter keys stay the same in every language, so they aren't here.
   'keys.intro':
     "These work while a pixel has focus. Letters only work there, so they don't get in the way of typing elsewhere. On a Mac, Command works as Ctrl.",
+  'keys.caption': 'Keys for the pixel grid',
   'keys.keysHeader': 'Keys',
   'keys.actionHeader': 'What they do',
   'keys.arrows': 'Arrow keys',

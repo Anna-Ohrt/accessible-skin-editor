@@ -15,6 +15,7 @@ import FacePicker from './components/FacePicker.jsx'
 import { ColorForms, PaintColors } from './components/Palette.jsx'
 import PixelGrid from './components/PixelGrid.jsx'
 import Tools from './components/Tools.jsx'
+import ReplaceColor from './components/ReplaceColor.jsx'
 import FaceDescription from './components/FaceDescription.jsx'
 import Preview from './components/Preview.jsx'
 import TextureMap from './components/TextureMap.jsx'
@@ -68,7 +69,7 @@ export default function App() {
     const plan = planEdit(action, { pixels, face, model, color: current.color })
     if (plan.change) dispatch({ type: 'apply', change: plan.change, label: plan.label, stroke: action.stroke })
     if (plan.refused || !QUIET_SOURCES.has(action.source)) {
-      announce(messageText(i18n, plan.message, { color: paintName }))
+      announce(messageText(i18n, plan.message, { color: paintName }, nameOf))
     }
   }
 
@@ -164,10 +165,10 @@ export default function App() {
 
   return (
     <>
-      <a className="skip-link" href="#pixels-heading">
-        {t('app.skip')}
-      </a>
       <header className="app-header">
+        <a className="skip-link" href="#pixels-heading">
+          {t('app.skip')}
+        </a>
         <h1>{t('app.title')}</h1>
         <p>{t('app.intro')}</p>
         <p className="disclaimer">{t('app.disclaimer')}</p>
@@ -207,6 +208,14 @@ export default function App() {
               paintName={paintName}
               canUndo={history.past.length > 0}
               canRedo={history.future.length > 0}
+              onAction={handleAction}
+            />
+            <ReplaceColor
+              pixels={pixels}
+              model={model}
+              paint={current.color}
+              paintName={paintName}
+              nameOf={nameOf}
               onAction={handleAction}
             />
           </Panel>
@@ -252,13 +261,7 @@ export default function App() {
         <p>
           {i18n.rich('app.footer', {
             author: 'Anna Ohrt',
-            repoName: REPO_URL.replace('https://', ''),
-            // An address reads left to right in any language.
-            repo: (chunks) => (
-              <a href={REPO_URL} dir="ltr">
-                {chunks}
-              </a>
-            ),
+            repo: (chunks) => <a href={REPO_URL}>{chunks}</a>,
             notices: (chunks) => <a href={NOTICES_URL}>{chunks}</a>,
           })}
         </p>

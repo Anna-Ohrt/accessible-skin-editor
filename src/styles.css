@@ -3,11 +3,13 @@
   --bg: #f4f2ec;
   --surface: #ffffff;
   --text: #1b1b1a;
-  --muted: #55534e;
+  /* Text colors are at least 7:1 on --bg and --surface, WCAG's AAA level. */
+  --muted: #524f4a;
+  --link: #124aa0;
   --border: #8a8886;
   --accent: #2f6b1f;
   --focus: #1a5fc7;
-  --error: #b3261e;
+  --error: #9b2019;
   --grid-line: #767676;
   --checker: conic-gradient(#cfcfcf 25%, #ffffff 0 50%, #cfcfcf 0 75%, #ffffff 0);
   /* 100%, not 16px, so a larger default font size set in the browser still applies. */
@@ -24,6 +26,7 @@
     --surface: #1f1f1f;
     --text: #f2f2f2;
     --muted: #c8c6c0;
+    --link: #8ab4ff;
     --border: #8a8886;
     --accent: #7ccf5a;
     --focus: #8ab4ff;
@@ -90,7 +93,7 @@ body {
 }
 
 a {
-  color: var(--focus);
+  color: var(--link);
 }
 
 .layout {
@@ -158,6 +161,10 @@ a {
 
 .field {
   margin-bottom: 12px;
+}
+
+.panel form + form {
+  margin-top: 16px;
 }
 
 .field label {
@@ -465,6 +472,12 @@ button[aria-disabled='true'] {
   width: 100%;
   font-size: 0.95rem;
   border-collapse: collapse;
+}
+
+.shortcuts caption {
+  padding: 0 6px 4px;
+  font-weight: 600;
+  text-align: start;
 }
 
 .shortcuts th,

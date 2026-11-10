@@ -89,6 +89,34 @@ export function copyFace(pixels, from, to, { flip = false } = {}) {
   return next
 }
 
+// Changes every pixel of one color on these faces to another, like a shirt's color on every side.
+export function replaceColor(pixels, faces, from, to) {
+  let next = pixels
+  let count = 0
+  for (const face of faces) {
+    const cells = []
+    for (let row = 0; row < face.h; row += 1) {
+      for (let col = 0; col < face.w; col += 1) {
+        if (getCell(pixels, face, col, row) === from) cells.push({ col, row })
+      }
+    }
+    count += cells.length
+    next = paintCells(next, face, cells, to)
+  }
+  return { pixels: next, count }
+}
+
+// Each color on these faces that isn't fully transparent, with how many pixels have it, most first.
+export function countColors(pixels, faces) {
+  const counts = new Map()
+  for (const face of faces) {
+    for (const value of faceValues(pixels, face)) {
+      if (alphaOf(value) > 0) counts.set(value, (counts.get(value) ?? 0) + 1)
+    }
+  }
+  return [...counts].map(([color, count]) => ({ color, count })).sort((a, b) => b.count - a.count)
+}
+
 // Groups repeated values: [a, a, b] becomes [{ value: a, count: 2 }, { value: b, count: 1 }].
 export function runsOf(values) {
   const runs = []
