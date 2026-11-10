@@ -35,7 +35,7 @@ With a mouse or touch, drag the 3D model to turn it. Pointing at it names the si
 | Letter shortcuts can clash with screen readers and typing | They only work while a pixel has focus | WCAG 2.1.4 |
 | The focused pixel can be any color | A white ring inside a black ring, visible on any color | WCAG 2.4.7, 1.4.11 |
 | Windows contrast themes replace colors | The pixel art and the face beside the title keep their colors with `forced-color-adjust: none`. Focus, disabled buttons, the message next to the pixel and the Download button use system colors | |
-| Zoom and large text | The page reflows at 320 CSS pixels wide, follows the browser's font size, and two fingers can still zoom over the pixels | WCAG 1.4.4, 1.4.10 |
+| Zoom and large text | The page reflows at 320 CSS pixels wide, follows the browser's font size, and two fingers can still zoom over the pixels. Up to 200% zoom, nothing covers anything else, and every Tab stop shows in full when it has focus | WCAG 1.4.4, 1.4.10, 2.4.11 |
 | With a magnifier or zoom, messages below the grid are out of sight | The row, column and latest message also show next to the focused pixel: beside the grid when there's room, otherwise just below or above the pixel, never over it. Escape hides them until you move, and a setting turns them off | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, WCAG 1.4.13 |
 | Colors can be hard to tell apart | Pointing at a pixel names its color and hex code below the grid, so finding out doesn't take a click, which would paint it | WCAG 1.4.1 |
 | Shapes are hard to hear one row at a time | "This side in words" lists each area of touching pixels of one color, like "red: 2 pixels filling row 7, columns 4 to 5.", and A says the area the focused pixel is in | |
@@ -111,6 +111,7 @@ The page was redesigned on November 10, 2026, without changing what screen reade
 - The pixels sit on a backdrop, with the status message in a bar attached below it. The picture beside the title is the sample character's face, drawn from the sample skin, and hidden from screen readers.
 - Key names in the help and the shortcuts look like keys. They stay inline, so screen readers hear the same words as before.
 - In Windows contrast themes, the message next to the pixel and the Download button, the one filled button, use system colors.
+- With three columns, in a window at least 40rem tall, the side picker stays in view as the page scrolls. With fewer columns, as when zoomed in, or in a shorter window, it scrolls with the page, so it never covers the panels below it. Its two menus share a row when there's room, so above the pixels it takes less space.
 
 ## Software in the site
 
@@ -129,10 +130,11 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 [TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
 
 - **128 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, areas of one color and where the color changes, the message next to the pixel, messages and languages, PNG checks, and saving.
-- **32 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
+- **37 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
   - axe found no WCAG 2.2 A or AA violations, no violations of its level AAA rules, such as 7:1 text contrast, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, with error messages and other options showing, and with the message next to the pixel showing.
   - The page reflows at 320 CSS pixels wide, with the default font, a wide one, text twice as big, and both made-up languages, at every pixel size from 24 to 64, and nothing sticks out of its panel. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
   - At 100%, 200% and 400% zoom, the message next to the focused pixel, showing its row, column and color, stays on screen at all four corners of the body's front and never covers the pixel. When there's room, it sits beside the grid, inside the panel, and on the grid's left in right-to-left pages.
+  - At 175% and 200% zoom of a 1920 by 1080 screen, at 200% of a MacBook Air and in a short, wide window, nothing covers anything else as the page scrolls, no box hides part of what's in it behind its own scrollbar, and every Tab stop shows in full when it has focus (WCAG 2.4.11). With three columns the side picker stays in view, and above the pixels its menus share a row.
   - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
   - The browser's accessibility tree has a named grid of named cells, and Ctrl+arrow and A work in the browser.
   - Pointing names the pixel under the mouse. A click paints on release, sliding off cancels it, and a fast drag paints a gapless line that undoes in one step.
@@ -142,7 +144,8 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 - **ESLint** with the jsx-a11y accessibility rules (strict set), the React Hooks rules including the React Compiler's checks, the Fast Refresh rule from Vite's React template, and strict equality, `const` and no `var`. **Prettier** checks the formatting.
 - **8 accessibility checkers**, on November 9, 2026: Lighthouse, axe-core with every rule, Siteimprove Alfa, IBM Equal Access, HTML_CodeSniffer, the W3C HTML checker, WAVE and AudioEye. Six reported no WCAG A or AA failures; IBM and AudioEye reported a few under level A criteria. The findings led to darker gray text, links and error text, a caption for the shortcuts table, the skip link inside the header, and a footer link named by where it goes. [TESTING.md](TESTING.md) lists every finding, including the false positives and why. After the redesign, the five that run inside the page reported the same findings as on the live site before it, once spaces in the new tab icon's address were encoded, and Lighthouse still scored 100 for accessibility.
 - **Large text and zoom**, measured on November 10, 2026: at 200% and 400% zoom, with pixel sizes 32 and 48 and normal or double text, the status message below the grid was fully on screen at only 8 of 32 positions. The message next to the focused pixel was fully on screen, and clear of the pixel, at all 32.
-- **88 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45, both of the 2 planted later for the P key, all 12 planted for Replace and the checker fixes, all 20 planted for the large text, zoom and keyboard pass, and all 9 planted for the redesign. Two older ones were missed at first in the new layout, so two tests got stricter; [TESTING.md](TESTING.md) has how.
+- **Zoom up to 200%**, measured on November 10, 2026, on 7 screen sizes at 6 zoom levels from 100% to 200%: before, in all 16 of the 42 with two columns, the side picker covered the panels below it, and 17 to 21 of the 41 Tab stops when they had focus. Now nothing covers anything else in any of the 42, or at 175% and 200% in both made-up languages.
+- **93 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor. The tests caught all 45, both of the 2 planted later for the P key, all 12 planted for Replace and the checker fixes, all 20 planted for the large text, zoom and keyboard pass, all 9 planted for the redesign, and all 5 planted for zoom up to 200%. Two older ones were missed at first in the new layout, so two tests got stricter; [TESTING.md](TESTING.md) has how.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
 ## Not done yet
@@ -180,7 +183,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180. Add `?lang=en-XA` or `?lang=ar-XB` to the address for the made-up languages |
 | `npm test` | Runs the 128 tests |
-| `npm run test:e2e` | Runs the 32 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
+| `npm run test:e2e` | Runs the 37 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
 | `npm run lint` | Runs ESLint |
 | `npm run format` | Formats the code with Prettier. `npm run format:check` only checks it |
 | `npm run build:single` | Writes `skin-editor.html`, the one-file copy |
@@ -215,7 +218,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/editor/edits.js` | Every editing command, as a pure function |
 | `src/editor/` | Also undo history, settings, saving, and the hooks for the palette, saving and the status message |
 | `tests/` | The 128 Vitest tests |
-| `e2e/` | The 32 browser checks: accessibility, languages, and security, reliability and performance |
+| `e2e/` | The 37 browser checks: accessibility, zoom, languages, and security, reliability and performance |
 | `vite.config.js` | The build, the Content Security Policy and the third-party notices |
 | `TESTING.md` | What has been tested, and how to test with screen readers and players |
 | `.github/workflows/ci.yml` | Lints, audits and tests, then publishes to GitHub Pages |

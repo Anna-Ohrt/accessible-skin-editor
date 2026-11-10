@@ -176,15 +176,6 @@ a:hover {
   .layout > .column:last-child {
     grid-column: 1 / -1;
   }
-
-  /* The side picker stays in view while the page scrolls. Taller than the window, as with large text, it
-     scrolls by itself. */
-  .layout > .column:first-child {
-    position: sticky;
-    top: 16px;
-    max-height: calc(100vh - 32px);
-    overflow-y: auto;
-  }
 }
 
 @media (min-width: 76rem) {
@@ -194,6 +185,17 @@ a:hover {
 
   .layout > .column:last-child {
     grid-column: auto;
+  }
+}
+
+/* With three columns nothing is below the side picker, so it stays in view while the page scrolls, if the
+   window shows all of it (about 35rem). With two columns or zoomed in, it would cover the panels below. */
+@media (min-width: 76rem) and (min-height: 40rem) {
+  .layout > .column:first-child {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
   }
 }
 
@@ -377,6 +379,23 @@ fieldset > .choice:has(input:disabled) {
   color: var(--muted);
   cursor: not-allowed;
   border-style: dashed;
+}
+
+/* The side picker's two menus sit side by side when there's room, as above the pixels when zoomed in, so the
+   pixels start higher up. Each set of choices gets a whole row, so its labels don't wrap. */
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 24px;
+}
+
+.picker > fieldset {
+  flex: 1 1 100%;
+}
+
+/* Its choices need wider columns than other chips: "Outer layer (right pant leg)" takes 15rem. */
+.picker > fieldset:has(> .choice) {
+  grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
 }
 
 button {

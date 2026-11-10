@@ -5,7 +5,7 @@ import { Choices, SelectField } from './fields.jsx'
 export default function FacePicker({ selection, model, onChange, onModelChange }) {
   const { t } = useI18n()
   return (
-    <>
+    <div className="picker">
       <SelectField
         label={t('picker.part')}
         value={selection.partId}
@@ -33,6 +33,6 @@ export default function FacePicker({ selection, model, onChange, onModelChange }
         value={model}
         onChange={onModelChange}
       />
-    </>
+    </div>
   )
 }

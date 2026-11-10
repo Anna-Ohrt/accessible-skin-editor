@@ -62,6 +62,100 @@ export function overflow(page) {
   })
 }
 
+// Pairs of panels, the header and the footer that cover each other, checked every half window down the page.
+// Only the visible part of each counts, since a box with its own scrollbar clips what's in it.
+export function overlappingPanels(page) {
+  return page.evaluate(async () => {
+    const visible = (element) => {
+      let { left, top, right, bottom } = element.getBoundingClientRect()
+      for (let parent = element.parentElement; parent !== document.body; parent = parent.parentElement) {
+        const style = getComputedStyle(parent)
+        if (style.overflowX === 'visible' && style.overflowY === 'visible') continue
+        const clip = parent.getBoundingClientRect()
+        left = Math.max(left, clip.left)
+        top = Math.max(top, clip.top)
+        right = Math.min(right, clip.right)
+        bottom = Math.min(bottom, clip.bottom)
+      }
+      return { left, top, right, bottom }
+    }
+    const found = new Set()
+    for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight / 2) {
+      scrollTo(0, y)
+      await new Promise(requestAnimationFrame)
+      const boxes = [...document.querySelectorAll('.panel, .app-header, .app-footer')].map((element) => ({
+        name: element.querySelector('h1, h2')?.textContent ?? 'the footer',
+        box: visible(element),
+      }))
+      boxes.forEach((a, index) => {
+        for (const b of boxes.slice(index + 1)) {
+          const across = Math.min(a.box.right, b.box.right) - Math.max(a.box.left, b.box.left)
+          const down = Math.min(a.box.bottom, b.box.bottom) - Math.max(a.box.top, b.box.top)
+          if (across > 1 && down > 1) found.add(`${a.name} and ${b.name}`)
+        }
+      })
+    }
+    scrollTo(0, 0)
+    return [...found]
+  })
+}
+
+// Boxes with their own scrollbar that hide part of what's in them. The pixel grid may scroll sideways.
+export function scrollBoxes(page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll('body *')]
+      .filter((element) => {
+        const style = getComputedStyle(element)
+        const down = /auto|scroll/.test(style.overflowY) && element.scrollHeight > element.clientHeight + 1
+        const across = /auto|scroll/.test(style.overflowX) && element.scrollWidth > element.clientWidth + 1
+        return down || (across && !element.matches('.grid-wrap'))
+      })
+      .map((element) => element.tagName.toLowerCase() + (element.className ? `.${element.className}` : '')),
+  )
+}
+
+// Tabs through the page from the top, and names each stop that's partly off screen or covered by something
+// else while it has focus (WCAG 2.4.11).
+export async function hiddenTabStops(page) {
+  const hidden = []
+  for (let stop = 0; stop < 100; stop += 1) {
+    await page.keyboard.press('Tab')
+    const result = await page.evaluate(() => {
+      const element = document.activeElement
+      window.seenStops ??= new Set()
+      if (element === document.body || window.seenStops.has(element)) return { done: true }
+      window.seenStops.add(element)
+      // A link that wraps has a box for each line.
+      const inline = getComputedStyle(element).display === 'inline'
+      const boxes = inline ? [...element.getClientRects()] : [element.getBoundingClientRect()]
+      const { clientWidth, clientHeight } = document.documentElement
+      const shown = boxes.every((box) => {
+        const inset = Math.min(3, box.width / 4, box.height / 4)
+        const points = [
+          [(box.left + box.right) / 2, (box.top + box.bottom) / 2],
+          [box.left + inset, box.top + inset],
+          [box.right - inset, box.top + inset],
+          [box.left + inset, box.bottom - inset],
+          [box.right - inset, box.bottom - inset],
+        ]
+        return points.every(
+          ([x, y]) =>
+            x >= 0 &&
+            y >= 0 &&
+            x < clientWidth &&
+            y < clientHeight &&
+            element.contains(document.elementFromPoint(x, y)),
+        )
+      })
+      const name = element.getAttribute('aria-label') || element.labels?.[0]?.textContent || element.textContent
+      return { done: false, hidden: shown ? null : name.trim().slice(0, 40) }
+    })
+    if (result.done) break
+    if (result.hidden) hidden.push(result.hidden)
+  }
+  return hidden
+}
+
 // The colors in a screenshot, as a Set of "r,g,b" strings. The page decodes the PNG itself, since
 // the tests have no image library.
 export async function colorsIn(page, png) {

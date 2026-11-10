@@ -1,5 +1,17 @@
 import { test, expect } from '@playwright/test'
-import { cell, centerOf, colorsIn, grid, overflow, scan, shot, status } from './helpers.js'
+import {
+  cell,
+  centerOf,
+  colorsIn,
+  grid,
+  hiddenTabStops,
+  overflow,
+  overlappingPanels,
+  scan,
+  scrollBoxes,
+  shot,
+  status,
+} from './helpers.js'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./')
@@ -85,6 +97,43 @@ test('reflows at 320 CSS pixels wide, like 400% zoom, with no sideways page scro
   }
   await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption('32')
   await shot(page, 'reflow-320')
+})
+
+// Zoom shrinks the window in CSS pixels. Two columns on a 1920 by 1080 screen, one on a MacBook Air, and three
+// in a short, wide window.
+for (const [width, height, what] of [
+  [1097, 542, 'at 175% zoom of a 1920 by 1080 screen'],
+  [960, 475, 'at 200% zoom of a 1920 by 1080 screen'],
+  [720, 395, 'at 200% zoom of a MacBook Air'],
+  [1280, 420, 'in a short, wide window'],
+]) {
+  test(`${what}, nothing covers anything else and every Tab stop shows in full`, async ({ page }) => {
+    await page.setViewportSize({ width, height })
+    const { width: pageWidth, outOfPanel } = await overflow(page)
+    expect(pageWidth, 'no sideways scrolling').toBeLessThanOrEqual(width)
+    expect(outOfPanel, 'sticking out of a panel').toEqual([])
+    expect(await overlappingPanels(page), 'panels covering each other').toEqual([])
+    expect(await scrollBoxes(page), "boxes hiding part of what's in them").toEqual([])
+    expect(await hiddenTabStops(page), 'Tab stops off screen or covered').toEqual([])
+  })
+}
+
+test('keeps the side picker in view with three columns, and compact above the pixels with one', async ({ page }) => {
+  const picker = page.locator('.panel', { has: page.locator('#choose-heading') })
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.getByRole('heading', { name: 'This side in words' }).scrollIntoViewIfNeeded()
+  const kept = await picker.boundingBox()
+  expect(kept.y, 'top in view').toBeGreaterThanOrEqual(0)
+  expect(kept.y + kept.height, 'bottom in view').toBeLessThanOrEqual(900)
+  // A MacBook Air's screen at 200% zoom: the menus share a row, and each choice is as tall as a menu, so its
+  // label fits on one line.
+  await page.setViewportSize({ width: 720, height: 395 })
+  const part = await page.getByRole('combobox', { name: 'Body part' }).boundingBox()
+  const side = await page.getByRole('combobox', { name: 'Side', exact: true }).boundingBox()
+  expect(side.y).toBe(part.y)
+  for (const choice of await picker.locator('.choice').all()) {
+    expect((await choice.boundingBox()).height).toBeLessThanOrEqual(part.height + 1)
+  }
 })
 
 test('text spacing can be increased without cutting off text (WCAG 1.4.12)', async ({ page }) => {

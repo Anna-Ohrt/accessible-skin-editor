@@ -39,7 +39,7 @@ These run with Vitest and Testing Library on every change. They find things the 
 
 **Limit:** these run in jsdom, which works out names and roles from the page code. It's not a browser and not a screen reader, and it has no WebGL.
 
-### 3. 32 browser checks
+### 3. 37 browser checks
 
 These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux in GitHub Actions on every change, and against the [live site](https://anna-ohrt.github.io/accessible-skin-editor/).
 
@@ -48,6 +48,8 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | axe-core 4.14 scan in the light theme, the dark theme, and with error messages and other options showing | No violations, and nothing left for a person to review | Automated WCAG 2.2 A and AA rules, axe's level AAA rules such as 7:1 text contrast, plus best practices |
 | Windows contrast theme (emulated) | Pixels keep their colors, the focus ring uses the system highlight, disabled buttons use the system's gray, and the message next to the pixel and the main button use system colors. axe finds no violations and leaves nothing for a person to review | |
 | 320 CSS pixels wide, like 400% zoom, with the default font, a wide one and text twice as big, at every pixel size from 24 to 64 | No sideways scrolling, and nothing sticks out of its panel | 1.4.10 Reflow |
+| 175% and 200% zoom of a 1920 by 1080 screen (1097 by 542 and 960 by 475 CSS pixels), 200% of a MacBook Air (720 by 395), and a short, wide window (1280 by 420) | No sideways scrolling, and nothing sticks out of its panel. Scrolling down half a window at a time, no panel, header or footer covers another. No box hides part of what's in it behind its own scrollbar. Tabbing through the whole page, every stop shows in full, with nothing over it | 1.4.10, 2.4.11 Focus Not Obscured |
+| The side picker | With three columns, in a 1440 by 900 window, it stays in view when the page scrolls down to "This side in words". At 200% zoom of a MacBook Air, its two menus share a row, and each choice is as tall as a menu, so its label fits on one line | |
 | Larger line, letter, word and paragraph spacing | No text cut off | 1.4.12 Text Spacing |
 | A 24 pixel default font size in the browser | The page follows it | |
 | Zoom with two fingers over the pixels | Allowed: the grid uses `touch-action: pinch-zoom` | |
@@ -85,7 +87,9 @@ For the redesign, 8 more were planted: gray text on the backdrop behind the pixe
 
 When all 87 were planted again in the redesigned code, the tests missed 2 older ones, because the new layout hid them from their tests. Paint colors too wide for a narrow screen with text twice as big now stuck out of their panel without making the page scroll sideways. A 3D box with no set height now grew below the bottom of the test's window, where movement doesn't count as a layout shift. The reflow checks now also fail when anything sticks out of its panel. The layout shift check now holds back the 3D code, compares the box before and after it loads, and uses a window tall enough to show the panels below it. The stricter reflow check also found a problem the live site already had, in section 9. A 9th bug was planted for its fix, and the tests caught all 3.
 
-Then all 88 were planted again, one at a time, in the final code, and the tests caught every one.
+For zoom up to 200%, in section 10, 5 more were planted: the side picker staying in view with two columns, or in a window too short for it, and no longer staying in view with three columns; its menus stacked again above the pixels; and its choices squeezed into narrow columns again. The tests caught all 5.
+
+Then all 93 were planted again, one at a time, in the final code, and the tests caught every one. Other programs kept the machine busy, and for 2 of them a test ran out of time. One of those also failed three checks on what they test. The other was planted again on its own and failed just the short, wide window's check, because the picker's column hid part of what's in it.
 
 ### 5. Checks by hand in a browser
 
@@ -170,6 +174,20 @@ On November 10, 2026, the page got a look of its own, described under Design in 
 - **Alfa and the message next to the pixel.** Since that message was added, Alfa applies none of the page's styles, because of the style sheet's two `@position-try` rules. So it reported every paragraph's line height as `normal`, where the browser computes 1.5. With those two rules taken out for the check, Alfa reports what it did on November 9: the pixels, at 32 CSS pixels, are under AAA's 44.
 - **Loading.** Lighthouse's mobile test, 3 runs each on local builds, alternating the old and new versions. With the redesign as first made, the middle Total Blocking Time went from 1,003 to 1,288 ms, and the extra time was style and layout. With the processor slowed 4 times, taking out `text-wrap: balance` for headings and `text-wrap: pretty` for paragraphs saved the most, so they're gone. In a second set of runs, the middle Total Blocking Time was 900 ms before and 971 ms after, and the scores were 79 and 78.
 - **Once live**, the 32 browser checks passed against the site, and Lighthouse scored 100 for accessibility on mobile and desktop.
+
+### 10. Zoom up to 200%
+
+Also on November 10, 2026, after the redesign went live, a screenshot at 175% zoom showed the side picker, "Choose what to edit", over the choices in the Preview panel. The redesign had made the picker stay in view as the page scrolls, from 48rem wide. With three columns, nothing is below it. With two columns, the panels of the third column go below the first two, and the picker slid over them. In a window shorter than the picker, it also got its own scrollbar.
+
+To find every case, a script opened the page in Edge on 7 screens at 6 zoom levels from 100% to 200%, 42 combinations. The screens were 1920 by 1080, the same at 125% Windows scaling, 1366 by 768, 2560 by 1440, a MacBook Air (1440 by 900), a 1280 by 720 window, and the window in the screenshot. Zoom shows fewer CSS pixels in the same window, so a window 1920 by 950 pixels inside shows 1097 by 542 at 175%; the script used windows of those sizes. In each, it scrolled down half a window at a time, looking for panels, the header or the footer covering each other. It looked for boxes hiding part of what's in them behind their own scrollbar, and for sideways scrolling. Then it pressed Tab through all 41 stops, checking the middle and four corners of each one for anything over it.
+
+- **Before**, on the live site, 16 of the 42 had problems: all the ones with two columns, from 110% zoom of the 1280 by 720 window to 200% of a 1920 by 1080 screen. In every one, the side picker covered the Preview panel as the page scrolled, and 17 to 21 of the 41 Tab stops were at least partly under it when they had focus. In the screenshot's window at 175%, which shows 1142 by 553 CSS pixels, it covered Preview, Texture, Add or rename colors, File, Settings and Keyboard shortcuts. In 13 of the 16, the picker had its own scrollbar too, showing as little as 338 of its 545 pixels. In a short, wide window of 1280 by 420, with three columns, it showed 388.
+- **The fix.** The side picker stays in view only with three columns, in a window at least 40rem tall (640 CSS pixels at the browser's usual font size), where all of it fits. Otherwise it scrolls with the page.
+- **After**, none of the 42 had problems, and neither did 28 more: 175% and 200% zoom on the same screens in both made-up test languages.
+
+Above the pixels, with one column, the picker also takes less room now. At 200% zoom of a MacBook Air, 720 by 395 CSS pixels, its two menus were stacked, and "Outer layer (hat)" and "Classic, 4 pixels" took two lines each. Now the menus share a row when they fit, and each set of choices has columns at least 16rem wide, room for the longest in English, "Outer layer (right pant leg)", at 15rem. The picker went from 469 to 353 pixels tall, and the pixels start 741 pixels down the page instead of 857.
+
+The browser checks in section 3 now cover 4 of these sizes and the side picker, and section 4 has the 5 bugs planted for them. With the old rule put back, the checks at 175% and 200% zoom fail because the side picker covers the panels below it, and the check in the short, wide window fails because the picker's column hides part of what's in it.
 
 ## What these checks can't tell you
 
