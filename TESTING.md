@@ -189,6 +189,8 @@ Above the pixels, with one column, the picker also takes less room now. At 200% 
 
 The browser checks in section 3 now cover 4 of these sizes and the side picker, and section 4 has the 5 bugs planted for them. With the old rule put back, the checks at 175% and 200% zoom fail because the side picker covers the panels below it, and the check in the short, wide window fails because the picker's column hides part of what's in it.
 
+Once live, the 37 browser checks passed against the site, and Lighthouse scored 100 for accessibility on mobile and desktop.
+
 ## What these checks can't tell you
 
 Playwright's own documentation says: "Automated accessibility tests can detect some common accessibility problems such as missing or invalid properties. But many accessibility problems can only be discovered through manual testing." ([Playwright](https://playwright.dev/docs/accessibility-testing))
