@@ -259,7 +259,8 @@ button[aria-disabled='true'] {
 /* Colors */
 .swatches {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  /* min() lets a swatch shrink below 8.5rem when large text leaves less room than that (WCAG 1.4.10). */
+  grid-template-columns: repeat(auto-fill, minmax(min(8.5rem, 100%), 1fr));
   gap: 4px;
 }
 
@@ -383,6 +384,69 @@ button[aria-disabled='true'] {
   margin: 8px 0 0;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Shown next to the pixel with focus, for magnifier and zoom users who can't see the status below the grid.
+   Browsers without anchor positioning leave it out. */
+.callout {
+  display: none;
+  position: fixed;
+  position-anchor: --cursor;
+  /* Beside the grid, level with the pixel and inside the panel, so it covers no pixels. Start and end put it
+     on the grid's left in right-to-left pages. */
+  top: anchor(top);
+  inset-inline-start: calc(anchor(--pixel-grid end) + 8px);
+  inset-inline-end: anchor(--grid-area end);
+  z-index: 5;
+  width: fit-content;
+  min-width: 10rem;
+  max-width: 20rem;
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  /* Clicks and drags reach the pixels under it. */
+  pointer-events: none;
+  position-try-fallbacks:
+    --beside-up,
+    --below,
+    --below flip-inline,
+    --below flip-block,
+    --below flip-block flip-inline;
+}
+
+@position-try --beside-up {
+  top: auto;
+  bottom: anchor(bottom);
+}
+
+/* Without room beside the grid, it goes under the pixel or above it, but never over it. */
+@position-try --below {
+  top: calc(anchor(bottom) + 4px);
+  inset-inline-start: anchor(start);
+  inset-inline-end: auto;
+  min-width: 0;
+}
+
+@supports (position-try-fallbacks: flip-block) {
+  .grid-wrap {
+    anchor-name: --grid-area;
+  }
+
+  .pixel-grid {
+    anchor-name: --pixel-grid;
+  }
+
+  .cell:focus-visible {
+    anchor-name: --cursor;
+  }
+
+  .grid-wrap:has(.cell:focus-visible) > .callout {
+    display: block;
+  }
 }
 
 .status {

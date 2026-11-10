@@ -200,4 +200,19 @@ test.describe('Performance', () => {
     release()
     await expect(modelCanvas(page)).toBeVisible()
   })
+
+  test('on a phone, the 3D code loads only once the preview is near the screen', async ({ page }) => {
+    const loaded = []
+    page.on('request', (request) => {
+      if (/Model3D-[^/]*\.js$/.test(request.url())) loaded.push(request.url())
+    })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./')
+    await paintFirstPixel(page)
+    await page.waitForTimeout(500)
+    expect(loaded, 'loaded while the preview was far down the page').toEqual([])
+    await page.getByRole('heading', { name: 'Preview' }).scrollIntoViewIfNeeded()
+    await expect(modelCanvas(page)).toBeVisible()
+    expect(loaded).toHaveLength(1)
+  })
 })

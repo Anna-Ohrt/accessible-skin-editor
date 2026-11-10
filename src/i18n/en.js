@@ -74,10 +74,11 @@ export default {
   // The pixel grid
   'grid.size': '{w, number} by {h, number} pixels. {orientation}',
   'grid.help':
-    "Arrow keys move. Space paints, and Shift with an arrow paints as you move. F fills, I picks up a color, and R or C reads a row or column. P stops or starts saying each pixel's row and column. Tab goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
+    "Arrow keys move, and Ctrl with an arrow goes to where the color changes. Space paints, and Shift with an arrow paints as you move. F fills, I picks up a color, R or C reads a row or column, and A describes the area of this pixel's color. P stops or starts saying each pixel's row and column. Tab goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
   'grid.cell': '{color}, row {row, number}, column {col, number}',
-  'grid.readout': 'Row {row, number}, column {col, number}: {color}',
-  'grid.readoutHex': 'Row {row, number}, column {col, number}: {color} ({hex})',
+  // What's shown under the grid: the pixel with focus, or the one under the mouse or pen.
+  'grid.readout': '{pointing, select, yes {Pointing at row} other {Row}} {row, number}, column {col, number}: {color}',
+  'grid.colorHex': '{color} ({hex})',
 
   // Color names: how light, then "grayish" for muted colors, then the hue, like "dark grayish blue".
   'color.name':
@@ -94,6 +95,13 @@ export default {
   'words.countShades': '{count, number} {color} ({shades, plural, one {# shade} other {# shades}})',
   'words.summary': '{w, number} by {h, number} pixels: {counts}.',
   'words.row': 'Row {row, number}: {line}',
+  'words.rowsHeading': 'Rows',
+  'words.areasHeading': 'Areas of one color',
+  // An area of touching pixels that sound the same, like "red: 2 pixels filling row 7, columns 4 to 5."
+  'words.area':
+    '{color}: {count, plural, one {# pixel at} other {# pixels {solid, select, yes {filling} other {within}}}} {rows}, {columns}.',
+  'words.rows': '{count, plural, one {row {from, number}} other {rows {from, number} to {to, number}}}',
+  'words.columns': '{count, plural, one {column {from, number}} other {columns {from, number} to {to, number}}}',
   'view.arms': 'Arms',
   'view.legs': 'Legs',
   'view.mostly': 'mostly {color}',
@@ -249,6 +257,7 @@ export default {
   'settings.sayPosition': 'Say the row and column with each pixel',
   'settings.sayHex': 'Say hex codes after color names',
   'settings.gridLines': 'Show grid lines',
+  'settings.callout': 'Show the row, column and messages next to the pixel with focus',
 
   // Keyboard shortcuts. The letter keys stay the same in every language, so they aren't here.
   'keys.intro':
@@ -258,6 +267,8 @@ export default {
   'keys.actionHeader': 'What they do',
   'keys.arrows': 'Arrow keys',
   'keys.arrowsAction': 'Move one pixel. At an edge, you hear which edge.',
+  'keys.ctrlArrows': 'Ctrl+arrow key',
+  'keys.ctrlArrowsAction': 'Go to where the color changes, or to the last pixel if it doesn’t.',
   'keys.homeEnd': 'Home, End',
   'keys.homeEndAction': 'Go to the first or last pixel in the row.',
   'keys.ctrlHomeEnd': 'Ctrl+Home, Ctrl+End',
@@ -274,7 +285,10 @@ export default {
   'keys.eraseAction': 'Erase the pixel (outer layer only).',
   'keys.rowAction': 'Hear the whole row, left to right.',
   'keys.columnAction': 'Hear the whole column, top to bottom.',
+  'keys.areaAction': 'Hear the area of this pixel’s color: how many pixels, and which rows and columns.',
   'keys.positionAction': "Stop or start saying each pixel's row and column.",
+  'keys.escape': 'Escape',
+  'keys.escapeAction': 'Hide the row, column and message shown next to the pixel, until you move.',
   'keys.undo': 'Ctrl+Z',
   'keys.undoAction': 'Undo.',
   'keys.redo': 'Ctrl+Y or Ctrl+Shift+Z',

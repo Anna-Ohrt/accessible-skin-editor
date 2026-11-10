@@ -100,6 +100,34 @@ describe('Skin editor', () => {
     expect(cells().filter((item) => item.tabIndex === 0)).toEqual([document.activeElement])
   })
 
+  it('goes to where the color changes with Ctrl or Command and an arrow key', async () => {
+    const { user } = setup()
+    focusGrid()
+    // Row 1 is all hair, so one key crosses it instead of seven.
+    await user.keyboard('{Control>}{ArrowRight}{/Control}')
+    expect(document.activeElement).toHaveAccessibleName('dark brown, row 1, column 8')
+    await user.keyboard('{Control>}{ArrowRight}{/Control}')
+    expect(status()).toHaveTextContent('Right edge.')
+    await user.keyboard('{Home}{Control>}{ArrowDown}{/Control}')
+    expect(document.activeElement).toHaveAccessibleName('tan, row 3, column 1')
+    await user.keyboard('{ArrowDown}{ArrowDown}')
+    const stops = []
+    for (let i = 0; i < 6; i += 1) {
+      await user.keyboard('{Control>}{ArrowRight}{/Control}')
+      stops.push(document.activeElement.getAttribute('aria-label'))
+    }
+    expect(stops).toEqual([
+      'white, row 5, column 2',
+      'blue, row 5, column 3',
+      'tan, row 5, column 4',
+      'blue, row 5, column 6',
+      'white, row 5, column 7',
+      'tan, row 5, column 8',
+    ])
+    await user.keyboard('{Meta>}{ArrowLeft}{/Meta}')
+    expect(document.activeElement).toHaveAccessibleName('white, row 5, column 7')
+  })
+
   it('puts the paint colors one Tab after the grid, and back with Shift+Tab', async () => {
     const { user } = setup()
     const start = focusGrid()
@@ -155,6 +183,33 @@ describe('Skin editor', () => {
     expect(status()).toHaveTextContent('Filled 42 pixels with dark brown.')
     expect(cell(8, 8)).toHaveAccessibleName('dark brown, row 8, column 8')
     expect(cell(5, 3)).toHaveAccessibleName('blue, row 5, column 3')
+  })
+
+  it('says the area of one color a pixel is in with A, and lists every area in words', async () => {
+    const { user } = setup()
+    focusGrid()
+    await user.keyboard('a')
+    expect(status()).toHaveTextContent('dark brown: 16 pixels filling rows 1 to 2, columns 1 to 8.')
+    await user.keyboard('{ArrowDown}{ArrowDown}a')
+    expect(status()).toHaveTextContent('tan: 42 pixels within rows 3 to 8, columns 1 to 8.')
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowRight}a')
+    expect(status()).toHaveTextContent('white: 1 pixel at row 5, column 2.')
+    const words = screen.getByRole('region', { name: 'This side in words' })
+    const areas = within(words).getByRole('heading', { name: 'Areas of one color' }).nextElementSibling
+    expect(
+      within(areas)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual([
+      'dark brown: 16 pixels filling rows 1 to 2, columns 1 to 8.',
+      'tan: 42 pixels within rows 3 to 8, columns 1 to 8.',
+      'white: 1 pixel at row 5, column 2.',
+      'blue: 1 pixel at row 5, column 3.',
+      'blue: 1 pixel at row 5, column 6.',
+      'white: 1 pixel at row 5, column 7.',
+      'red: 2 pixels filling row 7, columns 4 to 5.',
+    ])
+    expect(within(words).getByRole('heading', { name: 'Rows' })).toBeInTheDocument()
   })
 
   it('erases only on the outer layer, and explains why', async () => {
@@ -306,6 +361,60 @@ describe('Skin editor', () => {
     await user.keyboard('p')
     expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
     expect(status()).toHaveTextContent('Pixels say their row and column again.')
+  })
+
+  it('shows the position and the last message next to the pixel with focus, until a move or Escape', async () => {
+    const { user } = setup()
+    const callout = () => document.querySelector('.callout')
+    focusGrid()
+    // Screen readers already hear this from the pixel and the status.
+    expect(callout()).toHaveAttribute('aria-hidden', 'true')
+    expect(callout()).toHaveTextContent('Row 1, column 1: dark brown (#4a3220)')
+    await user.keyboard('{Delete}')
+    expect(callout()).toHaveTextContent("The base layer can't be see-through in Java Edition.")
+    await user.keyboard('{Escape}')
+    expect(callout()).toBeNull()
+    await user.keyboard('{ArrowRight}')
+    expect(callout()).toHaveTextContent('Row 1, column 2: dark brown (#4a3220)')
+    await user.keyboard(' ')
+    expect(callout()).toHaveTextContent('Painted black.')
+    await user.keyboard('r')
+    expect(callout()).toHaveTextContent('Painted black.')
+    // Other controls can change the pixel, so a message doesn't outlast leaving the grid.
+    await user.tab()
+    await user.tab({ shift: true })
+    expect(callout()).toHaveTextContent('Row 1, column 2: black (#000000)')
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Show the row, column and messages next to the pixel with focus' }),
+    )
+    focusGrid()
+    expect(callout()).toBeNull()
+  })
+
+  it('shows why Shift+arrow painted nothing next to the pixel it moved to', async () => {
+    const glass = rgba(255, 0, 0, 128)
+    saveDraft({
+      pixels: createSampleSkin(),
+      palette: [{ id: 'glass', name: 'Glass', color: glass }],
+      model: 'classic',
+      currentColor: glass,
+      settings: DEFAULT_SETTINGS,
+    })
+    const { user } = setup()
+    focusGrid()
+    await user.keyboard('{Shift>}{ArrowRight}{/Shift}')
+    expect(cell(1, 2)).toHaveFocus()
+    expect(document.querySelector('.callout')).toHaveTextContent('Choose a solid paint color')
+  })
+
+  it('names the pixel under the mouse below the grid, since clicking it would paint it', async () => {
+    const { user } = setup()
+    const readout = document.querySelector('.cursor-readout')
+    expect(readout).toHaveTextContent('Row 1, column 1: dark brown (#4a3220)')
+    await user.hover(cell(5, 3))
+    expect(readout).toHaveTextContent('Pointing at row 5, column 3: blue (#3b5fcd)')
+    await user.unhover(grid())
+    expect(readout).toHaveTextContent('Row 1, column 1: dark brown (#4a3220)')
   })
 
   it('fills, mirrors and copies whole sides', async () => {

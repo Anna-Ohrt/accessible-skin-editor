@@ -4,6 +4,7 @@ import {
   colorChoices,
   colorName,
   colorNamer,
+  describeArea,
   describeFace,
   describeLine,
   describeView,
@@ -159,6 +160,14 @@ describe('lines, sides and views in words', () => {
     )
     pixels = paintCells(pixels, face, [{ col: 3, row: 3 }], A)
     expect(describeFace(en, pixels, face, nameOf)).toBe('4 by 4 pixels: 15 brown (2 shades), 1 blue.')
+  })
+
+  it('describes an area by its size and the rows and columns it spans, and says when it fills them', () => {
+    const area = (name, count, top, bottom, left, right) => describeArea(en, { name, count, top, bottom, left, right })
+    expect(area('white', 1, 4, 4, 1, 1)).toBe('white: 1 pixel at row 5, column 2.')
+    expect(area('red', 2, 6, 6, 3, 4)).toBe('red: 2 pixels filling row 7, columns 4 to 5.')
+    expect(area('blue', 3, 0, 2, 5, 5)).toBe('blue: 3 pixels filling rows 1 to 3, column 6.')
+    expect(area('tan', 42, 2, 7, 0, 7)).toBe('tan: 42 pixels within rows 3 to 8, columns 1 to 8.')
   })
 
   it('describes each view, listing colors the way the language does', () => {

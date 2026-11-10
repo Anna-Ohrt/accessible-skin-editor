@@ -96,6 +96,19 @@ export function describeFace(i18n, pixels, face, nameOf) {
   return i18n.t('words.summary', { w: face.w, h: face.h, counts: i18n.list(counts, 'unit') })
 }
 
+// "tan: 42 pixels within rows 3 to 8, columns 1 to 8." An area that's a solid rectangle is "filling" it.
+export function describeArea(i18n, { name, count, top, bottom, left, right }) {
+  const height = bottom - top + 1
+  const width = right - left + 1
+  return i18n.t('words.area', {
+    color: name,
+    count,
+    solid: count === width * height ? 'yes' : 'no',
+    rows: i18n.t('words.rows', { count: height, from: top + 1, to: bottom + 1 }),
+    columns: i18n.t('words.columns', { count: width, from: left + 1, to: right + 1 }),
+  })
+}
+
 // A text alternative for the preview, like "Head: mostly tan, with dark brown, white, and blue."
 export function describeView(i18n, view, nameOf) {
   return summarizeView(view, nameOf)

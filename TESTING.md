@@ -1,6 +1,6 @@
 # Accessibility testing
 
-What has been tested, what that can't tell you, and what to do next. Status on November 9, 2026.
+What has been tested, what that can't tell you, and what to do next. Status on November 10, 2026.
 
 **In short:** the automated and code checks are done and pass. Testing with real screen readers has only had a first try, with NVDA, and testing with blind and low vision players hasn't started. That's the most important next step.
 
@@ -10,12 +10,15 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 119 component tests
+### 2. 127 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
 - The grid's name and description, one Tab stop, and each pixel's name, like "dark brown, row 1, column 1".
-- Every key: arrows, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, F, I, R, C, P, Delete and Backspace, and Ctrl+Z and Ctrl+Y. Letter shortcuts also work on a Russian keyboard layout, by key position.
+- Every key: arrows, Ctrl+arrow and Command+arrow, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, F, I, R, C, A, P, Escape, Delete and Backspace, and Ctrl+Z and Ctrl+Y. Letter shortcuts also work on a Russian keyboard layout, by key position.
+- Ctrl+arrow stops at each color change along row 5 of the face, and crosses row 1, which is all hair, in one press. A says the area of one color the pixel is in, and "This side in words" lists all 7 areas of the sample face in reading order. Both go by the colors' spoken names, and the two eyes, which don't touch, are separate areas.
+- The message next to the focused pixel is hidden from screen readers and shows the row, column and color, or what the last key did, like why Delete can't erase on the base layer. Shift+arrow's reason for not painting shows at the pixel it moved to. The message stays after R, goes after a move or after leaving the grid, Escape hides it, and the setting turns it off.
+- Pointing at a pixel names it below the grid, like "Pointing at row 5, column 3: blue (#3b5fcd)", and the readout goes back to the focused pixel when the pointer leaves.
 - P leaves the row and column out of the pixel names and puts them back, and focus stays on the pixel.
 - The status message after each action, like "Painted green." and "Nothing to undo.", with the right plural: "1 pixel is", "2 pixels are". Shift+arrow painting and drags show their result in the pixels' names rather than repeating it, but still say why when they can't paint.
 - Every editing command on its own: what it changes, its undo label and its message, and when it refuses or changes nothing.
@@ -35,7 +38,7 @@ These run with Vitest and Testing Library on every change. They find things the 
 
 **Limit:** these run in jsdom, which works out names and roles from the page code. It's not a browser and not a screen reader, and it has no WebGL.
 
-### 3. 29 browser checks
+### 3. 32 browser checks
 
 These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux in GitHub Actions on every change, and against the [live site](https://anna-ohrt.github.io/accessible-skin-editor/).
 
@@ -43,20 +46,21 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | --- | --- | --- |
 | axe-core 4.14 scan in the light theme, the dark theme, and with error messages and other options showing | No violations, and nothing left for a person to review | Automated WCAG 2.2 A and AA rules, axe's level AAA rules such as 7:1 text contrast, plus best practices |
 | Windows contrast theme (emulated) | Pixels keep their colors, the focus ring uses the system highlight, disabled buttons use the system's gray, and axe finds no violations | |
-| 320 CSS pixels wide, like 400% zoom, with the default font and a wide one, at every pixel size | No sideways scrolling | 1.4.10 Reflow |
+| 320 CSS pixels wide, like 400% zoom, with the default font, a wide one and text twice as big, at every pixel size from 24 to 64 | No sideways scrolling | 1.4.10 Reflow |
 | Larger line, letter, word and paragraph spacing | No text cut off | 1.4.12 Text Spacing |
 | A 24 pixel default font size in the browser | The page follows it | |
 | Zoom with two fingers over the pixels | Allowed: the grid uses `touch-action: pinch-zoom` | |
 | Tab through the whole page | Every stop shows a focus ring. The grid is one stop, the paint colors are the next stop, and the Side menu is 3 stops before the grid | 2.4.3, 2.4.7 |
 | Size of every control, at the smallest pixel size | All at least 24 by 24 CSS pixels | 2.5.8 |
-| The browser's accessibility tree and the keyboard | A grid named "Head, front, base layer" with named cells. Space paints, R reads the row, and the status message says what happened | 4.1.2, 4.1.3 |
-| A real mouse | A click paints on release, sliding off cancels, and a fast drag paints every pixel and undoes in one step | 2.5.2, 2.5.7 |
+| The browser's accessibility tree and the keyboard | A grid named "Head, front, base layer" with named cells. Space paints, R reads the row, Ctrl+arrow goes to where the color changes, A says the area, and the status message says what happened | 4.1.2, 4.1.3 |
+| The message next to the focused pixel, at 100%, 200% and 400% zoom of a 1280 by 720 window, at the four corners of the 8 by 12 body front | Always fully on screen and never over the focused pixel. At 100% and 200% it's beside the grid, over no pixels. It shows why Delete did nothing, Escape hides it, and axe finds no violations while it shows | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, 1.4.13 |
+| A real mouse | Pointing names the pixel below the grid. A click paints on release and shows no message next to the pixel, which is for keyboard focus. Sliding off cancels, and a fast drag paints every pixel and undoes in one step | 1.4.1, 2.5.2, 2.5.7 |
 | The 3D model, turned by the View and Angle choices and by dragging | Its name says which way it faces, it stays where a drag leaves it, it doesn't animate when reduced motion is on, it shows new paint at once, and it turns to the side being edited | 1.1.1, 2.5.7, 2.3.3 |
 | Pointing at and clicking the 3D model | The page names the side and pixel under the pointer, and a click opens that pixel in the grid | |
 | The 3D model's colors | The side facing the camera shows the sample's exact eye and mouth colors, and the see-through outer layer adds nothing to the picture, even seen at a slant | |
 | License text | The site ships the license of every open source package in it | |
 | The accented made-up language (en-XA), about 40% longer | No text skips the messages, including the 3D model's controls. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
-| The right-to-left made-up language (ar-XB) | The page lays out right to left, the grid stays left to right and the right arrow key still moves right. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
+| The right-to-left made-up language (ar-XB) | The page lays out right to left, the grid stays left to right and the right arrow key still moves right. The message next to the focused pixel sits beside the grid on its left, inside the panel. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
 | The Content Security Policy | Every directive is as intended, the editor and its 3D code run under it with no violations or errors, and an injected script or HTML is refused | |
 | The one-file copy, opened from a file | It runs under its own policy, which allows its script by hash, with no errors | |
 | Download, then open the downloaded file | Every pixel comes back the same | |
@@ -64,6 +68,7 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | The 3D code fails to load | Flat pictures show with a note, and painting still works | |
 | The page is hidden, like switching tabs | The last change is saved at once | |
 | Loading the 3D model | Nothing on the page moves: the layout shift is 0. The pixels work while the 3D code is held back | |
+| A phone-sized screen, 390 by 844 CSS pixels | The 3D code isn't requested until the preview comes near the screen | |
 
 ### 4. Making sure the tests catch bugs
 
@@ -72,6 +77,10 @@ Bugs were planted on purpose, one at a time, to see if the tests notice. Earlier
 After the code-quality pass, the 35 from the review on were planted again in the rewritten code. Two of them were the same bug, so 34 remain, and 11 more cover the new structure: the editing commands, telling clicks from drags, the grid's cursor, and saving when the editor closes. The tests caught all 45, and both of the 2 planted later for the P key. Two tests were changed first, because they couldn't have caught two of the new bugs: the drag test turned the model exactly 90 degrees, which can't show whether it snaps to the nearest view, so it now turns 80, and a new test drags with a see-through color on the base layer.
 
 For Replace and the checker fixes, 12 more were planted, such as a replace that changes only one side, transparent offered as a color, the skip link outside the header, and each of the three darker colors put back. The tests caught all 12.
+
+For the large text, zoom and keyboard pass, 20 more were planted, one per new behavior. Among them: Ctrl+arrow moving one pixel, areas that never reach the last column, the message next to the pixel covering it at 400% zoom, landing on the grid in right-to-left pages or showing after a mouse click, Escape not hiding it, and the 3D code loading at once on a phone. Three earlier ones were rewritten to fit the changed code. The tests caught all 23. One first showed as missed only because its filter had a "+" in it, which Vitest reads as a pattern, so no test ran; with the filter fixed, its test caught it.
+
+Then all 79 were planted again, one at a time, in the final code, and the tests caught every one.
 
 ### 5. Checks by hand in a browser
 
@@ -114,6 +123,35 @@ IBM, Alfa and HTML_CodeSniffer also list items only a person can judge, like whe
 After the changes, the five checkers that run inside the page (axe, Alfa, IBM, HTML_CodeSniffer and the W3C checker) were run again on the new build. The findings above were gone, and no new kind of finding appeared. The warnings about menus, focus and unnamed forms now also count the new Replace menu, button and form.
 
 Once the changes were live, Lighthouse scored 100 again on mobile and desktop, WAVE found 0 errors and 0 contrast errors on the one-file copy, and AudioEye no longer reported the caption or the footer link. Its three other reports, explained above, remain.
+
+### 8. Large text, zoom and speed
+
+On November 9 and 10, 2026, the editor was measured with zoom and large text, and timed.
+
+**Zoom.** A 1280 by 900 window at 200% and 400% zoom shows 640 by 450 and 320 by 225 CSS pixels. At both, with pixel sizes 32 and 48 and normal or double text, focus moved to the four corners of the body's front (8 by 12) and painted there: 32 positions in all.
+
+- Before: whenever the focused pixel was in the top rows, the readout and the status message below the grid were off screen. Windows Magnifier can follow the "Mouse pointer, keyboard focus, text cursor, Narrator cursor" ([Microsoft Support](https://support.microsoft.com/en-us/accessibility/windows/magnifier/appendix-b-magnifier-settings-troubleshooting)), and a status message is none of those. The W3C's draft of low vision needs asks that "Feedback is in close proximity to the user's visual focus" ([3.6.2](https://www.w3.org/TR/low-vision-needs/)). So the row, column and latest message now also show next to the focused pixel.
+- After: the status was fully on screen at 8 of the 32 positions, and the message next to the pixel at all 32, never over the pixel.
+- With double text at 320 CSS pixels wide, the paint colors made the page scroll sideways, because each was at least 8.5rem wide. They can shrink now, and the reflow check includes double text and the new 64 pixel size.
+
+**Speed.** Main-thread time per action in Edge, from Chrome DevTools Protocol metrics, alternating the live site before this pass with the new build. Other programs kept this machine's processor 67 to 99% busy, so the numbers vary between runs:
+
+| Action | Before | After |
+| --- | --- | --- |
+| Arrow key | 15 to 20 ms | 16 to 19 ms |
+| Space, painting | 9 to 18 ms | 13 to 15 ms |
+| Shift+arrow, painting while moving | 16 to 26 ms, middle value 24 | 26 to 32 ms, middle value 28 |
+| R, reading a row | 8 to 14 ms | 9 to 19 ms |
+| Ctrl+arrow | | 16 to 21 ms |
+| A, reading an area | | 9 to 12 ms |
+| Pointing at the next pixel | | 7 to 9 ms |
+| Changing the side, which also turns the 3D model | 82 to 136 ms | 107 to 119 ms |
+
+Shift+arrow painting changes pixels and moves focus at once, so it does the most. Split into parts over 3 runs each, about 1.5 ms of its increase is style and layout, for the message next to the pixel and the list of areas, and about 1 ms is script.
+
+**Slowest key press.** The browser's Event Timing API times each key press from the press to the next frame, "rounded to the nearest 8ms" ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming)). The same keys were pressed, plus the new ones on the new build: 36 presses before and 43 after. Over 3 alternating runs, with the processor 86% busy from other programs when they started and 70% when they ended, the slowest press took 48 to 56 ms before and 48 to 64 ms after. web.dev says "An INP below or at 200 milliseconds means a page has good responsiveness" ([web.dev](https://web.dev/articles/inp)).
+
+**Loading on a phone.** Lighthouse's mobile test, run 3 times each, middle values. Local builds, before and after the 3D code waited for the preview to come near: score 73 to 78, and Total Blocking Time 1,805 to 1,001 ms. The live site before this pass: score 73, and Total Blocking Time 1,775 ms.
 
 ## What these checks can't tell you
 
@@ -159,6 +197,7 @@ Listen for the open questions in RESEARCH.md:
 - After Space, do you hear "Painted ..." once, or twice?
 - Do you hear the row and column twice? NVDA does, until you press P in the pixels. Do you find P without help?
 - Do the color names help you picture the colors?
+- Do A and Ctrl+arrow help you find shapes, like the eyes, faster than reading row by row?
 - After choosing another side, how quickly can you get back to the pixels?
 - Do the 3D model's name, like "3D model of the skin, seen from the back", and its description tell you what a sighted player would see?
 
@@ -166,7 +205,7 @@ Listen for the open questions in RESEARCH.md:
 
 - **Keyboard only** in Firefox and Safari too. The automated checks only ran in Chromium-based browsers.
 - **Real Windows contrast themes**, not the emulation ([Change color contrast in Windows](https://support.microsoft.com/en-us/windows/change-color-contrast-in-windows-fedc744c-90ac-69df-aed5-c8a90125e696)).
-- **Zoom** to 200% and 400% with Ctrl and +, and a **screen magnifier** such as Windows Magnifier. Check that the 3D model's outline and the "Pointing at" text are easy to follow while zoomed in.
+- **Zoom** to 200% and 400% with Ctrl and +, and **screen magnifiers** such as Windows Magnifier, ZoomText and macOS Zoom. Check that the message next to the focused pixel, the 3D model's outline and the "Pointing at" text are easy to follow while zoomed in, and ask sighted keyboard users whether the message gets in their way.
 - **Reduced motion:** turn it on in the operating system's settings, and check that the 3D model jumps to a new view instead of turning.
 - **Speech recognition**, such as Windows Voice Access or Dragon. Buttons have visible names you can say; how a voice user reaches one pixel is an open question.
 - **A phone or tablet:** painting with a finger, turning the 3D model with one finger, zooming with two, and the mobile screen readers above.
@@ -187,6 +226,7 @@ This is the most important step, because only players can say whether this way o
 - Give them the tasks above, ask them to think aloud, and only help if they're stuck.
 - Ask whether Replace, which changes every pixel of one color at once, helps, and what other bigger tools they'd want, like ready-made parts.
 - Ask sighted and low vision players to find and fix a spot by clicking the 3D model, then by using the menus, and which felt easier.
+- Ask low vision players, at the zoom or magnification they use, whether the message next to the focused pixel helps, and whether the 64 pixel size is big enough.
 
 ### 5. Keep the automated checks running
 

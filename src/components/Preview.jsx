@@ -12,6 +12,21 @@ const Model3D = lazy(() => import('./Model3D.jsx'))
 
 const SCALE = 8
 
+// True once the element is within half a screen of the viewport. On a phone the preview is far down the
+// page, so the 3D model's loading waits until someone gets near it instead of slowing the start.
+function useNearViewport(ref) {
+  const [near, setNear] = useState(() => typeof IntersectionObserver === 'undefined')
+  useEffect(() => {
+    if (near) return undefined
+    const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && setNear(true), {
+      rootMargin: '50% 0px',
+    })
+    observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [near, ref])
+  return near
+}
+
 // The view and angle that show a side: tops from above, bottoms from below, the rest straight on.
 function viewFor(sideId, current) {
   if (sideId === 'top') return { viewId: current.viewId, angleId: 'above' }
@@ -25,6 +40,8 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
   const i18n = useI18n()
   const { t } = i18n
   const canvasRef = useRef(null)
+  const figureRef = useRef(null)
+  const near = useNearViewport(figureRef)
   // Why the 3D model isn't showing: 'noWebgl', 'failed', or 'lost' when the graphics were reset.
   const [problem, setProblem] = useState(() => (webglAvailable() ? null : 'noWebgl'))
   const [style, setStyle] = useState('3d')
@@ -49,6 +66,12 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
   useEffect(() => {
     if (!is3D) drawPixels(canvasRef.current, view.data, view.width, view.height)
   }, [view, is3D])
+
+  const loading = (
+    <div className="model-wrap is-loading">
+      <p className="hint">{t('preview.loading')}</p>
+    </div>
+  )
 
   return (
     <>
@@ -94,16 +117,11 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
         </Checkbox>
       )}
       {/* The figure ties the caption to the picture (W3C WAI Images tutorial), so it isn't read twice. */}
-      <figure className="preview">
-        {is3D ? (
+      <figure className="preview" ref={figureRef}>
+        {is3D && !near && loading}
+        {is3D && near && (
           <ErrorBoundary onError={() => setProblem('failed')}>
-            <Suspense
-              fallback={
-                <div className="model-wrap is-loading">
-                  <p className="hint">{t('preview.loading')}</p>
-                </div>
-              }
-            >
+            <Suspense fallback={loading}>
               <Model3D
                 pixels={pixels}
                 model={model}
@@ -123,7 +141,8 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
               />
             </Suspense>
           </ErrorBoundary>
-        ) : (
+        )}
+        {!is3D && (
           <canvas
             ref={canvasRef}
             // ARIA in HTML allows any role on a canvas, but this lint rule counts canvas as interactive.

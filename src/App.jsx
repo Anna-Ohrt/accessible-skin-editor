@@ -1,9 +1,9 @@
 import { useMemo, useReducer, useRef, useState } from 'react'
 import { useI18n } from './i18n/context.js'
-import { colorNamer, describeLine, faceLabel, messageText } from './i18n/words.js'
+import { colorNamer, describeArea, describeLine, faceLabel, messageText } from './i18n/words.js'
 import { getFace } from './skin/layout.js'
 import { isTransparent } from './skin/color.js'
-import { columnOf, getCell, rowOf } from './skin/pixels.js'
+import { areaAt, columnOf, getCell, rowOf } from './skin/pixels.js'
 import { SKIN_FILE_NAME, SkinFileError, downloadSkin, readSkinFile } from './skin/png.js'
 import { planEdit } from './editor/edits.js'
 import { historyReducer, initHistory, nextStep } from './editor/history.js'
@@ -65,27 +65,24 @@ export default function App() {
   const paintName = names.get(current.id)
   useAutosave({ pixels, palette, model, currentColor: current.color, settings })
 
+  // Each of these returns what it said, or null when it said nothing.
   function perform(action) {
     const plan = planEdit(action, { pixels, face, model, color: current.color })
     if (plan.change) dispatch({ type: 'apply', change: plan.change, label: plan.label, stroke: action.stroke })
-    if (plan.refused || !QUIET_SOURCES.has(action.source)) {
-      announce(messageText(i18n, plan.message, { color: paintName }, nameOf))
-    }
+    if (!plan.refused && QUIET_SOURCES.has(action.source)) return null
+    return announce(messageText(i18n, plan.message, { color: paintName }, nameOf))
   }
 
   function travel(type) {
     const step = nextStep(history, type)
-    if (!step) {
-      announce(t(`status.${type}.none`))
-      return
-    }
+    if (!step) return announce(t(`status.${type}.none`))
     dispatch({ type })
-    announce(t(`status.${type}.done`, { action: messageText(i18n, step.label) }))
+    return announce(t(`status.${type}.done`, { action: messageText(i18n, step.label) }))
   }
 
   function pickColor(color) {
-    if (isTransparent(color)) announce(t('status.nothingToPick'))
-    else announce(t('status.picked', { color: choose(color).name }))
+    if (isTransparent(color)) return announce(t('status.nothingToPick'))
+    return announce(t('status.picked', { color: choose(color).name }))
   }
 
   function handleAction(action) {
@@ -104,6 +101,8 @@ export default function App() {
         return announce(
           t('status.readColumn', { col: col + 1, line: describeLine(i18n, columnOf(pixels, face, col), nameOf) }),
         )
+      case 'readArea':
+        return announce(describeArea(i18n, areaAt(pixels, face, col, row, nameOf)))
       case 'edge':
         return announce(t('status.edge', { edge: action.edge }))
       // NVDA says the row or column itself when it changes, but JAWS doesn't in a grid, so it's on by default.

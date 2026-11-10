@@ -3,6 +3,7 @@ import { allFaces, getFace } from '../src/skin/layout.js'
 import { isOpaque, isTransparent, rgba } from '../src/skin/color.js'
 import {
   SAMPLE_COLORS,
+  areaAt,
   copyFace,
   countByName,
   countColors,
@@ -11,9 +12,11 @@ import {
   createSampleSkin,
   createSkin,
   fillFace,
+  findAreas,
   floodFill,
   getCell,
   mirrorFace,
+  nextChange,
   paintCells,
   replaceColor,
   rowOf,
@@ -92,6 +95,44 @@ describe('pixel operations', () => {
     pixels = paintCells(pixels, headFront, [{ col: 0, row: 0 }], rgba(1, 2, 3, 128))
     expect(countSeeThrough(pixels, [headFront])).toBe(1)
     expect(countSeeThrough(pixels, [headFront, hat])).toBe(65)
+  })
+
+  describe('on the sample face', () => {
+    const pixels = createSampleSkin()
+    const byColor = new Map(Object.entries(SAMPLE_COLORS).map(([part, color]) => [color, part]))
+    const nameOf = (color) => byColor.get(color) ?? 'transparent'
+    const area = (name, count, top, bottom, left, right) => ({ name, count, top, bottom, left, right })
+
+    it('finds each area of touching pixels with one name, in reading order, and the area at a pixel', () => {
+      expect(findAreas(pixels, headFront, nameOf)).toEqual([
+        area('hair', 16, 0, 1, 0, 7),
+        area('skin', 42, 2, 7, 0, 7),
+        area('eyeWhite', 1, 4, 4, 1, 1),
+        area('eye', 1, 4, 4, 2, 2),
+        area('eye', 1, 4, 4, 5, 5),
+        area('eyeWhite', 1, 4, 4, 6, 6),
+        area('mouth', 2, 6, 6, 3, 4),
+      ])
+      // The two eyes share a name but don't touch, so each is an area of its own.
+      expect(areaAt(pixels, headFront, 5, 4, nameOf)).toEqual(area('eye', 1, 4, 4, 5, 5))
+      expect(areaAt(pixels, headFront, 7, 7, nameOf)).toEqual(area('skin', 42, 2, 7, 0, 7))
+      expect(findAreas(pixels, getFace('head', 'front', 'outer'), nameOf)).toEqual([
+        area('transparent', 64, 0, 7, 0, 7),
+      ])
+    })
+
+    it('finds the next pixel that sounds different in a direction, or the last one that way', () => {
+      const next = (col, row, direction) => nextChange(pixels, headFront, { col, row }, direction, nameOf)
+      const right = [1, 0]
+      expect(next(0, 4, right)).toEqual({ col: 1, row: 4 })
+      expect(next(3, 4, right)).toEqual({ col: 5, row: 4 })
+      expect(next(0, 0, right)).toEqual({ col: 7, row: 0 })
+      expect(next(7, 0, right)).toBeNull()
+      expect(next(7, 4, [-1, 0])).toEqual({ col: 6, row: 4 })
+      expect(next(0, 0, [0, 1])).toEqual({ col: 0, row: 2 })
+      expect(next(0, 2, [0, 1])).toEqual({ col: 0, row: 7 })
+      expect(next(0, 0, [0, -1])).toBeNull()
+    })
   })
 
   it('replaces one color on every side and layer it is given, and leaves the rest alone', () => {

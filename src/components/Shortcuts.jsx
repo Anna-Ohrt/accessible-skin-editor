@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/context.js'
 // written here; everything else comes from the messages. PixelGrid.jsx handles the keys.
 const SHORTCUTS = [
   [{ id: 'keys.arrows' }, 'keys.arrowsAction'],
+  [{ id: 'keys.ctrlArrows' }, 'keys.ctrlArrowsAction'],
   [{ id: 'keys.homeEnd' }, 'keys.homeEndAction'],
   [{ id: 'keys.ctrlHomeEnd' }, 'keys.ctrlHomeEndAction'],
   [{ id: 'keys.pages' }, 'keys.pagesAction'],
@@ -15,7 +16,9 @@ const SHORTCUTS = [
   [{ id: 'keys.erase' }, 'keys.eraseAction'],
   [{ letter: 'R' }, 'keys.rowAction'],
   [{ letter: 'C' }, 'keys.columnAction'],
+  [{ letter: 'A' }, 'keys.areaAction'],
   [{ letter: 'P' }, 'keys.positionAction'],
+  [{ id: 'keys.escape' }, 'keys.escapeAction'],
   [{ id: 'keys.undo' }, 'keys.undoAction'],
   [{ id: 'keys.redo' }, 'keys.redoAction'],
 ]

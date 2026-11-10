@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, readSettings } from '../src/editor/settings.js'
 
 describe('settings', () => {
   it('keeps saved values the editor understands', () => {
-    const saved = { cellSize: 48, sayPosition: false, sayHex: true, showGridLines: false }
+    const saved = { cellSize: 64, sayPosition: false, sayHex: true, showGridLines: false, showCallout: false }
     expect(readSettings(saved)).toEqual(saved)
   })
 
@@ -14,5 +14,8 @@ describe('settings', () => {
       ...DEFAULT_SETTINGS,
       sayHex: true,
     })
+    // Work saved before a setting existed gets that setting's default.
+    const older = { cellSize: 48, sayPosition: true, sayHex: false, showGridLines: true }
+    expect(readSettings(older)).toEqual({ ...DEFAULT_SETTINGS, cellSize: 48 })
   })
 })

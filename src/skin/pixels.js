@@ -158,6 +158,66 @@ export function countSeeThrough(pixels, faces) {
   return count
 }
 
+// The pixels touching `start` (up, down, left or right, again and again) that have its name in `names`,
+// as a count and the rows and columns they span. Each one found is marked in `seen`.
+function spread(names, face, start, seen) {
+  const name = names[start]
+  const area = { name, count: 0, top: face.h, bottom: 0, left: face.w, right: 0 }
+  const stack = [start]
+  seen[start] = true
+  while (stack.length > 0) {
+    const index = stack.pop()
+    const col = index % face.w
+    const row = Math.floor(index / face.w)
+    area.count += 1
+    area.top = Math.min(area.top, row)
+    area.bottom = Math.max(area.bottom, row)
+    area.left = Math.min(area.left, col)
+    area.right = Math.max(area.right, col)
+    const neighbors = [
+      col > 0 && index - 1,
+      col < face.w - 1 && index + 1,
+      row > 0 && index - face.w,
+      row < face.h - 1 && index + face.w,
+    ]
+    for (const next of neighbors) {
+      if (next !== false && !seen[next] && names[next] === name) {
+        seen[next] = true
+        stack.push(next)
+      }
+    }
+  }
+  return area
+}
+
+// Each area of touching pixels that sound the same, like the hair or one eye, in reading order. Shapes are
+// hard to hear in a list of rows.
+export function findAreas(pixels, face, nameOf) {
+  const names = faceValues(pixels, face).map(nameOf)
+  const seen = new Array(names.length).fill(false)
+  return names.flatMap((_, start) => (seen[start] ? [] : [spread(names, face, start, seen)]))
+}
+
+export function areaAt(pixels, face, col, row, nameOf) {
+  const names = faceValues(pixels, face).map(nameOf)
+  return spread(names, face, row * face.w + col, new Array(names.length).fill(false))
+}
+
+// The first pixel in a direction that sounds different from this one, or the last pixel that way if none
+// does. Null when there's no pixel that way.
+export function nextChange(pixels, face, { col, row }, [dCol, dRow], nameOf) {
+  const inside = (c, r) => c >= 0 && r >= 0 && c < face.w && r < face.h
+  if (!inside(col + dCol, row + dRow)) return null
+  const name = nameOf(getCell(pixels, face, col, row))
+  let c = col + dCol
+  let r = row + dRow
+  while (nameOf(getCell(pixels, face, c, r)) === name && inside(c + dCol, r + dRow)) {
+    c += dCol
+    r += dRow
+  }
+  return { col: c, row: r }
+}
+
 // The sample skin: an original character made for this prototype, so none of it is Mojang's art. Keys say
 // where it uses each color.
 export const SAMPLE_COLORS = {

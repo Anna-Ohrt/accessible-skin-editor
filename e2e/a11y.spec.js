@@ -67,14 +67,15 @@ test('Windows contrast themes keep the pixel colors and show focus and disabled 
 
 test('reflows at 320 CSS pixels wide, like 400% zoom, with no sideways page scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 })
-  // Fonts differ between systems, so it's checked with the default font and with a wide one.
-  for (const font of ['default', 'wide']) {
+  // Fonts differ between systems, so it's checked with the default font, a wide one, and text twice as big.
+  for (const font of ['default', 'wide', 'twice as big']) {
     if (font === 'wide') {
       await page.addStyleTag({ content: "* { font-family: Verdana, 'DejaVu Sans', sans-serif !important; }" })
       // The site's Content Security Policy allows added styles, so tools like this one still work.
       expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toMatch(/^Verdana/)
     }
-    for (const size of ['24', '32', '48']) {
+    if (font === 'twice as big') await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+    for (const size of ['24', '32', '48', '64']) {
       await page.getByRole('combobox', { name: 'Pixel size on screen' }).selectOption(size)
       const { width, outside } = await overflow(page)
       expect(width, `${font} font, pixel size ${size}, sticking out: ${outside.join(', ')}`).toBeLessThanOrEqual(320)
@@ -197,6 +198,57 @@ test('the grid works from the keyboard, and Chromium exposes it as a named grid 
   await expect(cell(page, 1, 2)).toBeFocused()
   await page.keyboard.press('Space')
   await expect(status(page)).toHaveText(/Painted dark gray\./)
+  // Ctrl+arrow goes to where the color changes, and A says the area of one color the pixel is in.
+  await page.keyboard.press('Control+ArrowRight')
+  await expect(cell(page, 1, 3)).toBeFocused()
+  await page.keyboard.press('Control+ArrowRight')
+  await expect(cell(page, 1, 8)).toBeFocused()
+  await page.keyboard.press('a')
+  await expect(status(page)).toHaveText(/^dark brown: 15 pixels within rows 1 to 2, columns 1 to 8\./)
+})
+
+test('keeps the position and last message next to the focused pixel at 100%, 200% and 400% zoom', async ({ page }) => {
+  const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+  const callout = page.locator('.callout')
+  await page.getByRole('combobox', { name: 'Body part' }).selectOption('body')
+  await page.getByRole('link', { name: 'Skip to the pixels' }).focus()
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Tab')
+  await expect(cell(page, 1, 1)).toBeFocused()
+  // A 1280 by 720 window at each zoom level, visiting the four corners of the 8 by 12 body front.
+  for (const [width, height] of [
+    [1280, 720],
+    [640, 360],
+    [320, 180],
+  ]) {
+    await page.setViewportSize({ width, height })
+    for (const keys of ['End', 'Control+End', 'Home', 'PageUp']) {
+      await page.keyboard.press(keys)
+      await expect(callout).toBeVisible()
+      const [box, pixel, all, area] = await Promise.all([
+        callout.boundingBox(),
+        page.locator('[role=gridcell]:focus').boundingBox(),
+        grid(page).boundingBox(),
+        page.locator('.grid-wrap').boundingBox(),
+      ])
+      const where = `${width} by ${height}, after ${keys}`
+      const onScreen = box.x >= 0 && box.y >= 0 && box.x + box.width <= width && box.y + box.height <= height
+      expect(onScreen, `${where}: on screen`).toBe(true)
+      expect(overlaps(box, pixel), `${where}: the pixel stays in sight`).toBe(false)
+      // With room beside the grid, it covers no pixels at all and stays inside the panel.
+      if (width >= 640) {
+        expect(overlaps(box, all), `${where}: beside the grid`).toBe(false)
+        expect(box.x + box.width, `${where}: inside the panel`).toBeLessThanOrEqual(area.x + area.width + 0.5)
+      }
+    }
+  }
+  await page.keyboard.press('Delete')
+  await expect(callout).toHaveText(/^The base layer can't be see-through in Java Edition\./)
+  expect(await scan(page)).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(callout).toBeHidden()
+  await page.keyboard.press('ArrowRight')
+  await expect(callout).toHaveText(/^Row 1, column 2: green/)
 })
 
 test('ships the license text of every open source package in the site, and links to it', async ({ page, request }) => {
@@ -337,13 +389,18 @@ test('a click paints on release, sliding off cancels, and a fast drag paints a g
   await page.getByRole('radio', { name: 'red' }).check()
   const undo = page.getByRole('button', { name: 'Undo' })
 
-  // Press and release on one pixel: nothing on the press, painted on the release.
+  // Pointing names the pixel below the grid, so its color isn't only seen, and doesn't paint it.
   await page.mouse.move(...(await centerOf(cell(page, 2, 2))))
+  await expect(page.locator('.cursor-readout')).toHaveText('Pointing at row 2, column 2: dark brown (#4a3220)')
+
+  // Press and release on one pixel: nothing on the press, painted on the release.
   await page.mouse.down()
   await expect(cell(page, 2, 2)).toHaveAccessibleName('dark brown, row 2, column 2')
   await page.mouse.up()
   await expect(cell(page, 2, 2)).toHaveAccessibleName('red, row 2, column 2')
   await expect(status(page)).toHaveText(/Painted red\./)
+  // The message by the pixel is for keyboard focus, so a click doesn't show it.
+  await expect(page.locator('.callout')).toBeHidden()
   await undo.click()
 
   // Press on the top row, slide straight up off the grid without crossing another pixel, and

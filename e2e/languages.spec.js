@@ -56,6 +56,20 @@ test.describe('ar-XB, right to left', () => {
     await shot(page, 'pseudo-ar-XB')
   })
 
+  test('puts the message next to the focused pixel left of the grid, inside the panel', async ({ page }) => {
+    await cell(page, 1, 1).focus()
+    await page.keyboard.press('ArrowRight')
+    const callout = page.locator('.callout')
+    await expect(callout).toBeVisible()
+    const [box, all, area] = await Promise.all([
+      callout.boundingBox(),
+      grid(page).boundingBox(),
+      page.locator('.grid-wrap').boundingBox(),
+    ])
+    expect(box.x + box.width).toBeLessThanOrEqual(all.x)
+    expect(box.x).toBeGreaterThanOrEqual(area.x - 0.5)
+  })
+
   test('reflows at 320 CSS pixels', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 })
     for (const font of ['default', 'wide']) {

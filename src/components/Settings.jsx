@@ -21,6 +21,9 @@ export default function Settings({ settings, onChange }) {
       <Checkbox checked={settings.showGridLines} onChange={(showGridLines) => onChange({ showGridLines })}>
         {t('settings.gridLines')}
       </Checkbox>
+      <Checkbox checked={settings.showCallout} onChange={(showCallout) => onChange({ showCallout })}>
+        {t('settings.callout')}
+      </Checkbox>
     </>
   )
 }

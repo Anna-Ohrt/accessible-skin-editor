@@ -1,11 +1,15 @@
-import { useId, useRef } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { faceLabel, faceOrientation } from '../i18n/words.js'
-import { getCell } from '../skin/pixels.js'
+import { getCell, nextChange } from '../skin/pixels.js'
 import { alphaOf, toCss, toHex } from '../skin/color.js'
 
 const ARROWS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }
 const EDGES = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'bottom', ArrowUp: 'top' }
+// Reading a row, column or area describes what's already on screen, so it's spoken but not shown by the pixel.
+const READS = new Set(['readRow', 'readColumn', 'readArea'])
+
+const samePlace = (a, b) => a?.col === b?.col && a?.row === b?.row
 
 // The letter a shortcut key stands for: the typed letter on a Latin layout, or else the key's position
 // on a US keyboard (event.code), so shortcuts also work with Cyrillic or Greek layouts.
@@ -41,7 +45,7 @@ function cellsBetween(from, to) {
 }
 
 // One side's pixels as an ARIA grid with a roving tabindex, named by color. It reports what the person
-// asks for through onAction, and the app decides what that does.
+// asks for through onAction, which returns what the app said about it.
 export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCursorChange, onAction }) {
   const id = useId()
   const i18n = useI18n()
@@ -50,9 +54,14 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
   const stroke = useRef(null)
   const strokeCount = useRef(0)
   const pointerHandled = useRef(false)
+  // The pixel under the mouse or pen, what the last action here said, and whether Escape hid the callout.
+  const [hover, setHover] = useState(null)
+  const [note, setNote] = useState(null)
+  const [calloutHidden, setCalloutHidden] = useState(false)
   // The cursor keeps its place when the side changes, and stays inside a smaller one.
   const col = Math.min(cursor.col, face.w - 1)
   const row = Math.min(cursor.row, face.h - 1)
+  const inside = (cell) => cell.col >= 0 && cell.row >= 0 && cell.col < face.w && cell.row < face.h
 
   function cellOf(element) {
     const cell = element?.closest?.('[data-col]')
@@ -67,7 +76,26 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
 
   function handleFocus(event) {
     const cell = cellOf(event.target)
-    if (cell && (cell.col !== col || cell.row !== row)) onCursorChange(cell)
+    if (!cell || samePlace(cell, { col, row })) return
+    // A message stays with the pixel it's about, like the one Shift+arrow just painted.
+    setNote((current) => (samePlace(current, cell) ? current : null))
+    setCalloutHidden(false)
+    onCursorChange(cell)
+  }
+
+  // Other controls can change the skin, so a message from before is out of date by the time focus returns.
+  function handleBlur(event) {
+    if (gridRef.current.contains(event.relatedTarget)) return
+    setNote(null)
+    setCalloutHidden(false)
+  }
+
+  // Sends an action to the app, and keeps what the app said to show next to the pixel at `at`.
+  function report(action, at = { col, row }) {
+    const said = onAction(action)
+    if (READS.has(action.type)) return
+    setNote(said ? { text: said, ...at } : null)
+    setCalloutHidden(false)
   }
 
   function handleKeyDown(event) {
@@ -77,21 +105,30 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
 
     if (ctrl && (letter === 'z' || letter === 'y')) {
       event.preventDefault()
-      onAction({ type: letter === 'y' || shiftKey ? 'redo' : 'undo' })
+      report({ type: letter === 'y' || shiftKey ? 'redo' : 'undo' })
       return
     }
     if (altKey) return
 
+    // Content that appears on focus can be dismissed without moving focus (WCAG 1.4.13).
+    if (key === 'Escape') {
+      if (!settings.showCallout || calloutHidden) return
+      event.preventDefault()
+      setCalloutHidden(true)
+      return
+    }
     if (key in ARROWS) {
-      if (ctrl) return
+      if (ctrl && shiftKey) return
       event.preventDefault()
       const [dCol, dRow] = ARROWS[key]
-      const next = { col: col + dCol, row: row + dRow }
-      if (next.col < 0 || next.row < 0 || next.col >= face.w || next.row >= face.h) {
-        onAction({ type: 'edge', edge: EDGES[key] })
+      const step = { col: col + dCol, row: row + dRow }
+      // Ctrl+arrow skips pixels that sound the same, like Ctrl+arrow in Excel skips to the edge of the data.
+      const next = ctrl ? nextChange(pixels, face, { col, row }, ARROWS[key], nameOf) : inside(step) && step
+      if (!next) {
+        report({ type: 'edge', edge: EDGES[key] })
         return
       }
-      if (shiftKey) onAction({ type: 'paint', cells: [next], source: 'keyboard-move' })
+      if (shiftKey) report({ type: 'paint', cells: [next], source: 'keyboard-move' }, next)
       moveTo(next)
       return
     }
@@ -123,12 +160,13 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
       i: { type: 'pick', col, row },
       r: { type: 'readRow', row },
       c: { type: 'readColumn', col },
+      a: { type: 'readArea', col, row },
       p: { type: 'togglePosition' },
     }
     const action = keys[key] ?? (letter && letters[letter])
     if (!action) return
     event.preventDefault()
-    onAction(action)
+    report(action)
   }
 
   // A press alone never paints (WCAG 2.5.2): a click paints on release, so sliding off cancels it, and
@@ -149,28 +187,30 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
     return cellOf(document.elementFromPoint(event.clientX, event.clientY))
   }
 
+  // The readout names the pixel under a mouse or pen too, since a click would paint it (WCAG 1.4.1).
   function handlePointerMove(event) {
-    if (!stroke.current) return
+    const current = stroke.current
+    const cell = current ? cellUnder(event) : cellOf(event.target)
+    // Over a grid line it keeps the last pixel, so the readout doesn't flicker.
+    if (cell) setHover((shown) => (samePlace(shown, cell) ? shown : cell))
+    if (!current) return
     // The button was released where the grid couldn't hear it.
     if (event.buttons === 0) {
       endStroke()
       return
     }
-    const cell = cellUnder(event)
-    if (!cell || (cell.col === stroke.current.col && cell.row === stroke.current.row)) return
-    const path = cellsBetween(stroke.current, cell)
-    const cells = stroke.current.moved ? path.slice(1) : path
-    stroke.current = { ...cell, id: stroke.current.id, moved: true }
-    onAction({ type: 'paint', cells, source: 'pointer', stroke: stroke.current.id })
+    if (!cell || samePlace(cell, current)) return
+    const path = cellsBetween(current, cell)
+    const cells = current.moved ? path.slice(1) : path
+    stroke.current = { ...cell, id: current.id, moved: true }
+    report({ type: 'paint', cells, source: 'pointer', stroke: current.id })
   }
 
   function handlePointerUp(event) {
     const current = stroke.current
     if (current && !current.moved) {
       const cell = cellUnder(event)
-      if (cell && cell.col === current.col && cell.row === current.row) {
-        onAction({ type: 'paint', cells: [cell], source: 'click', stroke: current.id })
-      }
+      if (samePlace(cell, current)) report({ type: 'paint', cells: [cell], source: 'click', stroke: current.id }, cell)
     }
     endStroke()
   }
@@ -190,17 +230,48 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
       return
     }
     const cell = cellOf(event.target)
-    if (cell) onAction({ type: 'paint', cells: [cell], source: 'click' })
+    if (cell) report({ type: 'paint', cells: [cell], source: 'click' }, cell)
   }
 
-  const cursorColor = getCell(pixels, face, col, row)
-  const cursorName = nameOf(cursorColor)
-  const cursorHex = toHex(cursorColor)
-  const position = { row: row + 1, col: col + 1, color: cursorName }
-  const readout =
-    alphaOf(cursorColor) > 0 && !cursorName.includes(cursorHex)
-      ? t('grid.readoutHex', { ...position, hex: cursorHex })
-      : t('grid.readout', position)
+  function readoutAt(at, pointing) {
+    const color = getCell(pixels, face, at.col, at.row)
+    const name = nameOf(color)
+    const hex = toHex(color)
+    return t('grid.readout', {
+      pointing: pointing ? 'yes' : 'no',
+      row: at.row + 1,
+      col: at.col + 1,
+      color: alphaOf(color) > 0 && !name.includes(hex) ? t('grid.colorHex', { color: name, hex }) : name,
+    })
+  }
+
+  // Hovering only changes the readout, so the cells aren't built again for it.
+  const rows = useMemo(
+    () =>
+      Array.from({ length: face.h }, (_, r) => (
+        <div key={r} role="row" className="pixel-row">
+          {Array.from({ length: face.w }, (_, c) => {
+            const color = getCell(pixels, face, c, r)
+            const name = nameOf(color)
+            return (
+              <div
+                key={c}
+                role="gridcell"
+                tabIndex={c === col && r === row ? 0 : -1}
+                aria-label={settings.sayPosition ? t('grid.cell', { color: name, row: r + 1, col: c + 1 }) : name}
+                data-col={c}
+                data-row={r}
+                className={alphaOf(color) < 255 ? 'cell is-see-through' : 'cell'}
+                style={{ '--pixel': toCss(color) }}
+              />
+            )
+          })}
+        </div>
+      )),
+    [face, pixels, nameOf, settings.sayPosition, col, row, t],
+  )
+  const pointed = hover && inside(hover) ? hover : null
+  const shownNote = samePlace(note, { col, row }) ? note : null
 
   return (
     <>
@@ -223,34 +294,24 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
           style={{ '--cell': `${settings.cellSize}px` }}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
+          onBlur={handleBlur}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
+          onPointerLeave={() => setHover(null)}
           onPointerUp={handlePointerUp}
           onPointerCancel={endStroke}
           onClick={handleClick}
         >
-          {Array.from({ length: face.h }, (_, r) => (
-            <div key={r} role="row" className="pixel-row">
-              {Array.from({ length: face.w }, (_, c) => {
-                const color = getCell(pixels, face, c, r)
-                const name = nameOf(color)
-                return (
-                  <div
-                    key={c}
-                    role="gridcell"
-                    tabIndex={c === col && r === row ? 0 : -1}
-                    aria-label={settings.sayPosition ? t('grid.cell', { color: name, row: r + 1, col: c + 1 }) : name}
-                    data-col={c}
-                    data-row={r}
-                    className={alphaOf(color) < 255 ? 'cell is-see-through' : 'cell'}
-                    style={{ '--pixel': toCss(color) }}
-                  />
-                )
-              })}
-            </div>
-          ))}
+          {rows}
         </div>
-        <p className="cursor-readout">{readout}</p>
+        {/* Feedback "in close proximity to the user's visual focus" (W3C low vision needs). Screen readers
+            already hear it from the pixel and the status. */}
+        {settings.showCallout && !calloutHidden && (
+          <p className="callout" aria-hidden="true">
+            {shownNote?.text ?? readoutAt({ col, row }, false)}
+          </p>
+        )}
+        <p className="cursor-readout">{readoutAt(pointed ?? { col, row }, Boolean(pointed))}</p>
       </div>
     </>
   )
