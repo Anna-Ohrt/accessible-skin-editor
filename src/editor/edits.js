@@ -32,9 +32,11 @@ export function planEdit(action, { pixels, face, model, color }) {
       return change((current) => paintCells(current, face, cells, color), { id: 'action.painting' }, 'status.painted')
     }
     case 'erase': {
-      const cells = [{ col: action.col, row: action.row }]
+      const { cells } = action
       if (face.layerId === 'base') return refuse('status.eraseNeedsOuter')
-      if (isTransparent(getCell(pixels, face, action.col, action.row))) return say('status.alreadyTransparent')
+      if (cells.every((cell) => isTransparent(getCell(pixels, face, cell.col, cell.row)))) {
+        return say('status.alreadyTransparent')
+      }
       return change(
         (current) => paintCells(current, face, cells, TRANSPARENT),
         { id: 'action.erasing' },

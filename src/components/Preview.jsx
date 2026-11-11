@@ -75,45 +75,8 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
 
   return (
     <>
-      <Choices
-        legend={t('preview.style')}
-        options={[
-          { value: '3d', label: t('preview.model'), disabled: problem === 'noWebgl' || problem === 'failed' },
-          { value: 'flat', label: t('preview.flat') },
-        ]}
-        value={is3D ? '3d' : 'flat'}
-        onChange={(next) => {
-          setStyle(next)
-          if (next === '3d') setProblem(null)
-        }}
-      />
-      {problem && <p className="hint">{t(`preview.${problem}`)}</p>}
-      <Choices
-        legend={t('preview.view')}
-        options={VIEWS.map((item) => ({ value: item, label: t(`view.${item}`) }))}
-        value={viewId}
-        onChange={(next) => setCamera((current) => ({ ...current, viewId: next }))}
-      />
-      {is3D && (
-        <Choices
-          legend={t('preview.angle')}
-          options={ANGLES.map((angle) => ({ value: angle.id, label: t(`angle.${angle.id}`) }))}
-          value={angleId}
-          onChange={(next) => setCamera((current) => ({ ...current, angleId: next }))}
-        />
-      )}
-      <Checkbox checked={showOuter} onChange={setShowOuter}>
-        {t('preview.showOuter')}
-      </Checkbox>
-      <Checkbox checked={follow} onChange={setFollow}>
-        {t('preview.follow')}
-      </Checkbox>
-      {is3D && (
-        <Checkbox checked={outline} onChange={setOutline}>
-          {t('preview.outline')}
-        </Checkbox>
-      )}
-      {/* The figure ties the caption to the picture (W3C WAI Images tutorial), so it isn't read twice. */}
+      {/* The model comes first, so it sits beside the pixels. The figure ties the caption to the picture
+          (W3C WAI Images tutorial), so it isn't read twice. */}
       <figure className="preview" ref={figureRef}>
         {is3D && !near && loading}
         {is3D && near && (
@@ -162,6 +125,44 @@ export default function Preview({ pixels, model, nameOf, face, onPickSpot }) {
               })
             : t('preview.hint')}
         </p>
+      )}
+      <Choices
+        legend={t('preview.style')}
+        options={[
+          { value: '3d', label: t('preview.model'), disabled: problem === 'noWebgl' || problem === 'failed' },
+          { value: 'flat', label: t('preview.flat') },
+        ]}
+        value={is3D ? '3d' : 'flat'}
+        onChange={(next) => {
+          setStyle(next)
+          if (next === '3d') setProblem(null)
+        }}
+      />
+      {problem && <p className="hint">{t(`preview.${problem}`)}</p>}
+      <Choices
+        legend={t('preview.view')}
+        options={VIEWS.map((item) => ({ value: item, label: t(`view.${item}`) }))}
+        value={viewId}
+        onChange={(next) => setCamera((current) => ({ ...current, viewId: next }))}
+      />
+      {is3D && (
+        <Choices
+          legend={t('preview.angle')}
+          options={ANGLES.map((angle) => ({ value: angle.id, label: t(`angle.${angle.id}`) }))}
+          value={angleId}
+          onChange={(next) => setCamera((current) => ({ ...current, angleId: next }))}
+        />
+      )}
+      <Checkbox checked={showOuter} onChange={setShowOuter}>
+        {t('preview.showOuter')}
+      </Checkbox>
+      <Checkbox checked={follow} onChange={setFollow}>
+        {t('preview.follow')}
+      </Checkbox>
+      {is3D && (
+        <Checkbox checked={outline} onChange={setOutline}>
+          {t('preview.outline')}
+        </Checkbox>
       )}
     </>
   )

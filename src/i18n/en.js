@@ -20,6 +20,7 @@ export default {
   'heading.choose': 'Choose what to edit',
   'heading.pixels': 'Pixels: {face}',
   'heading.tools': 'Tools',
+  'heading.moreTools': 'More tools',
   'heading.words': 'This side in words',
   'heading.preview': 'Preview',
   'heading.texture': 'Texture',
@@ -74,7 +75,7 @@ export default {
   // The pixel grid
   'grid.size': '{w, number} by {h, number} pixels. {orientation}',
   'grid.help':
-    "<kbd>Arrow keys</kbd> move, and <kbd>Ctrl</kbd> with an arrow goes to where the color changes. <kbd>Space</kbd> paints, and <kbd>Shift</kbd> with an arrow paints as you move. <kbd>F</kbd> fills, <kbd>I</kbd> picks up a color, <kbd>R</kbd> or <kbd>C</kbd> reads a row or column, and <kbd>A</kbd> describes the area of this pixel's color. <kbd>P</kbd> stops or starts saying each pixel's row and column. <kbd>Tab</kbd> goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
+    "<kbd>Arrow keys</kbd> move, and <kbd>Ctrl</kbd> with an arrow goes to where the color changes. <kbd>Space</kbd> uses the tool, and <kbd>Shift</kbd> with an arrow paints or erases as you move. <kbd>F</kbd> fills, <kbd>I</kbd> picks up a color, <kbd>R</kbd> or <kbd>C</kbd> reads a row or column, and <kbd>A</kbd> describes the area of this pixel's color. <kbd>P</kbd> stops or starts saying each pixel's row and column. <kbd>Tab</kbd> goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
   'grid.cell': '{color}, row {row, number}, column {col, number}',
   // What's shown under the grid: the pixel with focus, or the one under the mouse or pen.
   'grid.readout': '{pointing, select, yes {Pointing at row} other {Row}} {row, number}, column {col, number}: {color}',
@@ -123,6 +124,8 @@ export default {
   'status.filled': 'Filled {count, plural, one {# pixel} other {# pixels}} with {color}.',
   'status.nothingToPick': "This pixel is transparent, so there's no color to pick up.",
   'status.picked': "Picked up {color}. It's the paint color now.",
+  'status.pickedBack':
+    "Picked up {color}. It's the paint color now. Back to {tool, select, fill {Fill} eraser {the Eraser} other {the Pencil}}.",
   'status.edge': '{edge, select, right {Right} left {Left} top {Top} other {Bottom}} edge.',
   'status.readRow': 'Row {row, number}, left to right: {line}.',
   'status.readColumn': 'Column {col, number}, top to bottom: {line}.',
@@ -158,7 +161,8 @@ export default {
   'status.added': "Added {color}. It's the paint color now.",
   'status.renamed': 'Renamed {from} to {to}.',
   'status.editing': 'Editing {face}.',
-  'status.editingAt': 'Editing {face}, at row {row, number}, column {col, number}.',
+  // A click on the 3D model: where it landed, then what the tool did there.
+  'status.onModel': '{face}, row {row, number}, column {col, number}. {result}',
 
   // What Undo and Redo say they undid or redid
   'action.painting': 'painting',
@@ -192,6 +196,10 @@ export default {
   'colors.rename': 'Rename',
 
   // Tools
+  'tool.pencil': 'Pencil',
+  'tool.fill': 'Fill',
+  'tool.eraser': 'Eraser',
+  'tool.pick': 'Pick color',
   'tools.fill': 'Fill this side with {color}',
   'tools.clear': 'Clear this side',
   'tools.mirrorLeft': 'Mirror the left half onto the right',
@@ -231,7 +239,7 @@ export default {
   'preview.flatLabel':
     '{view, select, front {Front} right {Right side} back {Back} other {Left side}} view of the skin',
   'preview.pointing': 'Pointing at {face}, row {row, number}, column {col, number}.',
-  'preview.hint': 'Drag the model to turn it. Click a spot on it to edit that spot.',
+  'preview.hint': 'Drag the model to turn it. Clicking it uses the tool on that spot, and opens that side.',
 
   // Texture
   'texture.label': "The whole skin texture, with the side you're editing outlined.",
@@ -277,9 +285,9 @@ export default {
   'keys.pages': '<kbd>Page Up</kbd>, <kbd>Page Down</kbd>',
   'keys.pagesAction': 'Go to the top or bottom pixel in the column.',
   'keys.paint': '<kbd>Space</kbd> or <kbd>Enter</kbd>',
-  'keys.paintAction': 'Paint the pixel with the paint color.',
+  'keys.paintAction': 'Use the tool on the pixel: paint it, fill from it, erase it or pick up its color.',
   'keys.shift': '<kbd>Shift</kbd>+<kbd>arrow key</kbd>',
-  'keys.shiftAction': 'Move and paint the pixel you move to.',
+  'keys.shiftAction': 'Move, and paint or erase the pixel you move to with the Pencil or Eraser.',
   'keys.fillAction': 'Fill: paint the connected pixels that match this one.',
   'keys.pickAction': 'Pick up this pixel’s color as the paint color.',
   'keys.erase': '<kbd>Delete</kbd> or <kbd>Backspace</kbd>',

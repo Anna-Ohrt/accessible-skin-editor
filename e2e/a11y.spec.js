@@ -18,6 +18,8 @@ test.beforeEach(async ({ page }) => {
   await expect(grid(page)).toBeVisible()
 })
 
+const model = (page) => page.getByRole('img', { name: /^3D model of the skin/ })
+
 test.describe('axe-core', () => {
   for (const colorScheme of ['light', 'dark']) {
     test(`finds no violations in the ${colorScheme} theme`, async ({ page }) => {
@@ -118,16 +120,28 @@ for (const [width, height, what] of [
   })
 }
 
-test('keeps the side picker in view with three columns, and compact above the pixels with one', async ({ page }) => {
-  const picker = page.locator('.panel', { has: page.locator('#choose-heading') })
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.getByRole('heading', { name: 'This side in words' }).scrollIntoViewIfNeeded()
-  const kept = await picker.boundingBox()
-  expect(kept.y, 'top in view').toBeGreaterThanOrEqual(0)
-  expect(kept.y + kept.height, 'bottom in view').toBeLessThanOrEqual(900)
+// Other skin editors show a live 3D model beside the texture, so a change shows in both at once.
+test('puts the 3D model beside the pixels with three columns, and the side picker compact with one', async ({
+  page,
+}) => {
+  for (const [width, height, bothInView] of [
+    [1440, 790, true],
+    [1097, 542, true],
+    [960, 475, false],
+  ]) {
+    await page.setViewportSize({ width, height })
+    await expect(model(page)).toBeVisible()
+    const [pixels, shown] = [await grid(page).boundingBox(), await model(page).boundingBox()]
+    const where = `${width} by ${height}`
+    expect(shown.x, `${where}: right of the pixels`).toBeGreaterThanOrEqual(pixels.x + pixels.width)
+    const bottom = Math.max(pixels.y + pixels.height, shown.y + shown.height)
+    expect(bottom - Math.min(pixels.y, shown.y), `${where}: fit in the window together`).toBeLessThanOrEqual(height)
+    if (bothInView) expect(bottom, `${where}: both in view without scrolling`).toBeLessThanOrEqual(height)
+  }
   // A MacBook Air's screen at 200% zoom: the menus share a row, and each choice is as tall as a menu, so its
   // label fits on one line.
   await page.setViewportSize({ width: 720, height: 395 })
+  const picker = page.locator('.panel', { has: page.locator('#choose-heading') })
   const part = await page.getByRole('combobox', { name: 'Body part' }).boundingBox()
   const side = await page.getByRole('combobox', { name: 'Side', exact: true }).boundingBox()
   expect(side.y).toBe(part.y)
@@ -300,6 +314,13 @@ test('keeps the position and last message next to the focused pixel at 100%, 200
   await expect(callout).toBeHidden()
   await page.keyboard.press('ArrowRight')
   await expect(callout).toHaveText(/^Row 1, column 2: green/)
+  // With little room beside the grid, a long message wraps there instead of running into the next column.
+  await page.setViewportSize({ width: 1100, height: 720 })
+  await page.locator('[role=gridcell]:focus').scrollIntoViewIfNeeded()
+  await page.keyboard.press('Delete')
+  await expect(callout).toHaveText(/^The base layer can't be see-through in Java Edition\./)
+  const [long, area] = await Promise.all([callout.boundingBox(), page.locator('.grid-wrap').boundingBox()])
+  expect(long.x + long.width, 'a long message inside the panel').toBeLessThanOrEqual(area.x + area.width + 0.5)
 })
 
 test('ships the license text of every open source package in the site, and links to it', async ({ page, request }) => {
@@ -335,8 +356,6 @@ test('ships the license text of every open source package in the site, and links
 })
 
 test.describe('3D model', () => {
-  const model = (page) => page.getByRole('img', { name: /^3D model of the skin/ })
-
   test('shows the side facing the camera in its true colors, and an empty outer layer adds nothing', async ({
     page,
   }) => {
@@ -409,13 +428,15 @@ test.describe('3D model', () => {
     await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back and above')
   })
 
-  test('names the spot under the pointer, and a click opens it in the grid', async ({ page }) => {
+  test('names the spot under the pointer, and a click uses the tool there and opens that side', async ({ page }) => {
     await page.getByRole('combobox', { name: 'Body part' }).selectOption('body')
     await expect(grid(page)).toHaveAccessibleName('Body, front, base layer')
     await model(page).scrollIntoViewIfNeeded()
     const box = await model(page).boundingBox()
     const hint = page.getByText(/^(Pointing at|Drag the model)/)
-    await expect(hint).toHaveText('Drag the model to turn it. Click a spot on it to edit that spot.')
+    await expect(hint).toHaveText(
+      'Drag the model to turn it. Clicking it uses the tool on that spot, and opens that side.',
+    )
 
     // Move down the middle of the model until the hint names the head's front.
     let target = null
@@ -428,9 +449,21 @@ test.describe('3D model', () => {
 
     await page.mouse.click(box.x + box.width / 2, target)
     await expect(grid(page)).toHaveAccessibleName('Head, front, base layer')
-    await expect(status(page)).toHaveText(/^Editing Head, front, base layer, at row \d+, column \d+\./)
+    await expect(status(page)).toHaveText(/^Head, front, base layer, row \d+, column \d+\. Painted black\./)
     const [, row, col] = /row (\d+), column (\d+)/.exec(await status(page).textContent())
-    await expect(grid(page).locator('[tabindex="0"]')).toHaveAccessibleName(new RegExp(`, row ${row}, column ${col}$`))
+    await expect(grid(page).locator('[tabindex="0"]')).toHaveAccessibleName(`black, row ${row}, column ${col}`)
+
+    // With Pick color, the same spot gives up its color instead, and the Pencil comes back.
+    await page.getByRole('radio', { name: 'red' }).check()
+    await page.getByRole('radio', { name: 'Pick color' }).check()
+    await model(page).scrollIntoViewIfNeeded()
+    const now = await model(page).boundingBox()
+    await page.mouse.click(now.x + now.width / 2, now.y + target - box.y)
+    await expect(status(page)).toHaveText(
+      new RegExp(`^Head, front, base layer, row ${row}, column ${col}\\. Picked up black\\. .* Back to the Pencil\\.`),
+    )
+    await expect(page.getByRole('radio', { name: 'black' })).toBeChecked()
+    await expect(page.getByRole('radio', { name: 'Pencil' })).toBeChecked()
   })
 })
 

@@ -10,7 +10,7 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 128 component tests
+### 2. 132 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
@@ -28,6 +28,7 @@ These run with Vitest and Testing Library on every change. They find things the 
 - Error messages: they're announced, the field is marked invalid, and focus moves to it. That includes a color name over 40 characters.
 - A screen reader's click, which has no pointer events, still paints.
 - Mouse painting happens on release, sliding off cancels it, and a drag undoes in one step.
+- The four tools, Pencil, Fill, Eraser and Pick color, are a group named "Tools" by its heading, with Undo and Redo beside them. With Fill, a click or Space fills, and a drag or Shift+arrow only moves. The Eraser erases by drag, click, Space or Shift+arrow, only on the outer layer, and a drag undoes in one step. Pick color picks up a color and goes back to the tool from before, saying which, and stays chosen on a transparent pixel.
 - On the 3D model, a press that moves less than 4 pixels is a click, a longer one is a drag that never ends in a click, and a missed or cancelled release ends quietly.
 - The base layer rules, color names, preview text, saved settings, and the disclaimer.
 - The 3D model's math: where the camera stands for each view, turning the short way round, no animation with reduced motion, and the ray from the camera through the pointer. Without WebGL the page shows flat pictures and says why, and the preview turns to the side being edited.
@@ -49,17 +50,17 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | Windows contrast theme (emulated) | Pixels keep their colors, the focus ring uses the system highlight, disabled buttons use the system's gray, and the message next to the pixel and the main button use system colors. axe finds no violations and leaves nothing for a person to review | |
 | 320 CSS pixels wide, like 400% zoom, with the default font, a wide one and text twice as big, at every pixel size from 24 to 64 | No sideways scrolling, and nothing sticks out of its panel | 1.4.10 Reflow |
 | 175% and 200% zoom of a 1920 by 1080 screen (1097 by 542 and 960 by 475 CSS pixels), 200% of a MacBook Air (720 by 395), and a short, wide window (1280 by 420) | No sideways scrolling, and nothing sticks out of its panel. Scrolling down half a window at a time, no panel, header or footer covers another. No box hides part of what's in it behind its own scrollbar. Tabbing through the whole page, every stop shows in full, with nothing over it | 1.4.10, 2.4.11 Focus Not Obscured |
-| The side picker | With three columns, in a 1440 by 900 window, it stays in view when the page scrolls down to "This side in words". At 200% zoom of a MacBook Air, its two menus share a row, and each choice is as tall as a menu, so its label fits on one line | |
+| The 3D model beside the pixels, and the side picker | The model is right of the pixels at 1440 by 790, and at 175% and 200% zoom of a 1920 by 1080 screen. In the first two, both are fully in view when the page opens; at 200%, both fit in the window together. At 200% zoom of a MacBook Air, the side picker's two menus share a row, and each choice is as tall as a menu, so its label fits on one line | |
 | Larger line, letter, word and paragraph spacing | No text cut off | 1.4.12 Text Spacing |
 | A 24 pixel default font size in the browser | The page follows it | |
 | Zoom with two fingers over the pixels | Allowed: the grid uses `touch-action: pinch-zoom` | |
 | Tab through the whole page | Every stop shows a focus ring. The grid is one stop, the paint colors are the next stop, and the Side menu is 3 stops before the grid | 2.4.3, 2.4.7 |
 | Size of every control, at the smallest pixel size | All at least 24 by 24 CSS pixels | 2.5.8 |
 | The browser's accessibility tree and the keyboard | A grid named "Head, front, base layer" with named cells. Space paints, R reads the row, Ctrl+arrow goes to where the color changes, A says the area, and the status message says what happened | 4.1.2, 4.1.3 |
-| The message next to the focused pixel, at 100%, 200% and 400% zoom of a 1280 by 720 window, at the four corners of the 8 by 12 body front | Showing the row, column and color, it's always fully on screen and never over the focused pixel. At 100% and 200% it's beside the grid, over no pixels. It shows why Delete did nothing, Escape hides it, and axe finds no violations while it shows. A message that long can run past the bottom at 400%, as in section 9 | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, 1.4.13 |
+| The message next to the focused pixel, at 100%, 200% and 400% zoom of a 1280 by 720 window, at the four corners of the 8 by 12 body front | Showing the row, column and color, it's always fully on screen and never over the focused pixel. At 100% and 200% it's beside the grid, over no pixels. It shows why Delete did nothing, Escape hides it, and axe finds no violations while it shows. In a 1100 by 720 window, a message that long wraps beside the grid, inside the panel. A message that long can run past the bottom at 400%, as in section 9 | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, 1.4.13 |
 | A real mouse | Pointing names the pixel below the grid. A click paints on release and shows no message next to the pixel, which is for keyboard focus. Sliding off cancels, and a fast drag paints every pixel and undoes in one step | 1.4.1, 2.5.2, 2.5.7 |
 | The 3D model, turned by the View and Angle choices and by dragging | Its name says which way it faces, it stays where a drag leaves it, it doesn't animate when reduced motion is on, it shows new paint at once, and it turns to the side being edited | 1.1.1, 2.5.7, 2.3.3 |
-| Pointing at and clicking the 3D model | The page names the side and pixel under the pointer, and a click opens that pixel in the grid | |
+| Pointing at and clicking the 3D model | The page names the side and pixel under the pointer. A click uses the tool there and opens that pixel in the grid: with the Pencil, the status names the side, row and column, then says "Painted black."; with Pick color, it picks up the color there and goes back to the Pencil | |
 | The 3D model's colors | The side facing the camera shows the sample's exact eye and mouth colors, and the see-through outer layer adds nothing to the picture, even seen at a slant | |
 | License text | The site ships the license of every open source package in it | |
 | The accented made-up language (en-XA), about 40% longer | No text skips the messages, including the 3D model's controls. axe finds no violations, and the page reflows at 320 CSS pixels | 1.4.10 |
@@ -90,6 +91,10 @@ When all 87 were planted again in the redesigned code, the tests missed 2 older 
 For zoom up to 200%, in section 10, 5 more were planted: the side picker staying in view with two columns, or in a window too short for it, and no longer staying in view with three columns; its menus stacked again above the pixels; and its choices squeezed into narrow columns again. The tests caught all 5.
 
 Then all 93 were planted again, one at a time, in the final code, and the tests caught every one. Other programs kept the machine busy, and for 2 of them a test ran out of time. One of those also failed three checks on what they test. The other was planted again on its own and failed just the short, wide window's check, because the picker's column hid part of what's in it.
+
+For the tools and the 3D model beside the pixels, in section 11, 15 more were planted: Space, a click, a drag with Fill or Shift+arrow ignoring the tool; a drag with the Eraser painting; an eraser stroke that starts on a see-through pixel erasing nothing; Pick color staying the tool after picking, or forgetting the tool from before; the tools losing their group name; the help no longer being the grid's description; a click on the model always painting, or painting the side being edited instead of the one clicked; three columns only from 76rem again; the model after its choices again; and the introduction back in the header. The 3 planted for the side picker staying in view were dropped, since it no longer does. Three others were moved to where their code went, and 2 now run the renamed check. The tests caught all 15 new ones and the 5 changed ones.
+
+Then all 105 were planted again, one at a time, in the final code, and the tests caught 104, with no test running out of time. The one missed was the message next to the pixel running out of its panel. At 1280 by 720, the middle column is now wider, so the short messages the check used fit beside the grid with or without the bug. The check now also shows a long message in a 1100 by 720 window, where there's less room beside the grid. With the bug planted, the message ran 141 CSS pixels past the panel, and the check caught it.
 
 ### 5. Checks by hand in a browser
 
@@ -190,6 +195,30 @@ Above the pixels, with one column, the picker also takes less room now. At 200% 
 The browser checks in section 3 now cover 4 of these sizes and the side picker, and section 4 has the 5 bugs planted for them. With the old rule put back, the checks at 175% and 200% zoom fail because the side picker covers the panels below it, and the check in the short, wide window fails because the picker's column hides part of what's in it.
 
 Once live, the 37 browser checks passed against the site, and Lighthouse scored 100 for accessibility on mobile and desktop.
+
+### 11. Tools, and the 3D model beside the pixels
+
+Also on November 10, 2026, the editor was changed to work more like other skin editors. [BlockSkinLab's comparison](https://www.blockskinlab.com/blog/best-free-minecraft-skin-editors/) checked each editor for "basic tools such as pencil, fill, eraser, color picker, undo, and redo", and says MinecraftSkin.app "shows the 64×64 texture beside a live 3D player".
+
+- **Layout.** Three columns start at 960 CSS pixels wide (60rem) instead of 1216 (76rem), and the 3D model comes first in the Preview panel instead of after its choices. The introduction moved to the footer, and the help under the grid moved below the paint colors. It's still the grid's description.
+- **Tools.** Pencil, Fill, Eraser and Pick color are radio buttons named by the "Tools" heading, with Undo and Redo beside them. They set what a click, a drag and Space do, on the pixels and on the 3D model. Drags and Shift+arrow paint or erase only with the Pencil and the Eraser. Pick color goes back to the tool from before, as Microsoft Paint's Eyedropper "will automatically switch over to the previously selected tool" ([guide](https://lkwdpl.org/classes/MSPaint/tools/eyedropper.html)). F, I and Delete still fill, pick up and erase with any tool.
+- **The side picker scrolls with the page.** With Tools above it, the left column is 719 to 807 CSS pixels tall. To stay in view in shorter windows, it would need a scrollbar of its own, which section 10's checks don't allow.
+
+Measured with the same script on the live site before and on the new build, in CSS pixels from the top of the page:
+
+| Window | Pixels, before | 3D model, before | Pixels, after | 3D model, after |
+| --- | --- | --- | --- | --- |
+| 1440 by 790 | 372 to 637 | 742 to 1117 | 232 to 497 | 186 to 539 |
+| 175% zoom of a 1920 by 1080 screen, 1097 by 542 | 372 to 637 | 2853 to 3228 | 253 to 518 | 186 to 445 |
+| 200% zoom of that screen, 960 by 475 | 414 to 679 | 2947 to 3322 | 253 to 518 | 186 to 443 |
+
+- In the first two windows, and at 1920 by 950, the pixels and the model are now both fully in view when the page opens. At 960 by 475, they fit in the window together after scrolling 43 pixels. At 1440 by 790, the paint colors start at 647 instead of 787.
+- With fewer columns, the model is still below the pixels, but higher up the page: at 800 by 600, at 2713 instead of 3221, and on a 390 by 844 phone, at 3517 instead of 3916. There, the pixels start at 253 instead of 456, and at 1022 instead of 1032.
+- At 200% zoom of a MacBook Air, 720 by 395, Tools adds a panel above the side picker, so the pixels start at 759 instead of 741. Undo and Redo sit beside the tools at that width, which saved 52 pixels.
+
+Section 10's script found nothing covering anything else in any of the 42 combinations, or at 175% and 200% in both made-up languages. There are now 42 Tab stops, one more for Tools.
+
+The browser checks in section 3 now check the model beside the pixels at 3 window sizes, and a click on the model with the Pencil and with Pick color. Section 2 has 4 new tests for the tools, and section 4 the 15 bugs planted for them, and one check that had to get stricter.
 
 ## What these checks can't tell you
 

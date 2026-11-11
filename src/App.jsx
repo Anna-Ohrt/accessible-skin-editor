@@ -7,6 +7,7 @@ import { areaAt, columnOf, getCell, rowOf } from './skin/pixels.js'
 import { SKIN_FILE_NAME, SkinFileError, downloadSkin, readSkinFile } from './skin/png.js'
 import { planEdit } from './editor/edits.js'
 import { historyReducer, initHistory, nextStep } from './editor/history.js'
+import { chooseTool, toolAction } from './editor/tools.js'
 import { loadDraft, startingDraft } from './editor/storage.js'
 import { useAnnouncer } from './editor/useAnnouncer.js'
 import { useAutosave } from './editor/useAutosave.js'
@@ -14,6 +15,7 @@ import { usePalette } from './editor/usePalette.js'
 import FacePicker from './components/FacePicker.jsx'
 import { ColorForms, PaintColors } from './components/Palette.jsx'
 import PixelGrid from './components/PixelGrid.jsx'
+import ToolChoice from './components/ToolChoice.jsx'
 import Tools from './components/Tools.jsx'
 import ReplaceColor from './components/ReplaceColor.jsx'
 import FaceDescription from './components/FaceDescription.jsx'
@@ -52,6 +54,7 @@ export default function App() {
   const [settings, setSettings] = useState(initial.settings)
   const [selection, setSelection] = useState({ partId: 'head', sideId: 'front', layerId: 'base' })
   const [cursor, setCursor] = useState({ col: 0, row: 0 })
+  const [tools, setTools] = useState({ current: 'pencil', before: 'pencil' })
   const [fileError, setFileError] = useState(null)
   const [status, announce] = useAnnouncer(t('status.first'))
   const latestOpen = useRef(0)
@@ -66,55 +69,58 @@ export default function App() {
   const paintName = names.get(current.id)
   useAutosave({ pixels, palette, model, currentColor: current.color, settings })
 
-  // Each of these returns what it said, or null when it said nothing.
-  function perform(action) {
-    const plan = planEdit(action, { pixels, face, model, color: current.color })
-    if (plan.change) dispatch({ type: 'apply', change: plan.change, label: plan.label, stroke: action.stroke })
-    if (!plan.refused && QUIET_SOURCES.has(action.source)) return null
-    return announce(messageText(i18n, plan.message, { color: paintName }, nameOf))
-  }
-
-  function travel(type) {
-    const step = nextStep(history, type)
-    if (!step) return announce(t(`status.${type}.none`))
-    dispatch({ type })
-    return announce(t(`status.${type}.done`, { action: messageText(i18n, step.label) }))
-  }
-
-  function pickColor(color) {
-    if (isTransparent(color)) return announce(t('status.nothingToPick'))
-    return announce(t('status.picked', { color: choose(color).name }))
-  }
-
-  function handleAction(action) {
+  // What an action says after doing it, on the side being edited unless it names another. Null means it
+  // says nothing, like a drag that painted: the pixels' names already have the new color.
+  function respond(action, onFace = face) {
     const { col, row } = action
     switch (action.type) {
       case 'undo':
       case 'redo':
         return travel(action.type)
       case 'pick':
-        return pickColor(getCell(pixels, face, col, row))
+        return pickColor(getCell(pixels, onFace, col, row), action.byTool)
       case 'readRow':
-        return announce(
-          t('status.readRow', { row: row + 1, line: describeLine(i18n, rowOf(pixels, face, row), nameOf) }),
-        )
+        return t('status.readRow', { row: row + 1, line: describeLine(i18n, rowOf(pixels, face, row), nameOf) })
       case 'readColumn':
-        return announce(
-          t('status.readColumn', { col: col + 1, line: describeLine(i18n, columnOf(pixels, face, col), nameOf) }),
-        )
+        return t('status.readColumn', { col: col + 1, line: describeLine(i18n, columnOf(pixels, face, col), nameOf) })
       case 'readArea':
-        return announce(describeArea(i18n, areaAt(pixels, face, col, row, nameOf)))
+        return describeArea(i18n, areaAt(pixels, face, col, row, nameOf))
       case 'edge':
-        return announce(t('status.edge', { edge: action.edge }))
+        return t('status.edge', { edge: action.edge })
       // NVDA says the row or column itself when it changes, but JAWS doesn't in a grid, so it's on by default.
       case 'togglePosition': {
         const sayPosition = !settings.sayPosition
         setSettings((value) => ({ ...value, sayPosition }))
-        return announce(t(sayPosition ? 'status.positionOn' : 'status.positionOff'))
+        return t(sayPosition ? 'status.positionOn' : 'status.positionOff')
       }
-      default:
-        return perform(action)
+      default: {
+        const plan = planEdit(action, { pixels, face: onFace, model, color: current.color })
+        if (plan.change) dispatch({ type: 'apply', change: plan.change, label: plan.label, stroke: action.stroke })
+        if (!plan.refused && QUIET_SOURCES.has(action.source)) return null
+        return messageText(i18n, plan.message, { color: paintName }, nameOf)
+      }
     }
+  }
+
+  // Returns what it said, or null when it said nothing.
+  function handleAction(action) {
+    const said = respond(action)
+    return said === null ? null : announce(said)
+  }
+
+  function travel(type) {
+    const step = nextStep(history, type)
+    if (!step) return t(`status.${type}.none`)
+    dispatch({ type })
+    return t(`status.${type}.done`, { action: messageText(i18n, step.label) })
+  }
+
+  function pickColor(color, byTool) {
+    if (isTransparent(color)) return t('status.nothingToPick')
+    const { name } = choose(color)
+    if (!byTool) return t('status.picked', { color: name })
+    setTools((value) => ({ ...value, current: value.before }))
+    return t('status.pickedBack', { color: name, tool: tools.before })
   }
 
   // Only the newest file counts when another is chosen before this one opens.
@@ -124,7 +130,7 @@ export default function App() {
       const skin = await readSkinFile(file)
       if (request !== latestOpen.current) return
       setFileError(null)
-      perform({ type: 'open', skin, file: file.name })
+      handleAction({ type: 'open', skin, file: file.name })
     } catch (error) {
       if (request !== latestOpen.current) return
       setFileError(error instanceof SkinFileError ? error : new SkinFileError('unreadable'))
@@ -151,16 +157,18 @@ export default function App() {
     announce(t('status.renamed', { from: names.get(id), to: name }))
   }
 
-  // A side picked on the texture map, or on the 3D model with the cursor moved to the pixel picked.
-  function openSide(found, at) {
+  // A side picked on the texture map.
+  function openSide(found) {
     setSelection({ partId: found.partId, sideId: found.sideId, layerId: found.layerId })
-    const name = faceLabel(i18n, found)
-    if (!at) {
-      announce(t('status.editing', { face: name }))
-      return
-    }
-    setCursor(at)
-    announce(t('status.editingAt', { face: name, row: at.row + 1, col: at.col + 1 }))
+    announce(t('status.editing', { face: faceLabel(i18n, found) }))
+  }
+
+  // A click on the 3D model uses the tool there, and opens that side with the cursor on that pixel.
+  function toolOnModel({ face: target, col, row }) {
+    setSelection({ partId: target.partId, sideId: target.sideId, layerId: target.layerId })
+    setCursor({ col, row })
+    const result = respond(toolAction(tools.current, { col, row }, { source: 'model' }), target)
+    announce(t('status.onModel', { face: faceLabel(i18n, target), row: row + 1, col: col + 1, result }))
   }
 
   return (
@@ -171,11 +179,20 @@ export default function App() {
         </a>
         <Logo />
         <h1>{t('app.title')}</h1>
-        <p>{t('app.intro')}</p>
         <p className="disclaimer">{t('app.disclaimer')}</p>
       </header>
       <main className="layout">
         <div className="column">
+          <Panel id="tools" title={t('heading.tools')}>
+            <ToolChoice
+              labelledBy="tools-heading"
+              tool={tools.current}
+              onChange={(next) => setTools((value) => chooseTool(value, next))}
+              canUndo={history.past.length > 0}
+              canRedo={history.future.length > 0}
+              onAction={handleAction}
+            />
+          </Panel>
           <Panel id="choose" title={t('heading.choose')}>
             <FacePicker
               selection={selection}
@@ -193,24 +210,17 @@ export default function App() {
               pixels={pixels}
               nameOf={nameOf}
               settings={settings}
+              tool={tools.current}
+              status={status}
               cursor={cursor}
               onCursorChange={setCursor}
               onAction={handleAction}
-            />
-            <p role="status" className="status">
-              {status}
-            </p>
-            <PaintColors palette={palette} names={names} current={current} onSelect={choose} />
+            >
+              <PaintColors palette={palette} names={names} current={current} onSelect={choose} />
+            </PixelGrid>
           </Panel>
-          <Panel id="tools" title={t('heading.tools')}>
-            <Tools
-              face={face}
-              model={model}
-              paintName={paintName}
-              canUndo={history.past.length > 0}
-              canRedo={history.future.length > 0}
-              onAction={handleAction}
-            />
+          <Panel id="more" title={t('heading.moreTools')}>
+            <Tools face={face} model={model} paintName={paintName} onAction={handleAction} />
             <ReplaceColor
               pixels={pixels}
               model={model}
@@ -227,13 +237,7 @@ export default function App() {
 
         <div className="column">
           <Panel id="preview" title={t('heading.preview')}>
-            <Preview
-              pixels={pixels}
-              model={model}
-              nameOf={nameOf}
-              face={face}
-              onPickSpot={(spot) => openSide(spot.face, { col: spot.col, row: spot.row })}
-            />
+            <Preview pixels={pixels} model={model} nameOf={nameOf} face={face} onPickSpot={toolOnModel} />
           </Panel>
           <Panel id="texture" title={t('heading.texture')}>
             <TextureMap pixels={pixels} face={face} model={model} onPickFace={(found) => openSide(found)} />
@@ -259,6 +263,7 @@ export default function App() {
         </div>
       </main>
       <footer className="app-footer">
+        <p>{t('app.intro')}</p>
         <p>
           {i18n.rich('app.footer', {
             author: 'Anna Ohrt',

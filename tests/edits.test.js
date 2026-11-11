@@ -37,14 +37,21 @@ describe('editing commands', () => {
     expect(plan({ type: 'paint', cells: [{ col: 0, row: 0 }] }, { pixels })).toEqual({
       message: { id: 'status.already' },
     })
-    expect(plan({ type: 'erase', col: 0, row: 0 }, { face: hat }).message.id).toBe('status.alreadyTransparent')
+    expect(plan({ type: 'erase', cells: [{ col: 0, row: 0 }] }, { face: hat }).message.id).toBe(
+      'status.alreadyTransparent',
+    )
     expect(plan({ type: 'clearSide' }, { face: hat }).message.id).toBe('status.sideEmpty')
   })
 
-  it('erases only on the outer layer', () => {
-    expect(plan({ type: 'erase', col: 0, row: 0 }).refused).toBe(true)
+  it('erases only on the outer layer, every pixel of a stroke', () => {
+    expect(plan({ type: 'erase', cells: [{ col: 0, row: 0 }] }).refused).toBe(true)
     const pixels = paintCells(createSampleSkin(), hat, [{ col: 2, row: 1 }], red)
-    const result = plan({ type: 'erase', col: 2, row: 1 }, { face: hat, pixels })
+    // A stroke that starts on a see-through pixel still erases the rest of it.
+    const stroke = [
+      { col: 1, row: 1 },
+      { col: 2, row: 1 },
+    ]
+    const result = plan({ type: 'erase', cells: stroke }, { face: hat, pixels })
     expect(getCell(result.change(pixels), hat, 2, 1)).toBe(TRANSPARENT)
   })
 

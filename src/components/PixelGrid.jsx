@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { faceLabel, faceOrientation } from '../i18n/words.js'
+import { draws, strokeAction, toolAction } from '../editor/tools.js'
 import { getCell, nextChange } from '../skin/pixels.js'
 import { alphaOf, toCss, toHex } from '../skin/color.js'
 
@@ -44,9 +45,20 @@ function cellsBetween(from, to) {
   }
 }
 
-// One side's pixels as an ARIA grid with a roving tabindex, named by color. It reports what the person
-// asks for through onAction, which returns what the app said about it.
-export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCursorChange, onAction }) {
+// One side's pixels as an ARIA grid with a roving tabindex, named by color, reporting requests through
+// onAction, which returns what the app said. Below it: the status, the children (paint colors), the keys.
+export default function PixelGrid({
+  face,
+  pixels,
+  nameOf,
+  settings,
+  tool,
+  status,
+  cursor,
+  onCursorChange,
+  onAction,
+  children,
+}) {
   const id = useId()
   const i18n = useI18n()
   const { t } = i18n
@@ -128,7 +140,7 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
         report({ type: 'edge', edge: EDGES[key] })
         return
       }
-      if (shiftKey) report({ type: 'paint', cells: [next], source: 'keyboard-move' }, next)
+      if (shiftKey && draws(tool)) report(strokeAction(tool, [next], { source: 'keyboard-move' }), next)
       moveTo(next)
       return
     }
@@ -150,10 +162,10 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
 
     // Single-letter shortcuts work only while the grid has focus (WCAG 2.1.4).
     const keys = {
-      ' ': { type: 'paint', cells: [{ col, row }], source: 'keyboard' },
-      Enter: { type: 'paint', cells: [{ col, row }], source: 'keyboard' },
-      Delete: { type: 'erase', col, row },
-      Backspace: { type: 'erase', col, row },
+      ' ': toolAction(tool, { col, row }, { source: 'keyboard' }),
+      Enter: toolAction(tool, { col, row }, { source: 'keyboard' }),
+      Delete: { type: 'erase', cells: [{ col, row }] },
+      Backspace: { type: 'erase', cells: [{ col, row }] },
     }
     const letters = {
       f: { type: 'fill', col, row },
@@ -169,8 +181,8 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
     report(action)
   }
 
-  // A press alone never paints (WCAG 2.5.2): a click paints on release, so sliding off cancels it, and
-  // a drag paints from its first pixel as one undo step.
+  // A press alone never acts (WCAG 2.5.2): a click uses the tool on release, so sliding off cancels it, and
+  // a drag with the Pencil or Eraser works from its first pixel as one undo step.
   function handlePointerDown(event) {
     if (event.button !== 0) return
     const cell = cellOf(event.target)
@@ -203,14 +215,15 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
     const path = cellsBetween(current, cell)
     const cells = current.moved ? path.slice(1) : path
     stroke.current = { ...cell, id: current.id, moved: true }
-    report({ type: 'paint', cells, source: 'pointer', stroke: current.id })
+    // Fill and Pick color work on a click, so a drag with them does nothing.
+    if (draws(tool)) report(strokeAction(tool, cells, { source: 'pointer', stroke: current.id }))
   }
 
   function handlePointerUp(event) {
     const current = stroke.current
     if (current && !current.moved) {
       const cell = cellUnder(event)
-      if (samePlace(cell, current)) report({ type: 'paint', cells: [cell], source: 'click', stroke: current.id }, cell)
+      if (samePlace(cell, current)) report(toolAction(tool, cell, { source: 'click', stroke: current.id }), cell)
     }
     endStroke()
   }
@@ -223,14 +236,14 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
     }, 0)
   }
 
-  // Screen readers can "click" a cell without pointer events, so a click paints too.
+  // Screen readers can "click" a cell without pointer events, so a click uses the tool too.
   function handleClick(event) {
     if (pointerHandled.current) {
       pointerHandled.current = false
       return
     }
     const cell = cellOf(event.target)
-    if (cell) report({ type: 'paint', cells: [cell], source: 'click' }, cell)
+    if (cell) report(toolAction(tool, cell, { source: 'click' }), cell)
   }
 
   function readoutAt(at, pointing) {
@@ -278,9 +291,6 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
       <p id={`${id}-size`} className="hint">
         {t('grid.size', { w: face.w, h: face.h, orientation: faceOrientation(i18n, face) })}
       </p>
-      <p id={`${id}-help`} className="hint">
-        {i18n.rich('grid.help', { kbd: (chunks) => <kbd>{chunks}</kbd> })}
-      </p>
       <div className="grid-wrap">
         {/* The cells take focus, not the grid. It stays left to right in any language, since it's a picture. */}
         {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus */}
@@ -313,6 +323,14 @@ export default function PixelGrid({ face, pixels, nameOf, settings, cursor, onCu
         )}
         <p className="cursor-readout">{readoutAt(pointed ?? { col, row }, Boolean(pointed))}</p>
       </div>
+      <p role="status" className="status">
+        {status}
+      </p>
+      {children}
+      {/* Last, so the pixels and paint colors start higher up. It's still the grid's description. */}
+      <p id={`${id}-help`} className="hint grid-help">
+        {i18n.rich('grid.help', { kbd: (chunks) => <kbd>{chunks}</kbd> })}
+      </p>
     </>
   )
 }

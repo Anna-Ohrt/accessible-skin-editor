@@ -1,11 +1,11 @@
 import { useId } from 'react'
 
-// Radio buttons for one choice, as a fieldset with a visible legend.
-export function Choices({ legend, options, value, onChange }) {
+// Radio buttons for one choice, as a fieldset with a visible legend, or named by the heading just above it.
+export function Choices({ legend, labelledBy, options, value, onChange }) {
   const name = useId()
   return (
-    <fieldset>
-      <legend>{legend}</legend>
+    <fieldset aria-labelledby={labelledBy}>
+      {legend && <legend>{legend}</legend>}
       {options.map((option) => (
         <label key={option.value} className="choice">
           <input

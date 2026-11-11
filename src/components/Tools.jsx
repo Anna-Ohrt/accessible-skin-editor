@@ -5,7 +5,7 @@ import { allFaces } from '../skin/layout.js'
 import { Checkbox, SelectField } from './fields.jsx'
 
 // Whole-side tools, so nobody has to paint pixel by pixel to make big changes.
-export default function Tools({ face, model, paintName, canUndo, canRedo, onAction }) {
+export default function Tools({ face, model, paintName, onAction }) {
   const i18n = useI18n()
   const { t } = i18n
   const targets = allFaces(model).filter((item) => item.id !== face.id && item.w === face.w && item.h === face.h)
@@ -35,15 +35,6 @@ export default function Tools({ face, model, paintName, canUndo, canRedo, onActi
           </button>
         </div>
       )}
-      {/* aria-disabled keeps these focusable, so focus isn't lost when the history runs out. */}
-      <div className="button-row">
-        <button type="button" aria-disabled={!canUndo} onClick={() => onAction({ type: 'undo' })}>
-          {t('tools.undo')}
-        </button>
-        <button type="button" aria-disabled={!canRedo} onClick={() => onAction({ type: 'redo' })}>
-          {t('tools.redo')}
-        </button>
-      </div>
       {target && (
         <form
           onSubmit={(event) => {
