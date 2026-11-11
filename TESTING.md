@@ -220,6 +220,8 @@ Section 10's script found nothing covering anything else in any of the 42 combin
 
 The browser checks in section 3 now check the model beside the pixels at 3 window sizes, and a click on the model with the Pencil and with Pick color. Section 2 has 4 new tests for the tools, and section 4 the 15 bugs planted for them, and one check that had to get stricter.
 
+Once live, the 37 browser checks passed against the site, and Lighthouse scored 100 for accessibility on mobile and desktop.
+
 ## What these checks can't tell you
 
 Playwright's own documentation says: "Automated accessibility tests can detect some common accessibility problems such as missing or invalid properties. But many accessibility problems can only be discovered through manual testing." ([Playwright](https://playwright.dev/docs/accessibility-testing))
