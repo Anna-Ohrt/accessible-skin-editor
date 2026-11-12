@@ -1,4 +1,5 @@
 import { useMemo, useReducer, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useI18n } from './i18n/context.js'
 import { colorNamer, describeArea, describeLine, faceLabel, messageText } from './i18n/words.js'
 import { getFace } from './skin/layout.js'
@@ -7,7 +8,7 @@ import { areaAt, columnOf, getCell, rowOf } from './skin/pixels.js'
 import { SKIN_FILE_NAME, SkinFileError, downloadSkin, readSkinFile } from './skin/png.js'
 import { planEdit } from './editor/edits.js'
 import { historyReducer, initHistory, nextStep } from './editor/history.js'
-import { chooseTool, toolAction } from './editor/tools.js'
+import { chooseTool } from './editor/tools.js'
 import { loadDraft, startingDraft } from './editor/storage.js'
 import { useAnnouncer } from './editor/useAnnouncer.js'
 import { useAutosave } from './editor/useAutosave.js'
@@ -21,7 +22,7 @@ import ReplaceColor from './components/ReplaceColor.jsx'
 import FaceDescription from './components/FaceDescription.jsx'
 import Preview from './components/Preview.jsx'
 import TextureMap from './components/TextureMap.jsx'
-import FilePanel from './components/FilePanel.jsx'
+import FilePanel, { FileActions } from './components/FilePanel.jsx'
 import Settings from './components/Settings.jsx'
 import Shortcuts from './components/Shortcuts.jsx'
 import Logo from './components/Logo.jsx'
@@ -58,6 +59,7 @@ export default function App() {
   const [fileError, setFileError] = useState(null)
   const [status, announce] = useAnnouncer(t('status.first'))
   const latestOpen = useRef(0)
+  const gridRef = useRef(null)
 
   const { pixels } = history
   const { partId, sideId, layerId } = selection
@@ -69,16 +71,16 @@ export default function App() {
   const paintName = names.get(current.id)
   useAutosave({ pixels, palette, model, currentColor: current.color, settings })
 
-  // What an action says after doing it, on the side being edited unless it names another. Null means it
-  // says nothing, like a drag that painted: the pixels' names already have the new color.
-  function respond(action, onFace = face) {
+  // What an action on the side being edited says after doing it. Null means it says nothing, like a drag
+  // that painted: the pixels' names already have the new color.
+  function respond(action) {
     const { col, row } = action
     switch (action.type) {
       case 'undo':
       case 'redo':
         return travel(action.type)
       case 'pick':
-        return pickColor(getCell(pixels, onFace, col, row), action.byTool)
+        return pickColor(getCell(pixels, face, col, row), action.byTool)
       case 'readRow':
         return t('status.readRow', { row: row + 1, line: describeLine(i18n, rowOf(pixels, face, row), nameOf) })
       case 'readColumn':
@@ -94,7 +96,7 @@ export default function App() {
         return t(sayPosition ? 'status.positionOn' : 'status.positionOff')
       }
       default: {
-        const plan = planEdit(action, { pixels, face: onFace, model, color: current.color })
+        const plan = planEdit(action, { pixels, face, model, color: current.color })
         if (plan.change) dispatch({ type: 'apply', change: plan.change, label: plan.label, stroke: action.stroke })
         if (!plan.refused && QUIET_SOURCES.has(action.source)) return null
         return messageText(i18n, plan.message, { color: paintName }, nameOf)
@@ -163,12 +165,14 @@ export default function App() {
     announce(t('status.editing', { face: faceLabel(i18n, found) }))
   }
 
-  // A click on the 3D model uses the tool there, and opens that side with the cursor on that pixel.
-  function toolOnModel({ face: target, col, row }) {
-    setSelection({ partId: target.partId, sideId: target.sideId, layerId: target.layerId })
-    setCursor({ col, row })
-    const result = respond(toolAction(tools.current, { col, row }, { source: 'model' }), target)
-    announce(t('status.onModel', { face: faceLabel(i18n, target), row: row + 1, col: col + 1, result }))
+  // A click on the 3D model goes to that pixel in the grid, where pixels are big enough to edit. The side
+  // opens first, so the pixel is there to take focus.
+  function goToSpot({ face: target, col, row }) {
+    flushSync(() => {
+      setSelection({ partId: target.partId, sideId: target.sideId, layerId: target.layerId })
+      setCursor({ col, row })
+    })
+    gridRef.current.focusCursor()
   }
 
   return (
@@ -180,6 +184,7 @@ export default function App() {
         <Logo />
         <h1>{t('app.title')}</h1>
         <p className="disclaimer">{t('app.disclaimer')}</p>
+        <FileActions error={fileError} onOpen={openFile} onDownload={download} />
       </header>
       <main className="layout">
         <div className="column">
@@ -206,11 +211,14 @@ export default function App() {
         <div className="column">
           <Panel id="pixels" title={t('heading.pixels', { face: faceLabel(i18n, face) })} focusable>
             <PixelGrid
+              ref={gridRef}
               face={face}
               pixels={pixels}
               nameOf={nameOf}
               settings={settings}
               tool={tools.current}
+              paint={current.color}
+              paintName={paintName}
               status={status}
               cursor={cursor}
               onCursorChange={setCursor}
@@ -237,7 +245,7 @@ export default function App() {
 
         <div className="column">
           <Panel id="preview" title={t('heading.preview')}>
-            <Preview pixels={pixels} model={model} nameOf={nameOf} face={face} onPickSpot={toolOnModel} />
+            <Preview pixels={pixels} model={model} nameOf={nameOf} face={face} onPickSpot={goToSpot} />
           </Panel>
           <Panel id="texture" title={t('heading.texture')}>
             <TextureMap pixels={pixels} face={face} model={model} onPickFace={(found) => openSide(found)} />
@@ -246,13 +254,7 @@ export default function App() {
             <ColorForms names={names} current={current} onAdd={addColor} onRename={renameColor} />
           </Panel>
           <Panel id="file" title={t('heading.file')}>
-            <FilePanel
-              error={fileError}
-              paintName={paintName}
-              onOpen={openFile}
-              onDownload={download}
-              onAction={handleAction}
-            />
+            <FilePanel paintName={paintName} onAction={handleAction} />
           </Panel>
           <Panel id="settings" title={t('heading.settings')}>
             <Settings settings={settings} onChange={(change) => setSettings((value) => ({ ...value, ...change }))} />

@@ -1,7 +1,7 @@
-import { useId, useMemo, useRef, useState } from 'react'
+import { useId, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { faceLabel, faceOrientation } from '../i18n/words.js'
-import { draws, strokeAction, toolAction } from '../editor/tools.js'
+import { draws, paints, strokeAction, toolAction } from '../editor/tools.js'
 import { getCell, nextChange } from '../skin/pixels.js'
 import { alphaOf, toCss, toHex } from '../skin/color.js'
 
@@ -48,11 +48,14 @@ function cellsBetween(from, to) {
 // One side's pixels as an ARIA grid with a roving tabindex, named by color, reporting requests through
 // onAction, which returns what the app said. Below it: the status, the children (paint colors), the keys.
 export default function PixelGrid({
+  ref,
   face,
   pixels,
   nameOf,
   settings,
   tool,
+  paint,
+  paintName,
   status,
   cursor,
   onCursorChange,
@@ -63,6 +66,12 @@ export default function PixelGrid({
   const i18n = useI18n()
   const { t } = i18n
   const gridRef = useRef(null)
+  // A click on the 3D model puts focus here, and focusVisible shows the ring after a mouse click too.
+  useImperativeHandle(
+    ref,
+    () => ({ focusCursor: () => gridRef.current.querySelector('[tabindex="0"]').focus({ focusVisible: true }) }),
+    [],
+  )
   const stroke = useRef(null)
   const strokeCount = useRef(0)
   const pointerHandled = useRef(false)
@@ -285,6 +294,7 @@ export default function PixelGrid({
   )
   const pointed = hover && inside(hover) ? hover : null
   const shownNote = samePlace(note, { col, row }) ? note : null
+  const toolNow = t('grid.tool', { tool, color: paintName })
 
   return (
     <>
@@ -299,7 +309,7 @@ export default function PixelGrid({
           role="grid"
           dir="ltr"
           aria-label={faceLabel(i18n, face)}
-          aria-describedby={`${id}-size ${id}-help`}
+          aria-describedby={`${id}-tool ${id}-size ${id}-help`}
           className={settings.showGridLines ? 'pixel-grid with-lines' : 'pixel-grid'}
           style={{ '--cell': `${settings.cellSize}px` }}
           onKeyDown={handleKeyDown}
@@ -321,7 +331,18 @@ export default function PixelGrid({
             {shownNote?.text ?? readoutAt({ col, row }, false)}
           </p>
         )}
-        <p className="cursor-readout">{readoutAt(pointed ?? { col, row }, Boolean(pointed))}</p>
+        <div className="under-grid">
+          <p className="cursor-readout">{readoutAt(pointed ?? { col, row }, Boolean(pointed))}</p>
+          {/* The tool beside the pixels too, since Tools can be off screen, as on a phone (NN/g on modes). */}
+          <p className="tool-now">
+            {paints(tool) && <span className="chip" style={{ '--pixel': toCss(paint) }} aria-hidden="true" />}
+            {toolNow}
+          </p>
+        </div>
+        {/* What the grid's description starts with, as a sentence so it doesn't run into the size. */}
+        <span id={`${id}-tool`} hidden>
+          {t('grid.toolSaid', { tool: toolNow })}
+        </span>
       </div>
       <p role="status" className="status">
         {status}

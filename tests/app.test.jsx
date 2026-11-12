@@ -45,7 +45,7 @@ describe('Skin editor', () => {
     expect(status()).toHaveTextContent('Each change you make is described here.')
     expect(grid()).toHaveAccessibleName('Head, front, base layer')
     expect(grid()).toHaveAccessibleDescription(
-      /^8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/,
+      /^Pencil, black\. 8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/,
     )
     expect(cells()).toHaveLength(64)
     expect(cells().filter((item) => item.tabIndex === 0)).toHaveLength(1)
@@ -311,6 +311,26 @@ describe('Skin editor', () => {
     expect(radio('Pencil')).toBeChecked()
     expect(tools.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
     expect(tools.getByRole('button', { name: 'Redo' })).toBeInTheDocument()
+  })
+
+  it('shows the tool under the pixels with the color it uses, and starts the grid description with it', async () => {
+    const { user } = setup()
+    const toolNow = () => document.querySelector('.tool-now')
+    const chip = () => toolNow().querySelector('.chip')
+    expect(toolNow()).toHaveTextContent(/^Pencil, black$/)
+    expect(chip()).toHaveStyle({ '--pixel': '#000000' })
+    await user.click(radio('red'))
+    await user.click(radio('Fill'))
+    expect(toolNow()).toHaveTextContent(/^Fill, red$/)
+    expect(grid()).toHaveAccessibleDescription(/^Fill, red\. 8 by 8 pixels\./)
+    // The Eraser and Pick color don't use the paint color, so it isn't shown with them.
+    await user.click(radio('Eraser'))
+    expect(toolNow()).toHaveTextContent(/^Eraser$/)
+    expect(chip()).toBeNull()
+    await user.click(radio('Pick color'))
+    expect(toolNow()).toHaveTextContent(/^Pick color$/)
+    expect(grid()).toHaveAccessibleDescription(/^Pick color\. 8 by 8 pixels\./)
+    expect(screen.getByText(/^Chosen:/)).toHaveTextContent('Chosen: red #c0392b')
   })
 
   it('fills from a clicked pixel or with Space when Fill is the tool, and a drag or Shift+arrow only moves', async () => {
@@ -618,9 +638,15 @@ describe('Skin editor', () => {
     expect(screen.getByRole('combobox', { name: 'Pixel size on screen' })).toHaveValue('48')
   })
 
-  it('explains why a file can\u2019t be opened', async () => {
-    const { user } = setup()
-    const input = screen.getByLabelText('Open a skin (a 64 by 64 PNG)')
+  it('explains why a file can\u2019t be opened, on the Open button at the top of the page', async () => {
+    const { user, container } = setup()
+    const open = within(screen.getByRole('banner')).getByRole('button', { name: 'Open a skin' })
+    // The button opens the browser's file picker by clicking the hidden file input.
+    const input = container.querySelector('input[type="file"]')
+    const picked = vi.fn()
+    input.addEventListener('click', picked)
+    await user.click(open)
+    expect(picked).toHaveBeenCalledOnce()
     await user.upload(input, new File(['not a skin'], 'skin.jpg', { type: 'image/jpeg' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Choose a PNG file. Minecraft skins are PNG images.')
     // The size comes from the file's header, so a wrong-sized image is refused before it's decoded.
@@ -628,12 +654,22 @@ describe('Skin editor', () => {
     expect(
       await screen.findByText('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.'),
     ).toBeInTheDocument()
-    expect(input).toHaveAccessibleDescription('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.')
+    expect(open).toHaveAccessibleDescription('This image is 128 by 128 pixels. A skin must be 64 by 64 pixels.')
+    expect(button('Download skin.png')).not.toHaveAccessibleDescription()
+  })
+
+  it('describes Download, not Open, with a problem making the PNG', async () => {
+    const { user } = setup()
+    // The test page has no canvas to draw the PNG on.
+    await user.click(button('Download skin.png'))
+    expect(await screen.findByRole('alert')).toHaveTextContent("The PNG couldn't be created.")
+    expect(button('Download skin.png')).toHaveAccessibleDescription("The PNG couldn't be created.")
+    expect(button('Open a skin')).not.toHaveAccessibleDescription()
   })
 
   it('goes by the last file chosen, even when an earlier one finishes later', async () => {
-    setup()
-    const input = screen.getByLabelText('Open a skin (a 64 by 64 PNG)')
+    const { container } = setup()
+    const input = container.querySelector('input[type="file"]')
     // Reading the PNG's header waits for the file, so it finishes after the JPEG is turned away.
     fireEvent.change(input, { target: { files: [new File([pngHeader(128, 128)], 'slow.png', { type: 'image/png' })] } })
     fireEvent.change(input, { target: { files: [new File(['not a skin'], 'fast.jpg', { type: 'image/jpeg' })] } })
@@ -707,9 +743,21 @@ describe('Skin editor', () => {
     ).toBeInTheDocument()
   })
 
-  it('keeps the skip link in the banner, captions the shortcuts table, and names links by where they go', () => {
+  it('keeps the skip link first in the banner, captions the shortcuts table, and names links by where they go', () => {
     setup()
-    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Skip to the pixels' })).toBeInTheDocument()
+    const banner = within(screen.getByRole('banner'))
+    expect(banner.getByRole('link', { name: 'Skip to the pixels' })).toBeInTheDocument()
+    // Open and Download are at the top, after the skip link, so the skip link is still the first Tab stop.
+    expect([...screen.getByRole('banner').querySelectorAll('a, button')].map((item) => item.textContent)).toEqual([
+      'Skip to the pixels',
+      'Open a skin',
+      'Download skin.png',
+    ])
+    expect(
+      within(screen.getByRole('region', { name: 'File' })).getByText(
+        '\u201cOpen a skin\u201d and \u201cDownload skin.png\u201d are at the top of the page.',
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Keys for the pixel grid' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Code and research on GitHub' })).toHaveAttribute(
       'href',

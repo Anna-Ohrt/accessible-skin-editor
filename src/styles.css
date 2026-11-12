@@ -110,7 +110,7 @@ a:hover {
   top: 8px;
 }
 
-/* The banner: the editor's mark beside its name and what it is. */
+/* The banner: the editor's mark beside its name and what it is, then Open and Download. */
 .app-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -120,8 +120,36 @@ a:hover {
   border-bottom: 1px solid var(--line);
 }
 
-.app-header > :not(.logo, .skip-link) {
+.app-header > :not(.logo, .skip-link, .file-actions) {
   grid-column: 2;
+}
+
+/* On a narrow screen, Open and Download go under the name, so the name keeps its room. */
+.file-actions {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+.file-actions .button-row {
+  margin: 0;
+}
+
+.file-actions .error {
+  max-width: 24rem;
+  margin: 8px 0 0;
+}
+
+@media (min-width: 48rem) {
+  .app-header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .file-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin-top: 0;
+  }
 }
 
 /* The sample character's face, pixel for pixel. */
@@ -616,11 +644,33 @@ button[aria-disabled='true'] {
   box-shadow: 0 0 0 2px #000000;
 }
 
+/* Under the pixels: the pixel with focus or under the pointer, and the tool in use. */
+.under-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-top: 12px;
+}
+
 .cursor-readout {
-  margin: 12px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: 0.9375rem;
   font-variant-numeric: tabular-nums;
+}
+
+.tool-now {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  font-weight: 600;
+}
+
+.tool-now .chip {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* Shown next to the pixel with focus, for magnifier and zoom users who can't see the status below the grid.

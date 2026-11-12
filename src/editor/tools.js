@@ -4,6 +4,9 @@ export const TOOLS = ['pencil', 'fill', 'eraser', 'pick']
 // Pencil and Eraser work along a drag or Shift+arrow. Fill and Pick color work on one pixel.
 export const draws = (tool) => tool === 'pencil' || tool === 'eraser'
 
+// Pencil and Fill put down the paint color.
+export const paints = (tool) => tool === 'pencil' || tool === 'fill'
+
 export function toolAction(tool, cell, extra) {
   switch (tool) {
     case 'fill':

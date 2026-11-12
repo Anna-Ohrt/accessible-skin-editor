@@ -74,6 +74,9 @@ export default {
 
   // The pixel grid
   'grid.size': '{w, number} by {h, number} pixels. {orientation}',
+  // Under the pixels: the tool, and the paint color for the two tools that use it.
+  'grid.tool': '{tool, select, fill {Fill, {color}} eraser {Eraser} pick {Pick color} other {Pencil, {color}}}',
+  'grid.toolSaid': '{tool}.',
   'grid.help':
     "<kbd>Arrow keys</kbd> move, and <kbd>Ctrl</kbd> with an arrow goes to where the color changes. <kbd>Space</kbd> uses the tool, and <kbd>Shift</kbd> with an arrow paints or erases as you move. <kbd>F</kbd> fills, <kbd>I</kbd> picks up a color, <kbd>R</kbd> or <kbd>C</kbd> reads a row or column, and <kbd>A</kbd> describes the area of this pixel's color. <kbd>P</kbd> stops or starts saying each pixel's row and column. <kbd>Tab</kbd> goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
   'grid.cell': '{color}, row {row, number}, column {col, number}',
@@ -161,8 +164,6 @@ export default {
   'status.added': "Added {color}. It's the paint color now.",
   'status.renamed': 'Renamed {from} to {to}.',
   'status.editing': 'Editing {face}.',
-  // A click on the 3D model: where it landed, then what the tool did there.
-  'status.onModel': '{face}, row {row, number}, column {col, number}. {result}',
 
   // What Undo and Redo say they undid or redid
   'action.painting': 'painting',
@@ -179,7 +180,7 @@ export default {
 
   // Paint colors, and adding or renaming them
   'palette.legend': 'Paint color',
-  'palette.painting': 'Painting with <b>{color}</b> <hint>{hex}</hint>',
+  'palette.chosen': 'Chosen: <b>{color}</b> <hint>{hex}</hint>',
   'colors.addHeading': 'Add a color',
   'colors.hex': 'Hex code',
   'colors.picker': 'System color picker',
@@ -239,15 +240,16 @@ export default {
   'preview.flatLabel':
     '{view, select, front {Front} right {Right side} back {Back} other {Left side}} view of the skin',
   'preview.pointing': 'Pointing at {face}, row {row, number}, column {col, number}.',
-  'preview.hint': 'Drag the model to turn it. Clicking it uses the tool on that spot, and opens that side.',
+  'preview.hint': 'Drag the model to turn it. Click a spot to edit it in the pixels.',
 
   // Texture
   'texture.label': "The whole skin texture, with the side you're editing outlined.",
   'texture.hint': 'Clicking a part of the texture picks that side. The menus under “{section}” do the same.',
 
   // File
-  'file.open': 'Open a skin (a 64 by 64 PNG)',
+  'file.open': 'Open a skin',
   'file.download': 'Download {file}',
+  'file.atTop': '“{open}” and “{download}” are at the top of the page.',
   'file.startOver': 'Start over with the sample skin',
   'file.plain': 'Start a plain skin in {color}',
   'file.saved': 'Your work and settings are saved in this browser as you go.',

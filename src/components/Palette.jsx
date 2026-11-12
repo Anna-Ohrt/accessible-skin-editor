@@ -178,7 +178,7 @@ export function PaintColors({ palette, names, current, onSelect }) {
         ))}
       </div>
       <p className="current-color">
-        {rich('palette.painting', {
+        {rich('palette.chosen', {
           color: names.get(current.id),
           hex: toHex(current.color),
           b: (chunks) => <strong>{chunks}</strong>,

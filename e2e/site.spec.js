@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { test, expect } from '@playwright/test'
-import { cell, grid, modelCanvas, status, watchForProblems } from './helpers.js'
+import { cell, grid, modelCanvas, openSkin, status, watchForProblems } from './helpers.js'
 
 const flatPicture = (page) => page.getByRole('img', { name: 'Front view of the skin' })
 
@@ -107,13 +107,13 @@ test.describe('Reliability', () => {
     const texture = () => page.locator('canvas.texture-map').evaluate((canvas) => canvas.toDataURL())
     const before = await texture()
     const downloading = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'Download skin.png' }).click()
+    await page.getByRole('banner').getByRole('button', { name: 'Download skin.png' }).click()
     const saved = testInfo.outputPath('skin.png')
     await (await downloading).saveAs(saved)
 
     await page.getByRole('button', { name: 'Start a plain skin in black' }).click()
     await expect(cell(page, 1, 1)).toHaveAccessibleName('black, row 1, column 1')
-    await page.getByLabel('Open a skin (a 64 by 64 PNG)').setInputFiles(saved)
+    await openSkin(page, saved)
     await expect(status(page)).toHaveText(/^Opened skin\.png\./)
     await expect(cell(page, 1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
     await expect.poll(texture).toBe(before)

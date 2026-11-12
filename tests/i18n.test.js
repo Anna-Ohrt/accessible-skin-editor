@@ -28,7 +28,7 @@ describe('messages', () => {
 
   it('turn tags into React elements with rich(), and refuse them in plain text', () => {
     const i18n = createI18n('en')
-    const parts = i18n.rich('palette.painting', {
+    const parts = i18n.rich('palette.chosen', {
       color: 'black',
       hex: '#000000',
       b: (chunks) => createElement('strong', null, ...chunks),
@@ -36,7 +36,7 @@ describe('messages', () => {
     })
     expect(parts.length).toBeGreaterThan(1)
     expect(parts.every((part) => isValidElement(part) && part.key !== null)).toBe(true)
-    expect(() => i18n.t('palette.painting', { color: 'black', hex: '#000000' })).toThrow()
+    expect(() => i18n.t('palette.chosen', { color: 'black', hex: '#000000' })).toThrow()
   })
 
   it('fall back to English for a message a language is missing, and fail loudly for one nobody has', () => {

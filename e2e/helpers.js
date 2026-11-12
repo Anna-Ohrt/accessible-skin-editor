@@ -34,6 +34,37 @@ export async function centerOf(locator) {
   return [box.x + box.width / 2, box.y + box.height / 2]
 }
 
+// Opens a file the way people do: the Open button at the top brings up the browser's file picker.
+export async function openSkin(page, files) {
+  const choosing = page.waitForEvent('filechooser')
+  await page.getByRole('banner').getByRole('button', { name: 'Open a skin' }).click()
+  await (await choosing).setFiles(files)
+}
+
+// Presses Tab or Shift+Tab until focus leaves the page, listing each stop. A keyboard trap (WCAG 2.1.2) shows
+// as focus coming back to a stop before it gets out.
+export async function tabWalk(page, key) {
+  const stops = []
+  for (let i = 0; i < 200; i += 1) {
+    await page.keyboard.press(key)
+    const stop = await page.evaluate(() => {
+      const element = document.activeElement
+      if (!element || element === document.body) return null
+      window.stopIds ??= new WeakMap()
+      if (!window.stopIds.has(element)) {
+        window.stopCount = (window.stopCount ?? 0) + 1
+        window.stopIds.set(element, window.stopCount)
+      }
+      const name = element.getAttribute('aria-label') ?? element.labels?.[0]?.textContent ?? element.textContent
+      return `${window.stopIds.get(element)}: ${name.trim().replace(/\s+/g, ' ').slice(0, 40)}`
+    })
+    if (!stop) return { stops, left: true }
+    if (stops.includes(stop)) return { stops, trappedAt: stop }
+    stops.push(stop)
+  }
+  return { stops, trappedAt: 'more than 200 stops' }
+}
+
 // The page's width, and anything sticking out past its edge or out of its panel, which can happen without
 // sideways scrolling. The pixel grid scrolls inside its own box, so what's inside it doesn't count.
 export function overflow(page) {

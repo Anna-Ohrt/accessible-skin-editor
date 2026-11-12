@@ -1,25 +1,25 @@
 # Accessible skin editor prototype
 
-A web prototype of a Minecraft skin editor that works with a keyboard, a screen reader, a mouse or touch. It edits a 64 by 64 skin PNG one side of one body part at a time, names every pixel's color in words, and describes the character in text. It also shows the character as a 3D model, beside the pixels when the window is wide enough, which turns by dragging or with buttons. Pencil, Fill, Eraser and Pick color tools work on the pixels and on the model. Every word it shows or speaks is ready to translate, including into right-to-left languages. Built with React, plus Babylon.js for the 3D model.
+A web prototype of a Minecraft skin editor that works with a keyboard, a screen reader, a mouse or touch. It edits a 64 by 64 skin PNG one side of one body part at a time, names every pixel's color in words, and describes the character in text. It also shows the character as a 3D model, beside the pixels when the window is wide enough, which turns by dragging or with buttons, and a click on it goes to that pixel in the grid. Pencil, Fill, Eraser and Pick color tools work on the pixels, and Open and Download are at the top of the page. Every word it shows or speaks is ready to translate, including into right-to-left languages. Built with React, plus Babylon.js for the 3D model.
 
 **Try it: [anna-ohrt.github.io/accessible-skin-editor](https://anna-ohrt.github.io/accessible-skin-editor/)**. There's also a [one-file copy](https://anna-ohrt.github.io/accessible-skin-editor/skin-editor.html) that you can save and open with a double-click, with no internet connection.
 
 Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. The sample skin and its colors were made for this prototype; none of it is Mojang's art.
 
-![The editor in its light theme, with a small pixel picture of the sample character's face beside the title. On the left, Tools offers Pencil, which is chosen, Fill, Eraser and Pick color, with Undo and Redo, and below it, menus choose the body part (Head) and side (Front), and choices set the layer and the arm width. In the middle, an 8 by 8 grid of pixels shows a face with dark brown hair, white and blue eyes and a red mouth, on a beige backdrop with a bar for messages below it, then 15 paint colors listed by name and the keys. On the right, beside the pixels, a 3D model of the character with the front of its head outlined, its description, and choices for how to show it.](docs/screenshot.png)
+![The editor in its light theme, with a small pixel picture of the sample character's face beside the title, and the Open a skin and Download skin.png buttons at the top right. On the left, Tools offers Pencil, which is chosen, Fill, Eraser and Pick color, with Undo and Redo, and below it, menus choose the body part (Head) and side (Front), and choices set the layer and the arm width. In the middle, an 8 by 8 grid of pixels shows a face with dark brown hair, white and blue eyes and a red mouth, on a beige backdrop. Under the grid, the first pixel's row, column and color are on the left, and "Pencil, black" with a black square is on the right, above a bar for messages. Then come 15 paint colors listed by name and the keys. On the right, beside the pixels, a 3D model of the character with the front of its head outlined, its description, and choices for how to show it.](docs/screenshot.png)
 
 ## Try it with the keyboard
 
-1. Press Tab to reach "Skip to the pixels", press Enter, then press Tab once to reach the pixels.
+1. Press Tab to reach "Skip to the pixels", press Enter, then press Tab once to reach the pixels. The two stops after the skip link are "Open a skin" and "Download skin.png".
 2. Move with the arrow keys. Each pixel is announced by its color and position, like "dark brown, row 1, column 1". If your screen reader also says the position, as NVDA does, press P to hear it once.
 3. Press Tab to reach the paint colors, choose one with the arrow keys, then press Shift+Tab to go back. Press Space to paint. Hold Shift and press an arrow key to paint as you move.
-4. To fill, erase or pick up a color with Space and clicks instead, choose a tool under Tools, the first choice on the page: Pencil, Fill, Eraser or Pick color. Shift and an arrow key erase as you move with the Eraser. After picking up a color, Pick color goes back to the tool you had before.
+4. To fill, erase or pick up a color with Space and clicks instead, choose a tool under Tools, the first choice on the page: Pencil, Fill, Eraser or Pick color. The tool, and the paint color it uses, also show under the pixels and start what you hear on reaching them. Shift and an arrow key erase as you move with the Eraser. After picking up a color, Pick color goes back to the tool you had before.
 5. Press R to hear the row, C to hear the column, A to hear the area of one color the pixel is in, F to fill, I to pick up a color, and Ctrl+Z to undo. These letters work with any tool. Ctrl and an arrow key go straight to where the color changes.
 6. Read "This side in words" and the Preview description to check your work as text. The View and Angle choices turn the 3D model.
 
 With a screen magnifier or zoom, the row, column and latest message also show next to the pixel, so you don't have to look below the grid. Escape hides them until you move.
 
-With a mouse or touch, choose a tool, then click or drag on the pixels. Drag the 3D model to turn it. Pointing at it names the side and pixel underneath, and a click uses the tool on that spot and opens it in the grid. Pointing at a pixel in the grid names its color below the grid, before a click changes it.
+With a mouse or touch, choose a tool, then click or drag on the pixels. Drag the 3D model to turn it. Pointing at it names the side and pixel underneath, and a click opens that side in the grid with focus on that pixel, ready to edit. Pointing at a pixel in the grid names its color below the grid, before a click changes it.
 
 ## What makes it accessible
 
@@ -31,6 +31,7 @@ With a mouse or touch, choose a tool, then click or drag on the pixels. Drag the
 | Changes happen without focus moving | One visible `role="status"` message reports every action, like "Filled 42 pixels with dark brown." | WCAG 4.1.3 |
 | Drawing usually means dragging | Every drag has another way: click a pixel, Shift+arrow, fill, mirror, or copy a side | WCAG 2.5.7 |
 | Filling, erasing and picking up a color were keys only | Tools, a choice of Pencil, Fill, Eraser or Pick color named by its heading, sets what a click, a drag and Space do, as in other skin editors. Pick color goes back to the tool from before, as Microsoft Paint's Eyedropper does ([guide](https://lkwdpl.org/classes/MSPaint/tools/eyedropper.html)). F, I and Delete still fill, pick up and erase with any tool | |
+| On a phone, Tools is off screen while you paint | The tool, and the paint color for the Pencil and Fill, also show under the pixels, and the grid's description starts with them. The Nielsen Norman Group recommends "at least two visual indicators" of a mode ([NN/g](https://www.nngroup.com/articles/modes/)) | |
 | Changing a color used all over, like a shirt's, means painting side after side | Replace swaps one color for the paint color on every side and both layers in one step, and says how many pixels changed. The list of colors on the skin gives each one's pixel count | |
 | A mis-tap paints the wrong pixel | A click paints when you let go, so sliding off first cancels it, and everything can be undone | WCAG 2.5.2 |
 | Pixels are small | Pixel size from 24 to 64 CSS pixels | WCAG 2.5.8 |
@@ -44,10 +45,13 @@ With a mouse or touch, choose a tool, then click or drag on the pixels. Drag the
 | Pictures need text | The 3D model and the flat pictures share a generated description, like "Head: mostly tan, with dark brown, white, and blue.", and the model's name says which way it faces | WCAG 1.1.1 |
 | Turning a 3D model usually means dragging | The View and Angle choices turn it too | WCAG 2.5.7 |
 | Animation can distract some people or make them feel sick | The model never moves by itself, and turns instantly when the system asks for reduced motion | WCAG 2.2.2, 2.3.3 (AAA) |
-| It's hard to tell where a side is on the character | The model outlines the side you're editing and turns to it. Pointing at it names the side and pixel, and a click uses the tool there and opens that spot in the grid | |
+| It's hard to tell where a side is on the character | The model outlines the side you're editing and turns to it. Pointing at it names the side and pixel, and a click opens that spot in the grid | |
+| Pixels on the 3D model are small: 7 to 10 CSS pixels wide, against 32 in the grid | A click on the model doesn't edit. It opens that side with focus on that pixel in the grid, which shows its focus ring and the message next to it. WCAG counts a picture you click by position as one target, but the rule is meant to help avoid "accidentally activating an adjacent target" ([Understanding 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)) | WCAG 2.5.8 |
 | Checking a change on the character means scrolling away from the pixels | From 960 CSS pixels wide, the 3D model sits beside the pixels, so a change shows in both at once. That includes 175% and 200% zoom of a 1920 by 1080 screen | |
 | Some browsers have no WebGL | The flat pictures show instead, with a note saying why | |
 | Mistakes | Undo and redo for everything, including opening a file and starting over | [Xbox Accessibility Guideline 115](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/115) |
+| Download was 2.5 to 7 windows down the page | "Open a skin" and "Download skin.png" are at the top right, the two Tab stops after the skip link. On a narrow screen, they go under the name | |
+| A keyboard trap leaves someone stuck | A browser check tabs through the whole page forward and back, as it loads and after an error and a click on the model, and fails if focus can't get out or the two orders differ | WCAG 2.1.2 |
 | Too many key presses | The paint colors are the next Tab stop after the pixels, and the side menus are 3 stops before them. Ctrl and an arrow key go to where the color changes, so crossing a row of one color takes 1 key instead of 7 | [Xbox Accessibility Guideline 107](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/107) |
 | Letter shortcuts on keyboards for other scripts | With a Russian or Greek keyboard, F, I, R, C, A, P and Ctrl+Z still work, found by the key's position | |
 | Screen readers differ on positions in a grid | Each pixel's name includes its row and column, because JAWS doesn't say them in a grid ([open report](https://github.com/FreedomScientific/standards-support/issues/587)). NVDA says the row or column itself when it changes, so P leaves the editor's out | |
@@ -99,7 +103,8 @@ Settings let you leave out the row and column (so does P in the pixels), add hex
 - Every edit, like painting, filling or copying a side, is a pure function in [`src/editor/edits.js`](src/editor/edits.js). It returns the change, its undo label and the message to announce, and the app applies it through one undo reducer, so each edit is tested without rendering anything.
 - The state the panels share lives in `App`, with custom hooks for the palette (`usePalette`), the status message (`useAnnouncer`) and saving (`useAutosave`). Each panel keeps only its own form or view state. Anything that can be worked out from state, like the side being edited or a color's name, is computed while rendering rather than stored a second time.
 - The pixel grid's cursor is controlled by `App`, so a click on the 3D model can move it. Arrow keys move focus, and the cursor follows focus, so there's no effect to keep them in step.
-- The chosen tool is state in `App`, and [`src/editor/tools.js`](src/editor/tools.js) turns a click, a drag or Space into the edit for that tool, so the grid and the 3D model share one set of rules.
+- A click on the 3D model sets the side and the cursor inside `flushSync`, which, in React's words, makes React "update the DOM synchronously" ([React docs](https://react.dev/learn/manipulating-the-dom-with-refs#flushing-state-updates-synchronously-with-flush-sync)). The grid has drawn that side when `App` then asks it, through a ref, to focus the pixel at the cursor.
+- The chosen tool is state in `App`, and [`src/editor/tools.js`](src/editor/tools.js) turns a click, a drag or Space in the grid into the edit for that tool.
 - The message next to the pixel is placed with CSS anchor positioning, which [MDN lists as Baseline 2026](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/position-try-fallbacks): beside the grid if that fits on screen, on its left in right-to-left pages, otherwise below or above the pixel. Browsers without it show only the readout under the grid. It's `aria-hidden`, because screen readers already hear the same words from the pixel and the status message.
 - Babylon.js is wrapped in one class, `SkinScene`. The React component that shows it only passes it the current state, one effect per kind of change, and a separate module tells clicks from drags.
 - Form controls share three small components (`Choices`, `Checkbox` and `SelectField`), and React files export only components, as Vite's Fast Refresh needs.
@@ -117,6 +122,8 @@ The page was redesigned on November 10, 2026, without changing what screen reade
 - In Windows contrast themes, the message next to the pixel and the Download button, the one filled button, use system colors.
 - From 960 CSS pixels wide (60rem), there are three columns: Tools and the side picker, then the pixels with the paint colors under them, then the Preview with the 3D model first. That's the layout of MinecraftSkin.app, which "shows the 64×64 texture beside a live 3D player" ([BlockSkinLab](https://www.blockskinlab.com/blog/best-free-minecraft-skin-editors/)). In a narrower window, the model comes after the pixels.
 - The introduction is in the footer, and the help under the grid comes after the paint colors, so the pixels and the model start higher up. The help is still the grid's description, so screen readers hear it with the grid.
+- "Open a skin" and "Download skin.png" are at the right end of the banner, and go under the name below 48rem, so they move the pixels down only on narrower screens. The Open button opens the browser's file picker by clicking a hidden file input.
+- Under the pixels, the pixel with focus or under the pointer is named on the left, and the tool on the right, with a square of the paint color for the Pencil and Fill. They share a line when there's room.
 - The side picker scrolls with the page. With Tools above it, the left column is taller than many windows, and a part that stays in view but is taller than the window needs a scrollbar of its own, which the zoom checks don't allow. Its two menus share a row when there's room.
 
 ## Software in the site
@@ -135,24 +142,26 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 
 [TESTING.md](TESTING.md) lists everything that has been tested, what that can't tell you, and a step by step plan for testing with screen readers and players.
 
-- **132 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, the four tools, undo, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, areas of one color and where the color changes, the message next to the pixel, messages and languages, PNG checks, and saving.
-- **37 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
+- **134 tests** with Vitest and Testing Library: layout counts and positions, color names, every editing command, the four tools and the tool shown under the pixels, undo, Open and Download at the top, the 3D model's camera, telling clicks from drags, the 3D character's geometry and picking, keyboard and screen reader behavior found by role and name, areas of one color and where the color changes, the message next to the pixel, messages and languages, PNG checks, and saving.
+- **38 browser checks** with Playwright and axe-core 4.14 in Chromium-based browsers:
   - axe found no WCAG 2.2 A or AA violations, no violations of its level AAA rules, such as 7:1 text contrast, and no best practice violations. That held in the light theme, the dark theme, a Windows contrast theme, both made-up languages, with error messages and other options showing, and with the message next to the pixel showing.
   - The page reflows at 320 CSS pixels wide, with the default font, a wide one, text twice as big, and both made-up languages, at every pixel size from 24 to 64, and nothing sticks out of its panel. It keeps all text visible with WCAG 1.4.12 text spacing, and follows the browser's font size.
   - At 100%, 200% and 400% zoom, the message next to the focused pixel, showing its row, column and color, stays on screen at all four corners of the body's front and never covers the pixel. When there's room, it sits beside the grid, inside the panel, and on the grid's left in right-to-left pages.
-  - At 175% and 200% zoom of a 1920 by 1080 screen, at 200% of a MacBook Air and in a short, wide window, nothing covers anything else as the page scrolls, no box hides part of what's in it behind its own scrollbar, and every Tab stop shows in full when it has focus (WCAG 2.4.11). With three columns, the 3D model is beside the pixels and both fit in the window together, and above the pixels with one column, the side picker's menus share a row.
-  - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels.
+  - At 175% and 200% zoom of a 1920 by 1080 screen, at 200% of a MacBook Air and in a short, wide window, nothing covers anything else as the page scrolls, no box hides part of what's in it behind its own scrollbar, and every Tab stop shows in full when it has focus (WCAG 2.4.11). With three columns, the 3D model is beside the pixels and both fit in the window together, and Open and Download are beside the name. Above the pixels with one column, the side picker's menus share a row.
+  - Every Tab stop shows a focus ring, and every control is at least 24 by 24 CSS pixels. The skip link is the first stop, then Open and Download.
+  - Tab and Shift+Tab go through the same stops in opposite orders and leave the page at both ends, as the page loads and with an error showing after a click on the 3D model, so nothing traps focus (WCAG 2.1.2).
   - The browser's accessibility tree has a named grid of named cells, and Ctrl+arrow and A work in the browser.
   - Pointing names the pixel under the mouse. A click paints on release, sliding off cancels it, and a fast drag paints a gapless line that undoes in one step.
-  - The 3D model turns with the View and Angle choices or by dragging, stays where a drag leaves it, doesn't animate when reduced motion is on, shows new paint at once, and turns to the side being edited. Pointing at it names the spot, and a click uses the tool there, painting with the Pencil or picking up the color with Pick color, and opens that pixel in the grid. The side facing the camera shows its true colors, and the see-through outer layer adds nothing to the picture.
-  - The checks under Engineering: the policy, the one-file copy, a downloaded skin opening with every pixel the same, a reset or missing 3D model, saving when the page is hidden, layout shift, and the 3D code waiting on a phone.
+  - The 3D model turns with the View and Angle choices or by dragging, stays where a drag leaves it, doesn't animate when reduced motion is on, shows new paint at once, and turns to the side being edited. Pointing at it names the spot, and a click opens that side with focus on that pixel, showing its focus ring and the message next to it, and changes nothing, even with Pick color. On a phone-sized page, the click scrolls up to the pixel. The side facing the camera shows its true colors, and the see-through outer layer adds nothing to the picture.
+  - The checks under Engineering: the policy, the one-file copy, a downloaded skin opening through the Open button with every pixel the same, a reset or missing 3D model, saving when the page is hidden, layout shift, and the 3D code waiting on a phone.
   - The site ships the license text of every open source package in it.
 - **ESLint** with the jsx-a11y accessibility rules (strict set), the React Hooks rules including the React Compiler's checks, the Fast Refresh rule from Vite's React template, and strict equality, `const` and no `var`. **Prettier** checks the formatting.
 - **8 accessibility checkers**, on November 9, 2026: Lighthouse, axe-core with every rule, Siteimprove Alfa, IBM Equal Access, HTML_CodeSniffer, the W3C HTML checker, WAVE and AudioEye. Six reported no WCAG A or AA failures; IBM and AudioEye reported a few under level A criteria. The findings led to darker gray text, links and error text, a caption for the shortcuts table, the skip link inside the header, and a footer link named by where it goes. [TESTING.md](TESTING.md) lists every finding, including the false positives and why. After the redesign, the five that run inside the page reported the same findings as on the live site before it, once spaces in the new tab icon's address were encoded, and Lighthouse still scored 100 for accessibility.
 - **Large text and zoom**, measured on November 10, 2026: at 200% and 400% zoom, with pixel sizes 32 and 48 and normal or double text, the status message below the grid was fully on screen at only 8 of 32 positions. The message next to the focused pixel was fully on screen, and clear of the pixel, at all 32.
 - **Zoom up to 200%**, measured on November 10, 2026, on 7 screen sizes at 6 zoom levels from 100% to 200%: before, in all 16 of the 42 with two columns, the side picker covered the panels below it, and 17 to 21 of the 41 Tab stops when they had focus. Now nothing covers anything else in any of the 42, or at 175% and 200% in both made-up languages. That still held after Tools and the 3D model moved beside the pixels.
 - **The 3D model beside the pixels**, measured the same day: at 1440 by 790 it started at 742 CSS pixels down the page, below the bottom of the window, and now starts at 186, beside the pixels. At 175% and 200% zoom of a 1920 by 1080 screen, it moved from below every other panel, 2,853 and 2,947 down, to 186, at the top of the third column.
-- **105 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor, then 2 for the P key, 12 for Replace and the checker fixes, 20 for the large text, zoom and keyboard pass, 9 for the redesign, 2 for zoom up to 200%, and 15 for the tools and the 3D model beside the pixels. The tests caught all 105. Three older ones were missed at first in later layouts, so three tests got stricter; [TESTING.md](TESTING.md) has how.
+- **Keyboard traps, the model's pixels and Download**, checked on November 11, 2026. A script tabbed forward and back through the live site in 9 states, and again on the new build: 3 window sizes, flat pictures, errors showing, after a click on the model, and both made-up languages. Each time, both ways reached the same 42 stops (40 with flat pictures) and left the page, and nothing had a positive `tabindex`, `role="application"`, or something focusable inside a part hidden from screen readers. After 33 different keys in the grid, and the keys of 5 other controls, Tab and Shift+Tab still left each one. On the model, each skin pixel was 7 to 10 CSS pixels wide, against 32 in the grid, and Download was 2.5 to 6.8 windows down the page. After the changes, Open and Download are 30 to 134 CSS pixels from the top, and the pixels start where they did from 1097 CSS pixels wide up, 21 lower at 200% zoom of a 1920 by 1080 screen, and 56 lower on a 390 by 844 phone. [TESTING.md](TESTING.md) has the details.
+- **122 planted bugs**, one per protected behavior, planted one at a time in the final code: 34 from earlier passes and 11 for the code-quality pass, like the editing commands, telling clicks from drags, and the grid's cursor, then 2 for the P key, 12 for Replace and the checker fixes, 20 for the large text, zoom and keyboard pass, 9 for the redesign, 2 for zoom up to 200%, 14 for the tools and the 3D model beside the pixels, and 18 for keyboard traps, the 3D model's clicks, the tool under the pixels, and Open and Download. The tests caught all 122. Three older ones were missed at first in later layouts, so three tests got stricter; [TESTING.md](TESTING.md) has how.
 - GitHub Actions runs all of these on every change, and publishes the site only when they pass.
 
 ## Not done yet
@@ -162,7 +171,9 @@ Everything else in `package.json`, like Vite, Vitest, Playwright, axe-core, ESLi
 - Partly transparent pixels can come back one step off after saving and opening, because a canvas stores colors with premultiplied alpha ([MDN, `putImageData`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/putImageData)). Solid and fully transparent pixels come back exactly.
 - Older 64 by 32 skins and Bedrock's 128 by 128 skins don't open.
 - Nobody has tried the 3D model, or the message next to the pixel, with a screen magnifier yet.
-- A click on the 3D model lands on the outer layer only where it has color, so it can't paint a new pixel where the outer layer is see-through. Those are painted in the grid.
+- A click on the 3D model lands on the outer layer only where it has color. Where the outer layer is see-through, it goes to the base layer pixel under it.
+- At 320 CSS pixels wide, Open and Download don't fit side by side, so they take two rows, and the pixels start 108 CSS pixels further down than before they moved to the top.
+- On a phone, the 3D model is more than 2,400 CSS pixels below the pixels, so a tap on it scrolls a long way up to the pixel, and Undo is off screen while you paint.
 - In a window narrower than 960 CSS pixels, like a tablet held upright or 200% zoom of a MacBook Air, the 3D model is below the pixels instead of beside them.
 - At 400% zoom of a 1280 by 720 window, a long message next to the pixel, like why Delete did nothing, runs 14 CSS pixels past the bottom of the window when the focused pixel is in the top left corner. It did before the redesign too. The same words are in the status message below the grid.
 - Which way the top and bottom sides run comes from skinview3d's code. Check it in the game.
@@ -191,8 +202,8 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Starts it at http://127.0.0.1:5180. Add `?lang=en-XA` or `?lang=ar-XB` to the address for the made-up languages |
-| `npm test` | Runs the 132 tests |
-| `npm run test:e2e` | Runs the 37 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
+| `npm test` | Runs the 134 tests |
+| `npm run test:e2e` | Runs the 38 browser checks. Locally they use Microsoft Edge. Run `npm run build:single` first, or the one-file copy check is skipped |
 | `npm run lint` | Runs ESLint |
 | `npm run format` | Formats the code with Prettier. `npm run format:check` only checks it |
 | `npm run build:single` | Writes `skin-editor.html`, the one-file copy |
@@ -212,7 +223,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/skin/camera.js` | The 3D model's camera math, and the ray from the camera through the pointer |
 | `src/skin/model.js` | The 3D character: its boxes, how the skin wraps them, and which side and pixel a ray lands on |
 | `src/skin/png.js` | Opening and saving PNGs, with the header and size checks |
-| `src/components/PixelGrid.jsx` | The pixel grid: keyboard, pointer and screen reader behavior, and the message next to the pixel |
+| `src/components/PixelGrid.jsx` | The pixel grid: keyboard, pointer and screen reader behavior, the message next to the pixel, and the tool under the grid |
 | `src/components/Model3D.jsx` | The 3D model: passes the editor's state to the scene, and turns drags and clicks into views and spots. Loaded only when shown |
 | `src/components/skinScene.js` | The Babylon.js scene: the character, its texture and outline, the camera, and turning |
 | `src/components/pointer.js` | Tells a click from a drag, and reports hovering once a frame |
@@ -221,6 +232,7 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/components/Tools.jsx`, `ReplaceColor.jsx` | More tools: for the whole side, and replacing a color on the whole skin |
 | `src/components/canvas.js` | Drawing pixels on a canvas, and checking for WebGL |
 | `src/components/Preview.jsx` | The choice of 3D model or flat pictures, with View and Angle, and what happens when 3D fails |
+| `src/components/FilePanel.jsx` | Open and Download at the top of the page, and starting over and wearing the skin under File |
 | `src/components/ErrorBoundary.jsx`, `CrashNotice.jsx` | What shows if the editor stops with an error |
 | `src/components/Logo.jsx` | The picture of the sample character's face beside the title |
 | `src/styles.css` | The colors, spacing and type, and how everything looks |
@@ -228,8 +240,8 @@ Needs [Node.js](https://nodejs.org/) 24.15 or newer in the 24 line, or Node.js 2
 | `src/editor/edits.js` | Every editing command, as a pure function |
 | `src/editor/tools.js` | The four tools: what a click, a drag or Space does with each |
 | `src/editor/` | Also undo history, settings, saving, and the hooks for the palette, saving and the status message |
-| `tests/` | The 132 Vitest tests |
-| `e2e/` | The 37 browser checks: accessibility, zoom, languages, and security, reliability and performance |
+| `tests/` | The 134 Vitest tests |
+| `e2e/` | The 38 browser checks: accessibility, zoom, languages, and security, reliability and performance |
 | `vite.config.js` | The build, the Content Security Policy and the third-party notices |
 | `TESTING.md` | What has been tested, and how to test with screen readers and players |
 | `.github/workflows/ci.yml` | Lints, audits and tests, then publishes to GitHub Pages |

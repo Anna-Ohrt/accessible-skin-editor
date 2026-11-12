@@ -5,12 +5,14 @@ import {
   colorsIn,
   grid,
   hiddenTabStops,
+  openSkin,
   overflow,
   overlappingPanels,
   scan,
   scrollBoxes,
   shot,
   status,
+  tabWalk,
 } from './helpers.js'
 
 test.beforeEach(async ({ page }) => {
@@ -34,7 +36,7 @@ test.describe('axe-core', () => {
     await hex.fill('#12345')
     await page.getByRole('button', { name: 'Add color' }).click()
     await expect(hex).toHaveAttribute('aria-invalid', 'true')
-    await page.getByLabel('Open a skin (a 64 by 64 PNG)').setInputFiles({
+    await openSkin(page, {
       name: 'skin.jpg',
       mimeType: 'image/jpeg',
       buffer: Buffer.from('not a skin'),
@@ -82,6 +84,9 @@ test('Windows contrast themes keep the pixel colors and show focus and disabled 
 
 test('reflows at 320 CSS pixels wide, like 400% zoom, with no sideways page scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 })
+  // Open and Download go under the name, so the name isn't squeezed beside them.
+  const [name, actions] = [await page.locator('h1').boundingBox(), await page.locator('.file-actions').boundingBox()]
+  expect(actions.y, 'Open and Download under the name').toBeGreaterThanOrEqual(name.y + name.height)
   // Fonts differ between systems, so it's checked with the default font, a wide one, and text twice as big.
   for (const font of ['default', 'wide', 'twice as big']) {
     if (font === 'wide') {
@@ -133,6 +138,9 @@ test('puts the 3D model beside the pixels with three columns, and the side picke
     await expect(model(page)).toBeVisible()
     const [pixels, shown] = [await grid(page).boundingBox(), await model(page).boundingBox()]
     const where = `${width} by ${height}`
+    // Open and Download sit beside the name, so they don't push the pixels and the model down.
+    const [name, actions] = [await page.locator('h1').boundingBox(), await page.locator('.file-actions').boundingBox()]
+    expect(actions.y, `${where}: Open and Download beside the name`).toBeLessThan(name.y + name.height)
     expect(shown.x, `${where}: right of the pixels`).toBeGreaterThanOrEqual(pixels.x + pixels.width)
     const bottom = Math.max(pixels.y + pixels.height, shown.y + shown.height)
     expect(bottom - Math.min(pixels.y, shown.y), `${where}: fit in the window together`).toBeLessThanOrEqual(height)
@@ -214,6 +222,32 @@ test('Tab reaches every control with a visible focus ring, and the grid is one s
   expect(gridIndex - stops.findIndex((stop) => stop.name === 'Side')).toBe(3)
   // The paint colors are the very next stop, so changing color from the grid is Tab, then Shift+Tab back.
   expect(stops[gridIndex + 1]).toMatchObject({ kind: 'input radio', name: 'black' })
+  // The skip link comes first, then Open and Download, so they're found without scrolling.
+  expect(stops.slice(0, 3).map((stop) => stop.name)).toEqual(['Skip to the pixels', 'Open a skin', 'Download skin.png'])
+})
+
+// The same stops each way, and out of the page at both ends, so no part of the page keeps focus.
+test('Tab and Shift+Tab go through the same stops in opposite orders and leave the page (no keyboard trap)', async ({
+  page,
+}) => {
+  for (const state of ['as it loads', 'with an error showing, after a click on the 3D model']) {
+    if (state !== 'as it loads') {
+      await openSkin(page, { name: 'skin.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a skin') })
+      await model(page).scrollIntoViewIfNeeded()
+      const box = await model(page).boundingBox()
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.45)
+      await expect(grid(page).locator('[tabindex="0"]')).toBeFocused()
+    }
+    // Each walk starts as a person's does: focus leaves the page before its first link, then Tab comes in.
+    await page.getByRole('link', { name: 'Skip to the pixels' }).focus()
+    await page.keyboard.press('Shift+Tab')
+    const forward = await tabWalk(page, 'Tab')
+    const backward = await tabWalk(page, 'Shift+Tab')
+    expect(forward.trappedAt, `${state}: Tab`).toBeUndefined()
+    expect(backward.trappedAt, `${state}: Shift+Tab`).toBeUndefined()
+    expect(backward.stops.toReversed(), state).toEqual(forward.stops)
+    expect(forward.stops.length, state).toBeGreaterThan(30)
+  }
 })
 
 test('pointer targets are at least 24 by 24 CSS pixels (WCAG 2.5.8)', async ({ page }) => {
@@ -241,7 +275,7 @@ test('the grid works from the keyboard, and Chromium exposes it as a named grid 
   await page.keyboard.press('Tab')
   await expect(cell(page, 1, 1)).toBeFocused()
   await expect(grid(page)).toHaveAccessibleDescription(
-    /^8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/,
+    /^Pencil, black\. 8 by 8 pixels\. Seen from the front, so column 1 is on the character's right/,
   )
   await expect(grid(page)).toMatchAriaSnapshot(`
     - grid "Head, front, base layer":
@@ -428,42 +462,62 @@ test.describe('3D model', () => {
     await expect(model(page)).toHaveAccessibleName('3D model of the skin, seen from the back and above')
   })
 
-  test('names the spot under the pointer, and a click uses the tool there and opens that side', async ({ page }) => {
+  test('names the spot under the pointer, and a click goes to that pixel in the grid without changing it', async ({
+    page,
+  }) => {
+    // Moves down the middle of the model until the hint under it matches, and returns where.
+    async function pointAt(pattern) {
+      await model(page).scrollIntoViewIfNeeded()
+      const box = await model(page).boundingBox()
+      const hint = page.locator('figure.preview + p.hint')
+      for (let y = box.y + 8; y < box.y + box.height - 8; y += 6) {
+        await page.mouse.move(box.x + box.width / 2, y)
+        await page.waitForTimeout(60)
+        const match = pattern.exec(await hint.textContent())
+        if (match) return { x: box.x + box.width / 2, y, match }
+      }
+      return null
+    }
     await page.getByRole('combobox', { name: 'Body part' }).selectOption('body')
     await expect(grid(page)).toHaveAccessibleName('Body, front, base layer')
-    await model(page).scrollIntoViewIfNeeded()
-    const box = await model(page).boundingBox()
-    const hint = page.getByText(/^(Pointing at|Drag the model)/)
-    await expect(hint).toHaveText(
-      'Drag the model to turn it. Clicking it uses the tool on that spot, and opens that side.',
+    await expect(page.locator('figure.preview + p.hint')).toHaveText(
+      'Drag the model to turn it. Click a spot to edit it in the pixels.',
     )
+    const spot = await pointAt(/^Pointing at Head, front, base layer, row (\d+), column (\d+)\.$/)
+    expect(spot, 'the pointer found the front of the head').not.toBeNull()
 
-    // Move down the middle of the model until the hint names the head's front.
-    let target = null
-    for (let y = box.y + 8; y < box.y + box.height / 2 && target === null; y += 6) {
-      await page.mouse.move(box.x + box.width / 2, y)
-      await page.waitForTimeout(60)
-      if (/^Pointing at Head, front, base layer, row \d+, column \d+\.$/.test(await hint.textContent())) target = y
-    }
-    expect(target, 'the pointer found the front of the head').not.toBeNull()
-
-    await page.mouse.click(box.x + box.width / 2, target)
+    // Pixels on the model are 7 to 10 CSS pixels wide, so a click opens that side with focus on that pixel.
+    await page.mouse.click(spot.x, spot.y)
     await expect(grid(page)).toHaveAccessibleName('Head, front, base layer')
-    await expect(status(page)).toHaveText(/^Head, front, base layer, row \d+, column \d+\. Painted black\./)
-    const [, row, col] = /row (\d+), column (\d+)/.exec(await status(page).textContent())
-    await expect(grid(page).locator('[tabindex="0"]')).toHaveAccessibleName(`black, row ${row}, column ${col}`)
+    const [, row, col] = spot.match
+    const pixel = cell(page, Number(row), Number(col))
+    await expect(pixel).toBeFocused()
+    expect(await pixel.evaluate((element) => element.matches(':focus-visible')), 'the focus ring shows').toBe(true)
+    await expect(page.locator('.callout')).toHaveText(new RegExp(`^Row ${row}, column ${col}: `))
+    await expect(page.getByRole('button', { name: 'Undo' })).toHaveAttribute('aria-disabled', 'true')
+    // From there, Space uses the tool, and Tab goes on to the paint colors as usual.
+    await page.keyboard.press('Space')
+    await expect(status(page)).toHaveText(/Painted black\./)
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('radio', { name: 'black' })).toBeFocused()
 
-    // With Pick color, the same spot gives up its color instead, and the Pencil comes back.
+    // Pick color doesn't pick from the model either.
     await page.getByRole('radio', { name: 'red' }).check()
     await page.getByRole('radio', { name: 'Pick color' }).check()
-    await model(page).scrollIntoViewIfNeeded()
-    const now = await model(page).boundingBox()
-    await page.mouse.click(now.x + now.width / 2, now.y + target - box.y)
-    await expect(status(page)).toHaveText(
-      new RegExp(`^Head, front, base layer, row ${row}, column ${col}\\. Picked up black\\. .* Back to the Pencil\\.`),
-    )
-    await expect(page.getByRole('radio', { name: 'black' })).toBeChecked()
-    await expect(page.getByRole('radio', { name: 'Pencil' })).toBeChecked()
+    const again = await pointAt(new RegExp(`^Pointing at Head, front, base layer, row ${row}, column ${col}\\.$`))
+    await page.mouse.click(again.x, again.y)
+    await expect(pixel).toBeFocused()
+    await expect(page.getByRole('radio', { name: 'red' })).toBeChecked()
+    await expect(page.getByRole('radio', { name: 'Pick color' })).toBeChecked()
+
+    // On a phone the model is far below the pixels, so a tap on it scrolls up to the pixel.
+    await page.setViewportSize({ width: 390, height: 844 })
+    const far = await pointAt(/^Pointing at (.+), row (\d+), column (\d+)\.$/)
+    await page.mouse.click(far.x, far.y)
+    const [, side, farRow, farCol] = far.match
+    await expect(grid(page)).toHaveAccessibleName(side)
+    await expect(cell(page, Number(farRow), Number(farCol))).toBeFocused()
+    await expect(cell(page, Number(farRow), Number(farCol))).toBeInViewport()
   })
 })
 
