@@ -275,6 +275,8 @@ The browser checks in section 3 now walk the page both ways like this on every c
 
 Section 2 has 2 new tests, section 3 a new check for keyboard traps and changed checks for the model, the banner and Download, and section 4 the 18 bugs planted for them.
 
+Once live, the 38 browser checks passed against the site. Other programs kept the machine busy, so 5 of them ran out of their 30 second limit at first, and passed with a 4 minute limit. Lighthouse scored 100 for accessibility on mobile and desktop.
+
 ## What these checks can't tell you
 
 Playwright's own documentation says: "Automated accessibility tests can detect some common accessibility problems such as missing or invalid properties. But many accessibility problems can only be discovered through manual testing." ([Playwright](https://playwright.dev/docs/accessibility-testing))
