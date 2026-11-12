@@ -332,6 +332,8 @@ So choosing the Eraser and coming back to the same pixel took 16 key presses: 7 
 
 Section 2 has 2 new tests and 3 changed ones, and other tests now find Undo, the Pencil and the Eraser by the start of their names. Section 3 has a new check for undo and redo outside the grid, and section 4 the 15 bugs planted for them.
 
+Once live, the 39 browser checks passed against the site, run with a 4 minute limit for each because other programs kept the machine busy. Lighthouse scored 100 for accessibility on mobile and desktop.
+
 ## What these checks can't tell you
 
 Playwright's own documentation says: "Automated accessibility tests can detect some common accessibility problems such as missing or invalid properties. But many accessibility problems can only be discovered through manual testing." ([Playwright](https://playwright.dev/docs/accessibility-testing))
