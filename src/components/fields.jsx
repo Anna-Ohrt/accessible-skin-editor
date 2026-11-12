@@ -1,6 +1,7 @@
 import { useId } from 'react'
 
 // Radio buttons for one choice, as a fieldset with a visible legend, or named by the heading just above it.
+// An option can show the key that chooses it, which is then part of its name, so screen readers say it too.
 export function Choices({ legend, labelledBy, options, value, onChange }) {
   const name = useId()
   return (
@@ -16,6 +17,12 @@ export function Choices({ legend, labelledBy, options, value, onChange }) {
             onChange={() => onChange(option.value)}
           />
           {option.label}
+          {option.shortcut && (
+            <>
+              {' '}
+              <kbd>{option.shortcut}</kbd>
+            </>
+          )}
         </label>
       ))}
     </fieldset>

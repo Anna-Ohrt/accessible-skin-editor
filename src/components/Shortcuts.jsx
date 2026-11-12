@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/context.js'
+import { TOOL_KEYS } from '../editor/tools.js'
 
 // Each row is the keys, then what they do. Letter keys are the same in every language, so they're
 // written here; everything else comes from the messages. PixelGrid.jsx handles the keys.
@@ -10,13 +11,15 @@ const SHORTCUTS = [
   [{ id: 'keys.pages' }, 'keys.pagesAction'],
   [{ id: 'keys.paint' }, 'keys.paintAction'],
   [{ id: 'keys.shift' }, 'keys.shiftAction'],
+  [{ letter: TOOL_KEYS.pencil.toUpperCase() }, 'keys.pencilAction'],
+  [{ letter: TOOL_KEYS.eraser.toUpperCase() }, 'keys.eraserAction'],
   [{ letter: 'F' }, 'keys.fillAction'],
   [{ letter: 'I' }, 'keys.pickAction'],
   [{ id: 'keys.erase' }, 'keys.eraseAction'],
   [{ letter: 'R' }, 'keys.rowAction'],
   [{ letter: 'C' }, 'keys.columnAction'],
   [{ letter: 'A' }, 'keys.areaAction'],
-  [{ letter: 'P' }, 'keys.positionAction'],
+  [{ letter: 'N' }, 'keys.positionAction'],
   [{ id: 'keys.escape' }, 'keys.escapeAction'],
   [{ id: 'keys.undo' }, 'keys.undoAction'],
   [{ id: 'keys.redo' }, 'keys.redoAction'],

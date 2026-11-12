@@ -566,3 +566,30 @@ test('a click paints on release, sliding off cancels, and a fast drag paints a g
     await expect(cell(page, 3, col)).toHaveAccessibleName(`tan, row 3, column ${col}`)
   await expect(undo).toHaveAttribute('aria-disabled', 'true')
 })
+
+test('Ctrl+Z and Ctrl+Y work outside the grid too, and a text field keeps Ctrl+Z for its typing', async ({ page }) => {
+  await page.getByRole('radio', { name: 'red' }).check()
+  await cell(page, 1, 1).focus()
+  await page.keyboard.press('Space')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Space')
+  // In the grid, one press undoes one step, since the page skips what the grid handled.
+  await page.keyboard.press('Control+z')
+  await expect(cell(page, 1, 2)).toHaveAccessibleName('dark brown, row 1, column 2')
+  await expect(cell(page, 1, 1)).toHaveAccessibleName('red, row 1, column 1')
+
+  // From the paint colors, they still undo and redo.
+  await page.getByRole('radio', { name: 'red' }).focus()
+  await page.keyboard.press('Control+z')
+  await expect(cell(page, 1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+  await expect(status(page)).toHaveText('Undid painting.')
+  await page.keyboard.press('Control+y')
+  await expect(cell(page, 1, 1)).toHaveAccessibleName('red, row 1, column 1')
+
+  // In a text field, the browser's own undo takes back the typing, and the skin stays as it is.
+  const name = page.getByRole('textbox', { name: 'Name (optional)' })
+  await name.pressSequentially('Cape')
+  await page.keyboard.press('Control+z')
+  await expect(name).not.toHaveValue('Cape')
+  await expect(cell(page, 1, 1)).toHaveAccessibleName('red, row 1, column 1')
+})

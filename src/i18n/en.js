@@ -78,7 +78,7 @@ export default {
   'grid.tool': '{tool, select, fill {Fill, {color}} eraser {Eraser} pick {Pick color} other {Pencil, {color}}}',
   'grid.toolSaid': '{tool}.',
   'grid.help':
-    "<kbd>Arrow keys</kbd> move, and <kbd>Ctrl</kbd> with an arrow goes to where the color changes. <kbd>Space</kbd> uses the tool, and <kbd>Shift</kbd> with an arrow paints or erases as you move. <kbd>F</kbd> fills, <kbd>I</kbd> picks up a color, <kbd>R</kbd> or <kbd>C</kbd> reads a row or column, and <kbd>A</kbd> describes the area of this pixel's color. <kbd>P</kbd> stops or starts saying each pixel's row and column. <kbd>Tab</kbd> goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
+    "<kbd>Arrow keys</kbd> move, and <kbd>Ctrl</kbd> with an arrow goes to where the color changes. <kbd>Space</kbd> uses the tool, and <kbd>Shift</kbd> with an arrow paints or erases as you move. <kbd>P</kbd> or <kbd>E</kbd> chooses the Pencil or Eraser. <kbd>F</kbd> fills, <kbd>I</kbd> picks up a color and <kbd>Delete</kbd> erases, with any tool. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes. <kbd>R</kbd> or <kbd>C</kbd> reads a row or column, and <kbd>A</kbd> describes the area of this pixel's color. <kbd>N</kbd> stops or starts saying each pixel's row and column. <kbd>Tab</kbd> goes to the paint colors. All the keys are listed under Keyboard shortcuts.",
   'grid.cell': '{color}, row {row, number}, column {col, number}',
   // What's shown under the grid: the pixel with focus, or the one under the mouse or pen.
   'grid.readout': '{pointing, select, yes {Pointing at row} other {Row}} {row, number}, column {col, number}: {color}',
@@ -132,7 +132,7 @@ export default {
   'status.edge': '{edge, select, right {Right} left {Left} top {Top} other {Bottom}} edge.',
   'status.readRow': 'Row {row, number}, left to right: {line}.',
   'status.readColumn': 'Column {col, number}, top to bottom: {line}.',
-  'status.positionOff': 'Pixels no longer say their row and column. P turns it back on.',
+  'status.positionOff': 'Pixels no longer say their row and column. N turns it back on.',
   'status.positionOn': 'Pixels say their row and column again.',
   'status.undo.none': 'Nothing to undo.',
   'status.undo.done': 'Undid {action}.',
@@ -207,6 +207,9 @@ export default {
   'tools.mirrorRight': 'Mirror the right half onto the left',
   'tools.undo': 'Undo',
   'tools.redo': 'Redo',
+  // The key shown on each button, as part of its name.
+  'tools.undoKey': 'Ctrl+Z',
+  'tools.redoKey': 'Ctrl+Y',
   'tools.copyTo': 'Copy this side to',
   'tools.flip': 'Flip it left to right',
   'tools.copy': 'Copy',
@@ -272,7 +275,7 @@ export default {
   // Keyboard shortcuts. The letter keys stay the same in every language, so they aren't here. <kbd> marks each
   // key, which shows it as a key on the page and adds no words to the text.
   'keys.intro':
-    "These work while a pixel has focus. Letters only work there, so they don't get in the way of typing elsewhere. On a Mac, Command works as Ctrl.",
+    "These work while a pixel has focus. Ctrl+Z and Ctrl+Y also work anywhere else on the page, except in a text field. Letters only work in the pixels, so they don't get in the way of typing elsewhere. On a Mac, Command works as Ctrl, but Command+Shift+Z redoes, since Command+Y opens the history in Chrome.",
   'keys.caption': 'Keys for the pixel grid',
   'keys.keysHeader': 'Keys',
   'keys.actionHeader': 'What they do',
@@ -290,6 +293,8 @@ export default {
   'keys.paintAction': 'Use the tool on the pixel: paint it, fill from it, erase it or pick up its color.',
   'keys.shift': '<kbd>Shift</kbd>+<kbd>arrow key</kbd>',
   'keys.shiftAction': 'Move, and paint or erase the pixel you move to with the Pencil or Eraser.',
+  'keys.pencilAction': 'Choose the Pencil.',
+  'keys.eraserAction': 'Choose the Eraser.',
   'keys.fillAction': 'Fill: paint the connected pixels that match this one.',
   'keys.pickAction': 'Pick up this pixel’s color as the paint color.',
   'keys.erase': '<kbd>Delete</kbd> or <kbd>Backspace</kbd>',

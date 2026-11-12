@@ -280,6 +280,18 @@ kbd {
   box-decoration-break: clone;
 }
 
+/* A control's key, as menus show theirs. It takes the control's text color, so it dims with the control. */
+.choice kbd,
+button kbd {
+  font-size: 0.875rem;
+  color: inherit;
+}
+
+/* In a chip, the key sits at the end. */
+.choice kbd {
+  margin-inline-start: auto;
+}
+
 /* Forms */
 .field {
   margin-bottom: 16px;
@@ -427,20 +439,13 @@ fieldset > .choice:has(input:disabled) {
   grid-template-columns: repeat(auto-fill, minmax(min(7.25rem, 100%), 1fr));
 }
 
-/* Undo and Redo go beside the tools when one row fits all six, as at 200% zoom of a MacBook Air. */
-.tool-choice {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: start;
-  column-gap: 8px;
-}
-
-.tool-choice > fieldset {
-  flex: 1 1 calc(4 * 7.25rem + 24px);
-}
-
 .tool-choice > fieldset > .choice {
   padding-inline: 8px;
+}
+
+/* Undo and Redo, with their keys, still fit one row in the narrowest side column. */
+.tool-choice button {
+  padding-inline: 10px;
 }
 
 button {

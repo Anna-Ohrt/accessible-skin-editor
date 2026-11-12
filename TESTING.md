@@ -10,25 +10,27 @@ What has been tested, what that can't tell you, and what to do next. Status on N
 
 The code was reviewed against WCAG 2.2 levels A and AA, the [WAI-ARIA grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/), and the research in [RESEARCH.md](RESEARCH.md). It led to 12 changes, each listed with its source under "Review of the prototype" in RESEARCH.md.
 
-### 2. 134 component tests
+### 2. 136 component tests
 
 These run with Vitest and Testing Library on every change. They find things the way assistive technology does, by role and accessible name, and check:
 
 - The grid's name and description, one Tab stop, and each pixel's name, like "dark brown, row 1, column 1".
-- Every key: arrows, Ctrl+arrow and Command+arrow, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, F, I, R, C, A, P, Escape, Delete and Backspace, and Ctrl+Z and Ctrl+Y. Letter shortcuts also work on a Russian keyboard layout, by key position.
+- Every key: arrows, Ctrl+arrow and Command+arrow, Home, End, Page Up, Page Down, Ctrl+Home, Ctrl+End, Space, Enter, Shift+arrow, P, E, F, I, R, C, A, N, Escape, Delete and Backspace, and Ctrl+Z and Ctrl+Y. Letter shortcuts also work on a Russian keyboard layout, by key position.
 - Ctrl+arrow stops at each color change along row 5 of the face, and crosses row 1, which is all hair, in one press. A says the area of one color the pixel is in, and "This side in words" lists all 7 areas of the sample face in reading order. Both go by the colors' spoken names, and the two eyes, which don't touch, are separate areas.
 - The message next to the focused pixel is hidden from screen readers and shows the row, column and color, or what the last key did, like why Delete can't erase on the base layer. Shift+arrow's reason for not painting shows at the pixel it moved to. The message stays after R, goes after a move or after leaving the grid, Escape hides it, and the setting turns it off.
 - Pointing at a pixel names it below the grid, like "Pointing at row 5, column 3: blue (#3b5fcd)", and the readout goes back to the focused pixel when the pointer leaves.
-- P leaves the row and column out of the pixel names and puts them back, and focus stays on the pixel.
+- N leaves the row and column out of the pixel names and puts them back, and focus stays on the pixel.
 - The status message after each action, like "Painted green." and "Nothing to undo.", with the right plural: "1 pixel is", "2 pixels are". Shift+arrow painting and drags show their result in the pixels' names rather than repeating it, but still say why when they can't paint.
 - Every editing command on its own: what it changes, its undo label and its message, and when it refuses or changes nothing.
 - Replace: the colors on the skin, most first, with their pixel counts and without transparent; hex codes added only when two shades share a name; one undo step for the whole skin; and a see-through color refused where the color is on the base layer.
 - The skip link is inside the header's banner landmark, the shortcuts table is named by its caption, and links are named by where they go.
-- Key names shown as keys keep their words: the grid's description and the keys of all 17 shortcuts read as before. The mark beside the title is hidden from screen readers.
+- Key names shown as keys keep their words in the grid's description and in all 19 rows of the shortcuts table. The mark beside the title is hidden from screen readers.
 - Error messages: they're announced, the field is marked invalid, and focus moves to it. That includes a color name over 40 characters.
 - A screen reader's click, which has no pointer events, still paints.
 - Mouse painting happens on release, sliding off cancels it, and a drag undoes in one step.
-- The four tools, Pencil, Fill, Eraser and Pick color, are a group named "Tools" by its heading, with Undo and Redo beside them. With Fill, a click or Space fills, and a drag or Shift+arrow only moves. The Eraser erases by drag, click, Space or Shift+arrow, only on the outer layer, and a drag undoes in one step. Pick color picks up a color and goes back to the tool from before, saying which, and stays chosen on a transparent pixel.
+- The four tools, Pencil, Fill, Eraser and Pick color, are a group named "Tools" by its heading, with Undo and Redo beside them. The Pencil and Eraser show P and E, and Undo and Redo show Ctrl+Z and Ctrl+Y, as part of their names. With Fill, a click or Space fills, and a drag or Shift+arrow only moves. The Eraser erases by drag, click, Space or Shift+arrow, only on the outer layer, and a drag undoes in one step. Pick color picks up a color and goes back to the tool from before, saying which, and stays chosen on a transparent pixel.
+- In the pixels, P and E choose the Pencil and Eraser, say "Pencil, red." or "Eraser.", show it next to the pixel and under the pixels, and keep focus on the pixel. Shift+arrow and Space then use that tool.
+- Ctrl+Z and Ctrl+Y undo and redo from the paint colors as well as the pixels, and one press in the pixels undoes one step. Command+Z and Command+Shift+Z work too, Command+Y is left to the browser, and AltGr+Z, which types "ż" on a Polish keyboard, does nothing. In a text field, Ctrl+Z is left to the typing.
 - The tool shows under the pixels: "Pencil, black" or "Fill, red" with a square of the paint color, and "Eraser" or "Pick color" with no square, since they don't use it. The grid's description starts with it, like "Fill, red. 8 by 8 pixels.", and the line under the paint colors says "Chosen: red #c0392b".
 - The banner holds the skip link, then "Open a skin" and "Download skin.png". The Open button clicks the hidden file input, which opens the browser's file picker. A problem opening a file describes the Open button, and a problem making the PNG describes Download. The File panel says where they went.
 - On the 3D model, a press that moves less than 4 pixels is a click, a longer one is a drag that never ends in a click, and a missed or cancelled release ends quietly.
@@ -42,7 +44,7 @@ These run with Vitest and Testing Library on every change. They find things the 
 
 **Limit:** these run in jsdom, which works out names and roles from the page code. It's not a browser and not a screen reader, and it has no WebGL.
 
-### 3. 38 browser checks
+### 3. 39 browser checks
 
 These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows, Chromium on Linux in GitHub Actions on every change, and against the [live site](https://anna-ohrt.github.io/accessible-skin-editor/).
 
@@ -62,6 +64,7 @@ These run with Playwright in Chromium-based browsers: Microsoft Edge on Windows,
 | The browser's accessibility tree and the keyboard | A grid named "Head, front, base layer" with named cells. Space paints, R reads the row, Ctrl+arrow goes to where the color changes, A says the area, and the status message says what happened | 4.1.2, 4.1.3 |
 | The message next to the focused pixel, at 100%, 200% and 400% zoom of a 1280 by 720 window, at the four corners of the 8 by 12 body front | Showing the row, column and color, it's always fully on screen and never over the focused pixel. At 100% and 200% it's beside the grid, over no pixels. It shows why Delete did nothing, Escape hides it, and axe finds no violations while it shows. In a 1100 by 720 window, a message that long wraps beside the grid, inside the panel. A message that long can run past the bottom at 400%, as in section 9 | [W3C low vision needs](https://www.w3.org/TR/low-vision-needs/) 3.6.2, 1.4.13 |
 | A real mouse | Pointing names the pixel below the grid. A click paints on release and shows no message next to the pixel, which is for keyboard focus. Sliding off cancels, and a fast drag paints every pixel and undoes in one step | 1.4.1, 2.5.2, 2.5.7 |
+| Ctrl+Z and Ctrl+Y outside the grid | From the paint colors, they undo and redo. In the grid, one press undoes one step. In a text field, Ctrl+Z takes back the typing, and the skin stays as it is | |
 | The 3D model, turned by the View and Angle choices and by dragging | Its name says which way it faces, it stays where a drag leaves it, it doesn't animate when reduced motion is on, it shows new paint at once, and it turns to the side being edited | 1.1.1, 2.5.7, 2.3.3 |
 | Pointing at and clicking the 3D model | The page names the side and pixel under the pointer. A click opens that side with focus on that pixel, showing its focus ring and the message next to it, and changes nothing: Undo stays unavailable, and with Pick color the paint color stays. From there, Space paints and Tab goes to the paint colors. On a 390 by 844 page, the click scrolls up to the pixel | |
 | The 3D model's colors | The side facing the camera shows the sample's exact eye and mouth colors, and the see-through outer layer adds nothing to the picture, even seen at a slant | |
@@ -103,6 +106,10 @@ For keyboard traps, the 3D model's clicks, the tool under the pixels, and Open a
 
 Then 121 were planted again, one at a time, in the final code; the moved bug for the side clicked was planted later, on its own. The tests caught 120 of the 122. For the other 2, a test runner couldn't start on the busy machine, which proves nothing either way. Planted again on their own, both were caught, as was the one whose test had run out of time. So the tests caught all 122.
 
+For the keys for the tools, Undo and Redo, in section 13, 15 more were planted: P and E choosing nothing in the pixels, or each other's tool; a key that chooses a tool without changing it, or without saying so; Ctrl+Z working only in the grid; the page undoing again what the grid undid; Ctrl+Z in a text field undoing the skin instead of the typing; Command+Y redoing, which takes Chrome's history key on a Mac; Command+Shift+Z undoing instead of redoing; AltGr+Z undoing instead of typing a letter; Undo and Redo, or the tools, not showing their keys; screen readers not hearing the tools' keys; and the help under the pixels, or the shortcuts table, leaving out P and E. Three older ones changed with them: the one for shortcuts that only read the typed character moved to the new file for keys, and the 2 for the key that leaves out the position now press N. The tests caught all 15 new ones and the 3 changed ones.
+
+Then all 137 were planted again, one at a time, in the final code. Other programs kept the machine so busy that 16 runs proved nothing at first. For 11, the test runner couldn't start within its 60 seconds. For 3, building the site and starting its server took longer than the 2 minutes Playwright allows, so their checks never ran, though the script that plants the bugs had counted them as caught. For 2, the checks ran out of time loading the page or tabbing through it, before reaching what the bug breaks. The script now counts a server that doesn't start as proving nothing, tries a test runner that can't start up to 3 times, and builds the site before each browser check, with one server left running. Planted again, all 16 failed a check on what their bug breaks, one only once its 3 browser checks ran one at a time. One more check ran out of time too, but only after failing on what its bug breaks. So the tests caught all 137.
+
 ### 5. Checks by hand in a browser
 
 - Text and control contrast in the light and dark themes, worked out from the colors the page puts together: every pair passes. After the redesign, the lowest is 3.83 to 1 (control borders on a panel, light theme), above the 3 to 1 minimum. All text is at least 7 to 1, WCAG's AAA level; the lowest is 7.34 to 1 (links on the page background, light theme).
@@ -115,7 +122,7 @@ Then 121 were planted again, one at a time, in the final code; the moved bug for
 
 On November 3, 2026, moving through the pixels with NVDA 2026.3 read the column number twice. NVDA's source code shows why. With its default settings, NVDA says the row or column number itself whenever it changes, right after the cell's name ([speech.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/speech/speech.py#L2105-L2123), [configSpec.py](https://github.com/nvaccess/nvda/blob/release-2026.3/source/config/configSpec.py#L271)). The pixel names already end with the row and column, so moving right reads "dark brown, row 1, column 2, column 2", and moving down repeats the row the same way.
 
-JAWS is the opposite. An open report on Freedom Scientific's tracker, last confirmed with JAWS 2022, says JAWS reads only the cell's contents while arrowing through a grid ([issue 587](https://github.com/FreedomScientific/standards-support/issues/587)). So the pixel names keep the row and column by default, and P, pressed in the pixels, leaves them out or puts them back.
+JAWS is the opposite. An open report on Freedom Scientific's tracker, last confirmed with JAWS 2022, says JAWS reads only the cell's contents while arrowing through a grid ([issue 587](https://github.com/FreedomScientific/standards-support/issues/587)). So the pixel names keep the row and column by default, and a key pressed in the pixels leaves them out or puts them back: P at first, and N since November 11, 2026, when P began choosing the Pencil (section 13).
 
 ### 7. Eight accessibility checkers
 
@@ -277,6 +284,54 @@ Section 2 has 2 new tests, section 3 a new check for keyboard traps and changed 
 
 Once live, the 38 browser checks passed against the site. Other programs kept the machine busy, so 5 of them ran out of their 30 second limit at first, and passed with a 4 minute limit. Lighthouse scored 100 for accessibility on mobile and desktop.
 
+### 13. Keys for the tools, Undo and Redo
+
+On November 11, 2026, the question was whether each tool, Undo and Redo should have a key, since getting from the pixels to Undo seemed to take many presses of Tab.
+
+**Before.** A script in Edge tabbed from the top of the live site to the pixels, then pressed Shift+Tab and named each stop. The stops were the same at 1440 by 790 and on a 390 by 844 phone:
+
+| Shift+Tab presses from the pixels | Stop |
+| --- | --- |
+| 1 to 4 | Arm width, Layer, Side, Body part |
+| 5 | Redo |
+| 6 | Undo |
+| 7 | Tools, on the Pencil |
+
+So choosing the Eraser and coming back to the same pixel took 16 key presses: 7 Shift+Tab, 2 arrows and 7 Tab. Getting to Undo, pressing it and coming back took 13. In the pixels, Ctrl+Z undid, Ctrl+Y or Ctrl+Shift+Z redid, and F, I and Delete filled, picked up a color and erased with any tool, but no key chose a tool, which Shift+arrow and Space use. Ctrl+Z worked only in the pixels. It was in the shortcuts table at the end of the page, and the help under the pixels left out Ctrl+Z and Delete.
+
+**Other editors.**
+
+- MinecraftSkin.app, one of the editors whose layout the prototype follows, lists "keyboard shortcuts for every tool" ([MinecraftSkin.app](https://minecraftskin.app/editor/)). Its page shows them in tooltips, "Pencil (P)", "Eraser (E)", "Fill one face (F)", "Pick a colour (I)", "Undo (Ctrl+Z)" and "Redo (Ctrl+Y)". Its script handles them anywhere on the page except while an input has focus, and Ctrl+Shift+Z redoes too.
+- Piskel, a free pixel art editor, lists "Pen tool" on P, "Paint bucket tool" on B, "Eraser pen tool" on E and "Color picker" on O, with Undo on Ctrl+Z and Redo on Ctrl+Y or Ctrl+Shift+Z ([Piskel's source](https://github.com/piskelapp/piskel/blob/master/src/js/service/keyboard/Shortcuts.js)).
+
+**Guidance.** The W3C's ARIA Authoring Practices Guide says keyboard shortcuts "can dramatically enhance usability of frequently used features", and that "the primary means of making functions and their shortcuts discoverable is by making the target elements focusable and revealing key assignments on the element itself". If people "have to read documentation to learn which keys are required", only "the small subset of them who have the knowledge that such documentation exists" can use them. It also warns that with too many shortcuts, "the excess shortcuts create cognitive load that make the most useful ones more difficult to remember". A key that does its job without moving focus "can be particularly important for screen reader users because it provides confirmation of the action performed and makes performing multiple commands more efficient". Its table pairs Control+Z with Command+Z on a Mac, and Control+Y with Command+Shift+Z ([APG](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/#kbd_shortcuts)). Chrome on a Mac uses Command+Y to "Open the History page in a new tab" ([Chrome Help](https://support.google.com/chrome/answer/157179)). WCAG 2.1.4 allows single-letter keys that work only while part of the page has focus, so the letters stay in the pixels.
+
+**The changes.**
+
+- In the pixels, P chooses the Pencil and E the Eraser. Each says which, like "Pencil, black." or "Eraser.", shows it next to the pixel and under the pixels, and keeps focus on the pixel. F, I and Delete still fill, pick up a color and erase at once, so Fill and Pick color have no key that chooses them. The key that leaves out the row and column moved from P to N, since P now chooses the Pencil, as in both editors above.
+- Ctrl+Z and Ctrl+Y, and Ctrl+Shift+Z, undo and redo anywhere on the page, except in a text field, which keeps them for its typing. The grid still handles them itself, so its message shows next to the pixel, and the page skips what the grid handled. On a Mac, Command works as Ctrl, except Command+Y, which is left to the browser, and Command+Shift+Z redoes. AltGr, which is Ctrl+Alt on many keyboards, doesn't undo, since AltGr+Z types a letter on some, like "ż" on a Polish keyboard.
+- The Pencil and Eraser show P and E at the end of their chips, and Undo and Redo show Ctrl+Z and Ctrl+Y after their names, in the same style as the keys in the help. Each key is part of its control's name, so screen readers say it: Edge's accessibility tree has "Pencil P", "Eraser E", "Undo Ctrl+Z" and "Redo Ctrl+Y". They're in the names rather than only in `aria-keyshortcuts`, for which [a11ysupport.io](https://a11ysupport.io/tech/aria/aria-keyshortcuts_attribute) has no screen reader results. The help under the pixels now names P, E, Delete and Ctrl+Z, and the shortcuts table has rows for P and E.
+
+**After.** Measured in Edge on the live site before and the new build after, in CSS pixels from the top of the page:
+
+| Window | Pixels start, before and after | Undo and Redo |
+| --- | --- | --- |
+| 1920 by 950 | 232 and 232 | One row, as before |
+| 1440 by 790 | 232 and 232 | One row, as before |
+| 175% zoom of a 1920 by 1080 screen, 1097 by 542 | 253 and 253 | One row, as before |
+| 200% zoom of that screen, 960 by 475 | 274 and 274 | One row, as before, with 3 CSS pixels to spare |
+| 800 by 600 | 274 and 274 | One row, as before |
+| 200% zoom of a MacBook Air, 720 by 395 | 815 and 867 | Under the tools, instead of beside them |
+| A 390 by 844 phone | 1,078 and 1,078 | One row, as before |
+| 320 by 640 | 1,298 and 1,298 | One row, as before |
+
+- With their keys, Undo and Redo were first 129 and 126 CSS pixels wide, too wide to share a row in the narrowest left column, which has 242. With 10 pixels of padding on each side instead of 16, they take 239 together. At 200% zoom of a MacBook Air, they used to sit beside the tools; with their keys, the six controls would need 735 CSS pixels in one row, and there are 654, so the buttons take a row of their own. With Verdana, the wide font the reflow checks use, Undo and Redo take two rows in the narrowest column, nothing sticks out of its chip, and the page doesn't scroll sideways.
+- Going through every width from 700 to 770 CSS pixels, and 17 narrower ones down to 320, the live site had Undo and Redo beside the tools only in one column from 716 to 767 CSS pixels wide. That's the only place the pixels now start lower, by 52 CSS pixels. In Segoe UI, Undo and Redo share one row at every width checked.
+- The zoom script from section 10 found no problems on any of its 7 screens at 6 zoom levels, or at 175% and 200% in both made-up languages: nothing covers anything else as the page scrolls, no box hides part of what's in it behind its own scrollbar, nothing scrolls sideways, and all 42 Tab stops show in full when they have focus.
+- In the dark theme and an emulated Windows contrast theme, the keys take their control's colors, so they dim with Undo and Redo when there's nothing to undo or redo.
+
+Section 2 has 2 new tests and 3 changed ones, and other tests now find Undo, the Pencil and the Eraser by the start of their names. Section 3 has a new check for undo and redo outside the grid, and section 4 the 15 bugs planted for them.
+
 ## What these checks can't tell you
 
 Playwright's own documentation says: "Automated accessibility tests can detect some common accessibility problems such as missing or invalid properties. But many accessibility problems can only be discovered through manual testing." ([Playwright](https://playwright.dev/docs/accessibility-testing))
@@ -319,7 +374,9 @@ Listen for the open questions in RESEARCH.md:
 
 - When you reach the pixels, does the screen reader switch to focus mode by itself? If it doesn't, arrows and letters go to the screen reader instead of the editor.
 - After Space, do you hear "Painted ..." once, or twice?
-- Do you hear the row and column twice? NVDA does, until you press P in the pixels. Do you find P without help?
+- Do you hear the row and column twice? NVDA does, until you press N in the pixels. Do you find N without help?
+- Do Ctrl+Z and Ctrl+Y undo and redo from the paint colors and the menus, as they do in the pixels? Does the screen reader pass them to the page in browse mode too?
+- Do you hear the keys in the names of the Pencil, the Eraser, Undo and Redo, like "Undo Ctrl+Z", and do they help?
 - Do the color names help you picture the colors?
 - Do A and Ctrl+arrow help you find shapes, like the eyes, faster than reading row by row?
 - After choosing another side, how quickly can you get back to the pixels?
@@ -332,7 +389,7 @@ Listen for the open questions in RESEARCH.md:
 - **Real Windows contrast themes**, not the emulation ([Change color contrast in Windows](https://support.microsoft.com/en-us/windows/change-color-contrast-in-windows-fedc744c-90ac-69df-aed5-c8a90125e696)).
 - **Zoom** to 200% and 400% with Ctrl and +, and **screen magnifiers** such as Windows Magnifier, ZoomText and macOS Zoom. Check that the message next to the focused pixel, the 3D model's outline and the "Pointing at" text are easy to follow while zoomed in, and ask sighted keyboard users whether the message gets in their way.
 - **Reduced motion:** turn it on in the operating system's settings, and check that the 3D model jumps to a new view instead of turning.
-- **Speech recognition**, such as Windows Voice Access or Dragon. Buttons have visible names you can say; how a voice user reaches one pixel is an open question.
+- **Speech recognition**, such as Windows Voice Access or Dragon. Buttons have visible names you can say; how a voice user reaches one pixel is an open question. The Pencil, the Eraser, Undo and Redo have their keys at the end of their names, like "Undo Ctrl+Z", so check that saying "click Undo" still works.
 - **A phone or tablet:** painting with a finger, turning the 3D model with one finger, zooming with two, and the mobile screen readers above.
 - **More contrast:** turn on a high contrast setting that asks pages for more contrast (`prefers-contrast: more`), and check that hints, borders and grid lines get stronger.
 - **Another language:** once there's a real translation, test it with a screen reader set to that language. The W3C's Understanding page for WCAG 3.1.1 notes that screen readers use the page's language to "load the correct pronunciation rules".
@@ -351,6 +408,7 @@ This is the most important step, because only players can say whether this way o
 - Give them the tasks above, ask them to think aloud, and only help if they're stuck.
 - Ask whether Replace, which changes every pixel of one color at once, helps, and what other bigger tools they'd want, like ready-made parts.
 - Ask sighted and low vision players to find and fix a spot by clicking the 3D model, then by using the menus, and which felt easier. Ask players who know other skin editors whether they expected a click on the model to paint, as it does in editors made for painting on the model.
+- Ask players who know other skin editors whether they found P and E, and whether they expected F and I to choose Fill and Pick color, as they do in MinecraftSkin.app, instead of filling and picking up a color at once.
 - Ask low vision players, at the zoom or magnification they use, whether the message next to the focused pixel helps, and whether the 64 pixel size is big enough.
 
 ### 5. Keep the automated checks running

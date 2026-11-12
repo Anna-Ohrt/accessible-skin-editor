@@ -1,6 +1,10 @@
 // The tool a click, a drag or Space uses on a pixel. F, I and Delete still fill, pick and erase with any tool.
 export const TOOLS = ['pencil', 'fill', 'eraser', 'pick']
 
+// The letter that chooses a tool in the pixels, as in MinecraftSkin.app and Piskel. Fill and Pick color have
+// none, since F and I fill and pick at once.
+export const TOOL_KEYS = { pencil: 'p', eraser: 'e' }
+
 // Pencil and Eraser work along a drag or Shift+arrow. Fill and Pick color work on one pixel.
 export const draws = (tool) => tool === 'pencil' || tool === 'eraser'
 

@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useReducer, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useI18n } from './i18n/context.js'
 import { colorNamer, describeArea, describeLine, faceLabel, messageText } from './i18n/words.js'
@@ -8,6 +8,7 @@ import { areaAt, columnOf, getCell, rowOf } from './skin/pixels.js'
 import { SKIN_FILE_NAME, SkinFileError, downloadSkin, readSkinFile } from './skin/png.js'
 import { planEdit } from './editor/edits.js'
 import { historyReducer, initHistory, nextStep } from './editor/history.js'
+import { historyAction, takesTyping } from './editor/keys.js'
 import { chooseTool } from './editor/tools.js'
 import { loadDraft, startingDraft } from './editor/storage.js'
 import { useAnnouncer } from './editor/useAnnouncer.js'
@@ -89,6 +90,9 @@ export default function App() {
         return describeArea(i18n, areaAt(pixels, face, col, row, nameOf))
       case 'edge':
         return t('status.edge', { edge: action.edge })
+      case 'chooseTool':
+        setTools((value) => chooseTool(value, action.tool))
+        return t('grid.toolSaid', { tool: t('grid.tool', { tool: action.tool, color: paintName }) })
       // NVDA says the row or column itself when it changes, but JAWS doesn't in a grid, so it's on by default.
       case 'togglePosition': {
         const sayPosition = !settings.sayPosition
@@ -174,6 +178,19 @@ export default function App() {
     })
     gridRef.current.focusCursor()
   }
+
+  // Ctrl+Z and Ctrl+Y work anywhere on the page, as in other editors, except in a text field, which keeps them
+  // for its typing. The grid handles its own first.
+  const onHistoryKey = useEffectEvent((event) => {
+    const action = historyAction(event)
+    if (!action || event.defaultPrevented || takesTyping(event.target)) return
+    event.preventDefault()
+    handleAction(action)
+  })
+  useEffect(() => {
+    document.addEventListener('keydown', onHistoryKey)
+    return () => document.removeEventListener('keydown', onHistoryKey)
+  }, [])
 
   return (
     <>

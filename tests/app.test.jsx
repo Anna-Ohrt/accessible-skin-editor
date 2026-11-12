@@ -241,10 +241,10 @@ describe('Skin editor', () => {
     await user.keyboard('{Control>}y{/Control}')
     expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
     expect(status()).toHaveTextContent('Redid painting.')
-    await user.click(button('Undo'))
+    await user.click(button(/^Undo/))
     expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
-    expect(button('Undo')).toHaveAttribute('aria-disabled', 'true')
-    await user.click(button('Undo'))
+    expect(button(/^Undo/)).toHaveAttribute('aria-disabled', 'true')
+    await user.click(button(/^Undo/))
     expect(status()).toHaveTextContent('Nothing to undo.')
   })
 
@@ -254,7 +254,7 @@ describe('Skin editor', () => {
     await user.click(cell(1, 2))
     expect(cell(1, 2)).toHaveAccessibleName('red, row 1, column 2')
     expect(status()).toHaveTextContent('Painted red.')
-    await user.click(button('Undo'))
+    await user.click(button(/^Undo/))
     expect(cell(1, 2)).toHaveAccessibleName('dark brown, row 1, column 2')
     fireEvent.click(cell(1, 3))
     expect(cell(1, 3)).toHaveAccessibleName('red, row 1, column 3')
@@ -268,7 +268,7 @@ describe('Skin editor', () => {
     // Pointer capture sends the release to the grid; here it lands on no pixel.
     fireEvent.pointerUp(grid(), { button: 0 })
     expect(cell(1, 4)).toHaveAccessibleName('dark brown, row 1, column 4')
-    expect(button('Undo')).toHaveAttribute('aria-disabled', 'true')
+    expect(button(/^Undo/)).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('paints a drag from its first pixel, and undoes the whole stroke as one step', async () => {
@@ -276,9 +276,9 @@ describe('Skin editor', () => {
     await user.click(radio('red'))
     await user.pointer([{ keys: '[MouseLeft>]', target: cell(3, 1) }, { target: cell(3, 4) }, { keys: '[/MouseLeft]' }])
     for (const col of [1, 2, 3, 4]) expect(cell(3, col)).toHaveAccessibleName(`red, row 3, column ${col}`)
-    await user.click(button('Undo'))
+    await user.click(button(/^Undo/))
     for (const col of [1, 2, 3, 4]) expect(cell(3, col)).toHaveAccessibleName(`tan, row 3, column ${col}`)
-    expect(button('Undo')).toHaveAttribute('aria-disabled', 'true')
+    expect(button(/^Undo/)).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('says why a drag paints nothing on the base layer with a see-through color', async () => {
@@ -298,19 +298,81 @@ describe('Skin editor', () => {
     expect(cell(3, 1)).toHaveAccessibleName('tan, row 3, column 1')
   })
 
-  it('offers four tools named by the Tools heading, with Undo and Redo beside them', () => {
+  it('offers four tools named by the Tools heading, with Undo and Redo beside them, each showing its key', () => {
     setup()
     const tools = within(screen.getByRole('region', { name: 'Tools' }))
     expect(tools.getByRole('group')).toHaveAccessibleName('Tools')
+    // The key is part of each name, so screen readers say it too. F and I fill and pick at once instead.
     expect(tools.getAllByRole('radio').map((item) => item.labels[0].textContent)).toEqual([
-      'Pencil',
+      'Pencil P',
       'Fill',
-      'Eraser',
+      'Eraser E',
       'Pick color',
     ])
-    expect(radio('Pencil')).toBeChecked()
-    expect(tools.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
-    expect(tools.getByRole('button', { name: 'Redo' })).toBeInTheDocument()
+    expect(tools.getByRole('radio', { name: 'Pencil P' })).toBeChecked()
+    expect(tools.getByRole('radio', { name: 'Eraser E' })).toBeInTheDocument()
+    expect(tools.getByRole('button', { name: 'Undo Ctrl+Z' })).toBeInTheDocument()
+    expect(tools.getByRole('button', { name: 'Redo Ctrl+Y' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Tools' }).querySelectorAll('kbd')).toHaveLength(4)
+  })
+
+  it('chooses the Pencil or Eraser with P or E in the pixels, says which, and keeps focus on the pixel', async () => {
+    const { user } = setup()
+    await user.click(radio('Outer layer (hat)'))
+    await user.click(radio('red'))
+    focusGrid()
+    // Paints two pixels, then goes back to the first.
+    await user.keyboard(' {Shift>}{ArrowRight}{/Shift}{ArrowLeft}')
+    expect(cell(1, 2)).toHaveAccessibleName('red, row 1, column 2')
+    await user.keyboard('e')
+    expect(radio(/^Eraser/)).toBeChecked()
+    expect(status()).toHaveTextContent('Eraser.')
+    expect(document.querySelector('.callout')).toHaveTextContent('Eraser.')
+    expect(document.querySelector('.tool-now')).toHaveTextContent(/^Eraser$/)
+    expect(cell(1, 1)).toHaveFocus()
+    // Shift+arrow now erases as it moves, and Space erases.
+    await user.keyboard('{Shift>}{ArrowRight}{/Shift}')
+    expect(cell(1, 2)).toHaveAccessibleName('transparent, row 1, column 2')
+    await user.keyboard('{ArrowLeft} ')
+    expect(cell(1, 1)).toHaveAccessibleName('transparent, row 1, column 1')
+    await user.keyboard('p')
+    expect(radio(/^Pencil/)).toBeChecked()
+    expect(status()).toHaveTextContent('Pencil, red.')
+    await user.keyboard(' ')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+  })
+
+  it('undoes and redoes with Ctrl+Z and Ctrl+Y anywhere on the page, but leaves them to a text field', async () => {
+    const { user } = setup()
+    await user.click(radio('red'))
+    focusGrid()
+    await user.keyboard(' {ArrowRight} ')
+    // In the pixels, one press undoes one step, not two.
+    await user.keyboard('{Control>}z{/Control}')
+    expect(cell(1, 2)).toHaveAccessibleName('dark brown, row 1, column 2')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    // From the paint colors, with Ctrl or a Mac's Command.
+    act(() => radio('red').focus())
+    await user.keyboard('{Control>}z{/Control}')
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    expect(status()).toHaveTextContent('Undid painting.')
+    await user.keyboard('{Control>}y{/Control}')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    expect(status()).toHaveTextContent('Redid painting.')
+    await user.keyboard('{Meta>}z{/Meta}')
+    expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
+    await user.keyboard('{Meta>}{Shift>}z{/Shift}{/Meta}')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    // Command+Y is left to the browser, since Chrome on a Mac opens its history with it.
+    expect(fireEvent.keyDown(radio('red'), { key: 'y', code: 'KeyY', metaKey: true })).toBe(true)
+    expect(cell(1, 2)).toHaveAccessibleName('dark brown, row 1, column 2')
+    // AltGr is Ctrl+Alt on many keyboards, and AltGr+Z types a letter, like "ż" on a Polish one.
+    expect(fireEvent.keyDown(radio('red'), { key: '\u017c', code: 'KeyZ', ctrlKey: true, altKey: true })).toBe(true)
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
+    // In a text field, Ctrl+Z undoes the typing instead.
+    await user.type(screen.getByRole('textbox', { name: 'Name (optional)' }), 'Cape')
+    await user.keyboard('{Control>}z{/Control}')
+    expect(cell(1, 1)).toHaveAccessibleName('red, row 1, column 1')
   })
 
   it('shows the tool under the pixels with the color it uses, and starts the grid description with it', async () => {
@@ -324,7 +386,7 @@ describe('Skin editor', () => {
     expect(toolNow()).toHaveTextContent(/^Fill, red$/)
     expect(grid()).toHaveAccessibleDescription(/^Fill, red\. 8 by 8 pixels\./)
     // The Eraser and Pick color don't use the paint color, so it isn't shown with them.
-    await user.click(radio('Eraser'))
+    await user.click(radio(/^Eraser/))
     expect(toolNow()).toHaveTextContent(/^Eraser$/)
     expect(chip()).toBeNull()
     await user.click(radio('Pick color'))
@@ -359,18 +421,18 @@ describe('Skin editor', () => {
 
   it('erases with the Eraser by drag, click, Space or Shift+arrow, on the outer layer only', async () => {
     const { user } = setup()
-    await user.click(radio('Eraser'))
+    await user.click(radio(/^Eraser/))
     await user.click(cell(1, 1))
     expect(status()).toHaveTextContent("The base layer can't be see-through in Java Edition.")
     await user.click(radio('Outer layer (hat)'))
-    await user.click(radio('Pencil'))
+    await user.click(radio(/^Pencil/))
     await user.click(radio('red'))
     await user.pointer([{ keys: '[MouseLeft>]', target: cell(2, 1) }, { target: cell(2, 6) }, { keys: '[/MouseLeft]' }])
-    await user.click(radio('Eraser'))
+    await user.click(radio(/^Eraser/))
     await user.pointer([{ keys: '[MouseLeft>]', target: cell(2, 1) }, { target: cell(2, 3) }, { keys: '[/MouseLeft]' }])
     for (const col of [1, 2, 3]) expect(cell(2, col)).toHaveAccessibleName(`transparent, row 2, column ${col}`)
     expect(cell(2, 4)).toHaveAccessibleName('red, row 2, column 4')
-    await user.click(button('Undo'))
+    await user.click(button(/^Undo/))
     for (const col of [1, 2, 3]) expect(cell(2, col)).toHaveAccessibleName(`red, row 2, column ${col}`)
     expect(status()).toHaveTextContent('Undid erasing.')
     await user.click(cell(2, 4))
@@ -393,12 +455,12 @@ describe('Skin editor', () => {
     expect(status()).toHaveTextContent("Picked up blue. It's the paint color now. Back to Fill.")
     expect(radio('blue')).toBeChecked()
     expect(radio('Fill')).toBeChecked()
-    await user.click(radio('Pencil'))
+    await user.click(radio(/^Pencil/))
     await user.click(radio('Pick color'))
     focusGrid()
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowRight} ')
     expect(status()).toHaveTextContent("Picked up red. It's the paint color now. Back to the Pencil.")
-    expect(radio('Pencil')).toBeChecked()
+    expect(radio(/^Pencil/)).toBeChecked()
     // A transparent pixel has no color, so the tool stays ready for another try.
     await user.click(radio('Outer layer (hat)'))
     await user.click(radio('Pick color'))
@@ -459,15 +521,15 @@ describe('Skin editor', () => {
     expect(cell(1, 1)).toHaveAccessibleName('dark brown, #4a3220')
   })
 
-  it('stops and starts saying the row and column with P, without leaving the pixel', async () => {
+  it('stops and starts saying the row and column with N, without leaving the pixel', async () => {
     const { user } = setup()
     focusGrid()
-    await user.keyboard('p')
+    await user.keyboard('n')
     expect(cell(1, 1)).toHaveAccessibleName('dark brown')
     expect(cell(1, 1)).toHaveFocus()
-    expect(status()).toHaveTextContent('Pixels no longer say their row and column. P turns it back on.')
+    expect(status()).toHaveTextContent('Pixels no longer say their row and column. N turns it back on.')
     expect(screen.getByRole('checkbox', { name: 'Say the row and column with each pixel' })).not.toBeChecked()
-    await user.keyboard('p')
+    await user.keyboard('n')
     expect(cell(1, 1)).toHaveAccessibleName('dark brown, row 1, column 1')
     expect(status()).toHaveTextContent('Pixels say their row and column again.')
   })
@@ -572,7 +634,7 @@ describe('Skin editor', () => {
     expect(within(replace).getAllByRole('option')[0]).toHaveTextContent('red: 482 pixels')
     expect(button('Replace tan with red')).toBeInTheDocument()
 
-    await user.click(button('Undo'))
+    await user.click(button(/^Undo/))
     expect(status()).toHaveTextContent('Undid replacing 480 pixels.')
     expect(cell(1, 1)).toHaveAccessibleName('green, row 1, column 1')
     await user.selectOptions(replace, 'red: 2 pixels')
@@ -627,7 +689,7 @@ describe('Skin editor', () => {
     await first.user.selectOptions(screen.getByRole('combobox', { name: 'Pixel size on screen' }), '48')
     await first.user.click(button('Start over with the sample skin'))
     expect(cell(1, 1)).toHaveAccessibleName('dark brown')
-    await first.user.click(button('Undo'))
+    await first.user.click(button(/^Undo/))
     expect(status()).toHaveTextContent('Undid starting over.')
     first.unmount()
 
@@ -772,7 +834,7 @@ describe('Skin editor', () => {
   it('shows key names as keys without changing their words, and keeps the logo out of what screen readers say', () => {
     const { container } = setup()
     expect(grid()).toHaveAccessibleDescription(
-      /Arrow keys move, and Ctrl with an arrow goes to where the color changes\. Space uses the tool, and Shift with an arrow paints or erases as you move\. F fills, I picks up a color, R or C reads a row or column/,
+      /Arrow keys move, and Ctrl with an arrow goes to where the color changes\. Space uses the tool, and Shift with an arrow paints or erases as you move\. P or E chooses the Pencil or Eraser\. F fills, I picks up a color and Delete erases, with any tool\. Ctrl\+Z undoes\. R or C reads a row or column/,
     )
     const keys = within(screen.getByRole('table', { name: 'Keys for the pixel grid' }))
     expect(keys.getAllByRole('rowheader').map((header) => header.textContent)).toEqual([
@@ -783,18 +845,20 @@ describe('Skin editor', () => {
       'Page Up, Page Down',
       'Space or Enter',
       'Shift+arrow key',
+      'P',
+      'E',
       'F',
       'I',
       'Delete or Backspace',
       'R',
       'C',
       'A',
-      'P',
+      'N',
       'Escape',
       'Ctrl+Z',
       'Ctrl+Y or Ctrl+Shift+Z',
     ])
-    expect(container.querySelectorAll('.hint kbd')).toHaveLength(11)
+    expect(container.querySelectorAll('.hint kbd')).toHaveLength(16)
     expect(container.querySelector('.logo')).toHaveAttribute('aria-hidden', 'true')
   })
 })

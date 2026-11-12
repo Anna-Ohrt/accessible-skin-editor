@@ -1,7 +1,8 @@
 import { useId, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/context.js'
 import { faceLabel, faceOrientation } from '../i18n/words.js'
-import { draws, paints, strokeAction, toolAction } from '../editor/tools.js'
+import { TOOL_KEYS, draws, paints, strokeAction, toolAction } from '../editor/tools.js'
+import { historyAction, shortcutLetter } from '../editor/keys.js'
 import { getCell, nextChange } from '../skin/pixels.js'
 import { alphaOf, toCss, toHex } from '../skin/color.js'
 
@@ -11,14 +12,6 @@ const EDGES = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'bottom', Arr
 const READS = new Set(['readRow', 'readColumn', 'readArea'])
 
 const samePlace = (a, b) => a?.col === b?.col && a?.row === b?.row
-
-// The letter a shortcut key stands for: the typed letter on a Latin layout, or else the key's position
-// on a US keyboard (event.code), so shortcuts also work with Cyrillic or Greek layouts.
-function shortcutLetter(event) {
-  if (/^[a-z]$/i.test(event.key)) return event.key.toLowerCase()
-  const match = /^Key([A-Z])$/.exec(event.code ?? '')
-  return match && event.key.length === 1 ? match[1].toLowerCase() : null
-}
 
 // Every cell on the straight line between two cells, so a fast stroke doesn't skip any.
 function cellsBetween(from, to) {
@@ -124,9 +117,11 @@ export default function PixelGrid({
     const ctrl = event.ctrlKey || event.metaKey
     const letter = shortcutLetter(event)
 
-    if (ctrl && (letter === 'z' || letter === 'y')) {
+    // Undo and redo here too, so their message shows next to the pixel. The page skips what this handled.
+    const travel = historyAction(event)
+    if (travel) {
       event.preventDefault()
-      report({ type: letter === 'y' || shiftKey ? 'redo' : 'undo' })
+      report(travel)
       return
     }
     if (altKey) return
@@ -182,8 +177,9 @@ export default function PixelGrid({
       r: { type: 'readRow', row },
       c: { type: 'readColumn', col },
       a: { type: 'readArea', col, row },
-      p: { type: 'togglePosition' },
+      n: { type: 'togglePosition' },
     }
+    for (const [choice, toolKey] of Object.entries(TOOL_KEYS)) letters[toolKey] = { type: 'chooseTool', tool: choice }
     const action = keys[key] ?? (letter && letters[letter])
     if (!action) return
     event.preventDefault()
